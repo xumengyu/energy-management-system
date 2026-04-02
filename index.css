@@ -21,7 +21,7 @@
   --color-slate-850: #1e293b;
   --color-slate-950: #020617;
 
-  --color-apple-bg-light: #EAEBE3;
+  --color-apple-bg-light: #f9fafc;
   /* Dark canvas — global base */
   --color-apple-bg-dark: #191C20;
   --color-apple-surface-light: #FFFFFF;
@@ -44,6 +44,31 @@
 @layer base {
   body {
     @apply antialiased;
+  }
+}
+
+/* 与电价列表页一致的页面壳层与卡片（浅色：白底 + slate 边框） */
+@keyframes ems-page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer components {
+  .ems-page-shell {
+    @apply p-4 w-full;
+    animation: ems-page-enter 0.3s ease-out;
+  }
+
+  .ems-card {
+    @apply bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm;
+  }
+
+  .ems-segmented {
+    @apply flex bg-slate-100 dark:bg-apple-surface-secondary-dark p-1 rounded-xl border border-slate-200 dark:border-apple-border-dark;
   }
 }
 

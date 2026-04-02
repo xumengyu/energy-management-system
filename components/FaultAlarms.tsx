@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { 
-    Search, Filter, AlertTriangle, Info, XCircle, CheckCircle2, MoreHorizontal, Eye, BellOff,
-    Calendar, ChevronDown, ChevronLeft, ChevronRight
+    Search, Filter, AlertTriangle, Info, XCircle, CheckCircle2,
+    Calendar, ChevronDown, ChevronLeft, ChevronRight, Activity, List, MapPin, Eye
 } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
@@ -33,7 +33,7 @@ interface FaultAlarmsProps {
     theme: Theme;
 }
 
-const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang, theme }) => {
+const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang }) => {
     const t = translations[lang].faultAlarms;
     const [searchTerm, setSearchTerm] = useState('');
     const [levelFilter, setLevelFilter] = useState<string>('all'); // all, 1, 2, 3
@@ -189,21 +189,21 @@ const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang, theme }) => {
     const renderLevelBadge = (level: number) => {
         if (level === 3) {
             return (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800">
-                    <XCircle size={14} /> {t.levels.l3}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400">
+                    <XCircle size={12} /> {t.levels.l3}
                 </span>
             );
         }
         if (level === 2) {
             return (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                    <AlertTriangle size={14} /> {t.levels.l2}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                    <AlertTriangle size={12} /> {t.levels.l2}
                 </span>
             );
         }
         return (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                <Info size={14} /> {t.levels.l1}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                <Info size={12} /> {t.levels.l1}
             </span>
         );
     };
@@ -211,110 +211,123 @@ const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang, theme }) => {
     const renderStatusBadge = (status: string) => {
         if (status === 'Active') {
             return (
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-600 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-400">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />
                     {t.status.active}
                 </span>
             );
         }
         return (
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-                <CheckCircle2 size={14} className="text-emerald-500"/>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                <CheckCircle2 size={12} />
                 {t.status.recovered}
             </span>
         );
     };
 
+    const statusTabBtn = (active: boolean) =>
+        `flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap ${
+            active
+                ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+        }`;
+
     return (
-        <div className="p-2 w-full animate-in fade-in duration-300">
-            {/* Header / Toolbar */}
-            <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm mb-4 flex flex-col xl:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4 w-full xl:w-auto">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl">
-                            <AlertTriangle size={24} />
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{t.title}</h1>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total: {alarms.length} / Active: {alarms.filter(a => a.status === 'Active').length}</p>
+        <div className="ems-page-shell">
+            {/* Header / Toolbar — 与电价列表同款 */}
+            <div className="ems-card mb-4 flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row sm:items-center md:w-auto md:gap-6">
+                    <div className="custom-scrollbar-hide flex min-w-0 items-center overflow-x-auto">
+                        <div className="ems-segmented shrink-0">
+                            {(
+                                [
+                                    { id: 'Active' as const, label: t.status.active, icon: Activity },
+                                    { id: 'Recovered' as const, label: t.status.recovered, icon: CheckCircle2 },
+                                    { id: 'all' as const, label: t.status.all, icon: List },
+                                ] as const
+                            ).map((item) => (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => setStatusFilter(item.id)}
+                                    className={statusTabBtn(statusFilter === item.id)}
+                                >
+                                    <item.icon size={16} />
+                                    {item.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
-                    <div className="h-8 w-px bg-slate-200 dark:bg-white/10 hidden xl:block mx-2"></div>
-                    <div className="relative w-full xl:w-64">
+
+                    <div className="hidden h-8 w-px shrink-0 bg-slate-200 dark:bg-white/10 sm:block" />
+
+                    <div className="relative w-full sm:min-w-[200px] md:w-64">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input 
-                            type="text" 
-                            placeholder={translations[lang].header.searchPlaceholder} 
+                        <input
+                            type="text"
+                            placeholder={t.search}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-xl text-base outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900 transition-all"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:focus:ring-blue-900"
                         />
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full xl:w-auto justify-end flex-wrap">
-                    {/* Date Range Picker */}
+                <div className="flex w-full flex-wrap items-center justify-end gap-3 md:w-auto">
                     <div className="relative">
-                        <button 
+                        <button
+                            type="button"
                             onClick={() => setIsDateOpen(!isDateOpen)}
-                            className={`flex items-center gap-3 bg-white dark:bg-apple-surface-dark border rounded-xl px-4 py-2 text-base font-bold transition-all group min-w-[200px] justify-between
-                            ${isDateOpen ? 'border-brand-500 ring-2 ring-brand-100 dark:ring-brand-900/30' : 'border-slate-200 dark:border-apple-border-dark hover:border-slate-300'}`}
+                            className={`group flex min-w-[200px] items-center justify-between gap-3 rounded-xl border bg-white px-4 py-2 text-sm font-bold transition-all dark:bg-apple-surface-dark ${
+                                isDateOpen
+                                    ? 'border-brand-500 ring-2 ring-brand-100 dark:ring-brand-900/30'
+                                    : 'border-slate-200 hover:border-slate-300 dark:border-apple-border-dark'
+                            }`}
                         >
-                            <div className="flex items-center gap-2">
-                                <Calendar size={16} className="text-slate-400 group-hover:text-brand-500 transition-colors"/>
-                                <span className="text-slate-700 dark:text-slate-200 font-mono text-sm">
-                                {dateRange.start} <span className="text-slate-300 mx-1">→</span> {dateRange.end}
+                            <div className="flex min-w-0 items-center gap-2">
+                                <Calendar size={16} className="shrink-0 text-slate-400 transition-colors group-hover:text-brand-500" />
+                                <span className="truncate font-mono text-slate-700 dark:text-slate-200">
+                                    {dateRange.start} <span className="mx-1 text-slate-300">→</span> {dateRange.end}
                                 </span>
                             </div>
-                            <ChevronDown size={14} className={`text-slate-400 transition-transform duration-300 ${isDateOpen ? 'rotate-180' : ''}`}/>
+                            <ChevronDown
+                                size={14}
+                                className={`shrink-0 text-slate-400 transition-transform duration-300 ${isDateOpen ? 'rotate-180' : ''}`}
+                            />
                         </button>
-                        
+
                         {isDateOpen && (
                             <>
-                                <div className="fixed inset-0 z-30" onClick={() => setIsDateOpen(false)}></div>
-                                <div className="absolute top-full right-0 mt-2 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark shadow-xl rounded-2xl z-40 animate-in fade-in zoom-in-95 duration-100">
+                                <div className="fixed inset-0 z-30" onClick={() => setIsDateOpen(false)} />
+                                <div className="absolute right-0 top-full z-40 mt-2 animate-in rounded-2xl border border-slate-200 bg-white shadow-xl duration-100 zoom-in-95 dark:border-apple-border-dark dark:bg-apple-surface-dark">
                                     {renderCalendar()}
                                 </div>
                             </>
                         )}
                     </div>
 
-                    {/* Level Filter */}
-                    <div className="relative group">
-                        <select 
+                    <div className="relative">
+                        <select
                             value={levelFilter}
                             onChange={(e) => setLevelFilter(e.target.value)}
-                            className="appearance-none pl-4 pr-8 py-2 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-xl text-base font-bold text-slate-600 dark:text-slate-300 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-100 transition-all cursor-pointer"
+                            className="cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-4 pr-9 text-sm font-bold text-slate-600 transition-all hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:focus:ring-blue-900"
+                            aria-label={t.levels.all}
                         >
                             <option value="all">{t.levels.all}</option>
                             <option value="1">{t.levels.l1}</option>
                             <option value="2">{t.levels.l2}</option>
                             <option value="3">{t.levels.l3}</option>
                         </select>
-                        <Filter size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="relative group">
-                        <select 
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="appearance-none pl-4 pr-8 py-2 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-xl text-base font-bold text-slate-600 dark:text-slate-300 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-100 transition-all cursor-pointer"
-                        >
-                            <option value="all">{t.status.all}</option>
-                            <option value="Active">{t.status.active}</option>
-                            <option value="Recovered">{t.status.recovered}</option>
-                        </select>
-                        <Filter size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <Filter size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     </div>
                 </div>
             </div>
 
-            {/* List Table */}
-            <div className="bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm overflow-hidden">
+            {/* List Table — 与电价列表同款表格密度与行交互 */}
+            <div className="ems-card overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-base text-left">
-                        <thead className="text-sm text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-apple-surface-secondary-dark/50 border-b border-slate-100 dark:border-apple-border-dark font-bold uppercase tracking-wider">
+                    <table className="w-full text-left text-sm">
+                        <thead className="border-b border-slate-100 bg-slate-50/50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50 dark:text-slate-400">
                             <tr>
                                 <th className="px-6 py-4">{t.cols.time}</th>
                                 <th className="px-6 py-4">{t.cols.level}</th>
@@ -323,59 +336,107 @@ const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang, theme }) => {
                                 <th className="px-6 py-4">{t.cols.code}</th>
                                 <th className="px-6 py-4">{t.cols.desc}</th>
                                 <th className="px-6 py-4">{t.cols.status}</th>
+                                <th className="px-6 py-4 text-right">{t.cols.action}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                             {filteredAlarms.map((alarm) => (
-                                <tr key={alarm.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors group">
-                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-mono text-sm whitespace-nowrap">
-                                        {alarm.time}
-                                    </td>
+                                <tr
+                                    key={alarm.id}
+                                    className="group transition-colors hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
+                                >
                                     <td className="px-6 py-4">
-                                        {renderLevelBadge(alarm.level)}
+                                        <div>
+                                            <div className="font-bold text-slate-800 transition-colors group-hover:text-blue-600 dark:text-slate-200 dark:group-hover:text-blue-400">
+                                                {alarm.time}
+                                            </div>
+                                            <div className="font-mono text-xs text-slate-400">{alarm.id}</div>
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200">
-                                        {alarm.station}
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">
-                                        {alarm.device}
-                                    </td>
+                                    <td className="px-6 py-4">{renderLevelBadge(alarm.level)}</td>
                                     <td className="px-6 py-4">
-                                        <span className="font-mono text-sm bg-slate-100 dark:bg-apple-surface-secondary-dark text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-apple-border-dark">
+                                        <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                                            <MapPin size={14} className="shrink-0 text-slate-400" />
+                                            <span className="font-bold text-slate-800 transition-colors group-hover:text-blue-600 dark:text-slate-200 dark:group-hover:text-blue-400">
+                                                {alarm.station}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 font-medium text-slate-600 dark:text-slate-300">{alarm.device}</td>
+                                    <td className="px-6 py-4">
+                                        <span className="inline-flex items-center rounded border border-slate-200 bg-slate-100 px-2 py-1 font-mono text-xs font-bold text-slate-600 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-400">
                                             {alarm.code}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={alarm.desc}>
+                                    <td className="max-w-xs truncate px-6 py-4 text-slate-600 dark:text-slate-300" title={alarm.desc}>
                                         {alarm.desc}
                                     </td>
-                                    <td className="px-6 py-4">
-                                        {renderStatusBadge(alarm.status)}
+                                    <td className="px-6 py-4">{renderStatusBadge(alarm.status)}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2 opacity-60 transition-opacity group-hover:opacity-100">
+                                            <button
+                                                type="button"
+                                                className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-apple-surface-secondary-dark"
+                                                title={t.actions.view}
+                                            >
+                                                <Eye size={16} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-apple-surface-secondary-dark"
+                                                title={t.actions.ack}
+                                            >
+                                                <CheckCircle2 size={16} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
-                {/* Empty State */}
                 {filteredAlarms.length === 0 && (
-                    <div className="p-12 text-center flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 bg-slate-50 dark:bg-apple-surface-secondary-dark rounded-full flex items-center justify-center mb-4">
-                            <CheckCircle2 className="text-slate-300 dark:text-slate-500" size={32} />
+                    <div className="flex flex-col items-center justify-center p-12 text-center">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 dark:bg-apple-surface-secondary-dark">
+                            <Search className="text-slate-300 dark:text-slate-500" size={32} />
                         </div>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium">No alarms found.</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">System is operating normally.</p>
+                        <p className="font-medium text-slate-500 dark:text-slate-400">{t.emptyTitle}</p>
+                        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t.emptyHint}</p>
                     </div>
                 )}
-                
-                {/* Pagination (Static) */}
+
                 {filteredAlarms.length > 0 && (
-                    <div className="p-4 border-t border-slate-100 dark:border-apple-border-dark flex items-center justify-between bg-slate-50/30 dark:bg-apple-surface-secondary-dark/30">
-                        <div className="text-base text-slate-500 dark:text-slate-400">
-                            {lang === 'zh' ? '显示' : 'Showing'} <span className="font-bold text-slate-800 dark:text-slate-200">{filteredAlarms.length}</span> {lang === 'zh' ? '条，共' : 'of'} <span className="font-bold text-slate-800 dark:text-slate-200">{alarms.length}</span> {lang === 'zh' ? '条告警' : 'alarms'}
+                    <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/30 px-6 py-4 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/30 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                            {t.footer.summary.split(/(\{filtered\}|\{total\})/).map((segment, i) => {
+                                if (segment === '{filtered}')
+                                    return (
+                                        <span key={i} className="font-bold text-slate-800 dark:text-slate-200">
+                                            {filteredAlarms.length}
+                                        </span>
+                                    );
+                                if (segment === '{total}')
+                                    return (
+                                        <span key={i} className="font-bold text-slate-800 dark:text-slate-200">
+                                            {alarms.length}
+                                        </span>
+                                    );
+                                return <span key={i}>{segment}</span>;
+                            })}
                         </div>
-                        <div className="flex gap-2">
-                            <button className="px-4 py-2 text-base font-medium text-slate-500 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-lg hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark disabled:opacity-50">{lang === 'zh' ? '上一页' : 'Previous'}</button>
-                            <button className="px-4 py-2 text-base font-medium text-slate-500 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-lg hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark">{lang === 'zh' ? '下一页' : 'Next'}</button>
+                        <div className="flex shrink-0 gap-2">
+                            <button
+                                type="button"
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
+                            >
+                                {t.footer.prev}
+                            </button>
+                            <button
+                                type="button"
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
+                            >
+                                {t.footer.next}
+                            </button>
                         </div>
                     </div>
                 )}

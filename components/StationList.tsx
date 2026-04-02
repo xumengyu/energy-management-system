@@ -138,7 +138,7 @@ const StationList: React.FC<StationListProps> = ({
     
     return (
         <tr key={station.id} className={`group hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors ${selectedStation === station.name ? 'bg-blue-50/40 dark:bg-brand-900/10' : ''}`}>
-            <td className={`px-3 py-1.5 ${isIndented ? 'pl-8' : ''}`}>
+            <td className={`px-3 py-2.5 ${isIndented ? 'pl-8' : ''}`}>
                 <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-apple-surface-secondary-dark dark:to-apple-bg-dark flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold border border-slate-200 dark:border-apple-border-dark text-xs">
                         {station.type ? station.type.charAt(0) : '?'}
@@ -149,7 +149,7 @@ const StationList: React.FC<StationListProps> = ({
                     </div>
                 </div>
             </td>
-            <td className="px-3 py-1.5">
+            <td className="px-3 py-2.5">
                 <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 text-sm">
                     <MapPin size={12} className="text-slate-400 shrink-0" />
                     <span className={`truncate max-w-[100px] ${!station.location || station.location === 'Unknown' ? 'text-rose-400 italic' : ''}`}>
@@ -157,7 +157,7 @@ const StationList: React.FC<StationListProps> = ({
                     </span>
                 </div>
             </td>
-            <td className="px-3 py-1.5">
+            <td className="px-3 py-2.5">
                 <div className="flex flex-col gap-0">
                     <div className="flex items-center gap-1 text-sm font-medium text-slate-600 dark:text-slate-300">
                         <Sun size={10} className="text-amber-500" /> {station.pvCap} kWp
@@ -169,10 +169,10 @@ const StationList: React.FC<StationListProps> = ({
                     )}
                 </div>
             </td>
-            <td className="px-3 py-1.5">
+            <td className="px-3 py-2.5">
                 {renderStatusBadge(station.status)}
             </td>
-            <td className="px-3 py-1.5 text-center">
+            <td className="px-3 py-2.5 text-center">
                 {station.essCap > 0 ? (
                     <div className="inline-flex flex-col items-center">
                         <span className={`text-sm font-bold ${station.soc < 30 ? 'text-rose-500' : 'text-emerald-500'}`}>{station.soc}%</span>
@@ -184,10 +184,10 @@ const StationList: React.FC<StationListProps> = ({
                     <span className="text-slate-300 dark:text-slate-700">-</span>
                 )}
             </td>
-            <td className="px-3 py-1.5 text-slate-500 dark:text-slate-400 text-xs">
+            <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400 text-xs">
                 {station.lastUpdate}
             </td>
-            <td className="px-3 py-1.5 text-right">
+            <td className="px-3 py-2.5 text-right">
                 <div className="flex items-center justify-end gap-1">
                     {/* Modify Info Button - Conditioned on Incomplete status */}
                     <button 
@@ -226,27 +226,27 @@ const StationList: React.FC<StationListProps> = ({
   };
 
   return (
-    <div className="w-full p-1.5 animate-in fade-in duration-300">
+    <div className="ems-page-shell">
         {/* Toolbar */}
-        <div className="bg-white dark:bg-apple-surface-dark p-1.5 rounded-xl border border-slate-100 dark:border-apple-border-dark shadow-sm mb-1.5 flex flex-col md:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto md:overflow-visible">
+        <div className="ems-card p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-6 w-full md:w-auto overflow-x-auto md:overflow-visible">
                 <div className="relative w-full md:w-64 min-w-[160px]">
-                    <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
                         type="text" 
                         placeholder={t.search} 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-8 pr-2.5 py-1 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all"
+                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all"
                     />
                 </div>
-                <div className="h-4 w-px bg-slate-200 dark:bg-white/10 hidden md:block"></div>
+                <div className="h-8 w-px bg-slate-200 dark:bg-white/10 hidden md:block"></div>
                 <div className="flex items-center gap-1">
                     {['All', 'Normal', 'Warning', 'Offline'].map(status => (
                         <button 
                             key={status}
                             onClick={() => setStatusFilter(status)}
-                            className={`h-8 px-3 rounded-lg text-sm font-bold border transition-colors whitespace-nowrap
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors whitespace-nowrap
                             ${statusFilter === status 
                                 ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900 dark:border-white' 
                                 : 'bg-white dark:bg-apple-surface-dark text-slate-600 dark:text-slate-400 border-slate-200 dark:border-apple-border-dark hover:border-slate-300 dark:hover:border-white/15'}`}
@@ -261,32 +261,32 @@ const StationList: React.FC<StationListProps> = ({
                 </div>
             </div>
             
-            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                 <button 
                   onClick={() => onNavigate && onNavigate('/stations/new')}
-                  className="h-8 flex items-center gap-1 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md shadow-blue-500/20 text-sm font-bold transition-all hover:-translate-y-0.5 whitespace-nowrap"
+                  className="flex items-center gap-2 px-4 py-2 text-white rounded-xl shadow-md text-sm font-bold transition-all hover:-translate-y-0.5 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 whitespace-nowrap"
                 >
-                    <Plus size={12} /> {t.addStation}
+                    <Plus size={18} /> {t.addStation}
                 </button>
             </div>
         </div>
 
         {/* Table List with Grouping */}
-        <div className="bg-white dark:bg-apple-surface-dark rounded-xl border border-slate-100 dark:border-apple-border-dark shadow-sm overflow-hidden">
+        <div className="ems-card overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left border-collapse">
-                    <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50/50 dark:bg-apple-surface-secondary-dark/50 border-b border-slate-100 dark:border-apple-border-dark font-bold">
+                    <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-apple-surface-secondary-dark/50 border-b border-slate-100 dark:border-apple-border-dark font-bold">
                         <tr>
-                            <th className="px-3 py-2 w-[300px]">{t.colName}</th>
-                            <th className="px-3 py-2">{t.colLocation}</th>
-                            <th className="px-3 py-2">{t.colCapacity}</th>
-                            <th className="px-3 py-2">{t.colStatus}</th>
-                            <th className="px-3 py-2 text-center">{t.colSoc}</th>
-                            <th className="px-3 py-2">{t.colTime}</th>
-                            <th className="px-3 py-2 text-right">{t.colAction}</th>
+                            <th className="px-3 py-3 w-[300px]">{t.colName}</th>
+                            <th className="px-3 py-3">{t.colLocation}</th>
+                            <th className="px-3 py-3">{t.colCapacity}</th>
+                            <th className="px-3 py-3">{t.colStatus}</th>
+                            <th className="px-3 py-3 text-center">{t.colSoc}</th>
+                            <th className="px-3 py-3">{t.colTime}</th>
+                            <th className="px-3 py-3 text-right">{t.colAction}</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 dark:divide-white/10">
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                         {/* 1. Ungrouped Stations (Direct display without headers) */}
                         {ungroupedStations.map(station => renderStationRow(station, false))}
 
@@ -306,7 +306,7 @@ const StationList: React.FC<StationListProps> = ({
                                         className={`cursor-pointer bg-slate-50/80 dark:bg-apple-surface-secondary-dark/40 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark/60 transition-colors ${isRenaming ? 'bg-brand-50/30 dark:bg-brand-900/10' : ''}`}
                                         onClick={() => toggleGroup(groupName)}
                                     >
-                                        <td colSpan={7} className="px-2 py-1">
+                                        <td colSpan={7} className="px-3 py-2.5">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-1.5 flex-1">
                                                     <div className="p-0.5 rounded bg-white dark:bg-apple-surface-dark text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-apple-border-dark">
@@ -382,13 +382,13 @@ const StationList: React.FC<StationListProps> = ({
             )}
 
             {/* Pagination Footer */}
-            <div className="p-1.5 border-t border-slate-100 dark:border-apple-border-dark flex items-center justify-between bg-slate-50/30 dark:bg-apple-surface-secondary-dark/30">
-                <div className="text-xs text-slate-500 dark:text-slate-400">
+            <div className="px-4 py-2.5 border-t border-slate-100 dark:border-apple-border-dark flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-slate-50/30 dark:bg-apple-surface-secondary-dark/30">
+                <div className="text-sm text-slate-500 dark:text-slate-400">
                     {lang === 'zh' ? '共计' : 'Total'} <span className="font-bold text-slate-800 dark:text-slate-200">{filteredStations.length}</span> {lang === 'zh' ? '个匹配站点' : 'matching stations'}
                 </div>
-                <div className="flex gap-1">
-                    <button className="px-2 py-0.5 text-xs font-medium text-slate-500 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-lg hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark disabled:opacity-50">{lang === 'zh' ? '上一页' : 'Previous'}</button>
-                    <button className="px-2 py-0.5 text-xs font-medium text-slate-500 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-lg hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark">{lang === 'zh' ? '下一页' : 'Next'}</button>
+                <div className="flex gap-2 shrink-0">
+                    <button type="button" className="px-3 py-1.5 text-sm font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-xl hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark disabled:opacity-50 transition-colors">{lang === 'zh' ? '上一页' : 'Previous'}</button>
+                    <button type="button" className="px-3 py-1.5 text-sm font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-xl hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark transition-colors">{lang === 'zh' ? '下一页' : 'Next'}</button>
                 </div>
             </div>
         </div>

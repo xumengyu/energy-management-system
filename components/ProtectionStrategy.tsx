@@ -564,7 +564,7 @@ const ProtectionStrategy: React.FC<ProtectionStrategyProps> = ({ lang, theme, se
     );
 
     return (
-        <div className="p-4 w-full h-[calc(100vh-80px)] flex flex-col animate-in fade-in duration-300 gap-4">
+        <div className="p-4 w-full h-[calc(100vh-72px)] flex flex-col animate-in fade-in duration-300 gap-4">
             {/* Horizontal Header */}
             <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
                 <div className="flex items-center gap-6 w-full md:w-auto overflow-x-auto">

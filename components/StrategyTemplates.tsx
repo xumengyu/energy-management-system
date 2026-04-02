@@ -22,7 +22,7 @@ const TEMPLATES_EN = [
     { id: 'TPL-002', name: 'Emergency Backup (Storm)', type: 'event', created: '2025-06-15', author: 'Eng. Zhang', status: 'published', isSystem: false },
     { id: 'TPL-003', name: 'Demand Control Priority', type: 'algo', created: '2025-08-20', author: 'AI Assistant', status: 'draft', isSystem: false },
     { id: 'TPL-004', name: 'Holiday Power Keep', type: 'time', created: '2025-01-20', author: 'Admin', status: 'published', isSystem: false },
-    { id: 'TPL-005', name: 'PV-ESS Opt V2', type: 'algo', created: '2025-09-01', author: 'Eng. Li', status: 'draft', isSystem: false },
+    { id: 'TPL-005', name: 'PV-BESS Opt V2', type: 'algo', created: '2025-09-01', author: 'Eng. Li', status: 'draft', isSystem: false },
 ];
 
 interface StrategyTemplatesProps {
@@ -52,9 +52,9 @@ const StrategyTemplates: React.FC<StrategyTemplatesProps> = ({ lang, theme }) =>
     };
 
     return (
-        <div className="p-4 w-full animate-in fade-in duration-300">
+        <div className="ems-page-shell">
             {/* Header / Toolbar */}
-            <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="ems-card p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 rounded-xl">
@@ -89,7 +89,7 @@ const StrategyTemplates: React.FC<StrategyTemplatesProps> = ({ lang, theme }) =>
             </div>
 
             {/* Template List Table */}
-            <div className="bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm overflow-hidden">
+            <div className="ems-card overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-apple-surface-secondary-dark/50 border-b border-slate-100 dark:border-apple-border-dark font-bold uppercase tracking-wider">

@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   ComposedChart, Line, Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Brush, LineChart
 } from 'recharts';
-import { Calendar, RotateCcw, Battery, ChevronDown, Layers, Zap, Activity, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Calendar, RotateCcw, Battery, ChevronDown, Layers, Package, Zap, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
 
@@ -89,6 +89,7 @@ const generatePowerData = (startDateStr: string) => {
 };
 
 const generateBatteryData = (startDateStr: string) => {
+    const seed = startDateStr.split('-').reduce((acc, v) => acc + parseInt(v, 10), 0);
     return Array.from({ length: 97 }, (_, i) => {
         const t = i / 4;
         const h = Math.floor(t);
@@ -99,17 +100,32 @@ const generateBatteryData = (startDateStr: string) => {
 
         const baseVol = 750;
         const volNoise = Math.random() * 5;
-        const voltage = baseVol + Math.sin(t / 3) * 30 + volNoise; 
+        const voltage = baseVol + Math.sin(t / 3) * 30 + volNoise;
         const current = Math.sin(t / 2) * 100 + (Math.random() * 10);
         const soc = 50 + Math.sin(t / 4) * 40;
+
+        const vWave = Math.sin(seed * 0.01 + t / 4.5) * 0.042;
+        const vDrift = -i * 0.00032;
+        let cellVolMax = 3.36 + vWave + vDrift + (seed % 5) * 0.002;
+        let cellVolMin = cellVolMax - 0.038 - Math.abs(Math.sin(t / 3.2)) * 0.014;
+        cellVolMax = Math.round(cellVolMax * 1000) / 1000;
+        cellVolMin = Math.round(cellVolMin * 1000) / 1000;
+        if (cellVolMin >= cellVolMax) cellVolMin = Math.round((cellVolMax - 0.02) * 1000) / 1000;
+
+        const cellTempMax = Math.round((18 + Math.sin(seed * 0.02 + t / 3.8) * 3.2 - i * 0.048) * 10) / 10;
+        const cellTempMin = Math.round((14.5 + Math.sin(seed * 0.02 + t / 3.8) * 2.4 - i * 0.042) * 10) / 10;
 
         return {
             time: timeLabel,
             voltage: Math.round(voltage),
             current: Math.round(current),
             soc: Math.max(0, Math.min(100, Math.round(soc))),
-            soh: 98.5
-        }
+            soh: 98.5,
+            cellVolMax,
+            cellVolMin,
+            cellTempMax,
+            cellTempMin
+        };
     });
 };
 
@@ -123,9 +139,22 @@ const BATTERY_CLUSTERS_ZH = [
     '电池簇 2-1', '电池簇 2-2', '电池簇 2-3'
 ];
 
+const BATTERY_STACKS_EN = ['Stack #1', 'Stack #2', 'Stack #3'];
+const BATTERY_STACKS_ZH = ['电池堆 #1', '电池堆 #2', '电池堆 #3'];
+
 // Helper for small charts in Battery Analysis
-const SimpleChartContainer = ({ title, children }: { title: string, children?: React.ReactNode }) => (
-    <div className="bg-slate-50/50 dark:bg-apple-surface-secondary-dark/30 rounded-2xl border border-slate-200 dark:border-apple-border-dark p-6 flex flex-col h-[320px]">
+const SimpleChartContainer = ({
+    title,
+    children,
+    className = '',
+}: {
+    title: string;
+    children?: React.ReactNode;
+    className?: string;
+}) => (
+    <div
+        className={`flex flex-col rounded-2xl border border-slate-200 bg-slate-50/50 p-6 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/30 h-[320px] ${className}`}
+    >
         <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
             <span className="w-1.5 h-4 bg-brand-500 rounded-sm"></span>
             {title}
@@ -147,13 +176,20 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   const isDark = theme === 'dark';
 
   const BATTERY_CLUSTERS = lang === 'zh' ? BATTERY_CLUSTERS_ZH : BATTERY_CLUSTERS_EN;
+  const BATTERY_STACKS = lang === 'zh' ? BATTERY_STACKS_ZH : BATTERY_STACKS_EN;
 
   const today = new Date().toISOString().split('T')[0];
   
-  const [activeTab, setActiveTab] = useState<'load' | 'power' | 'battery' | 'curve'>('load');
+  const [activeTab, setActiveTab] = useState<'load' | 'power' | 'battery'>('load');
   const [dateRange, setDateRange] = useState({ start: today, end: today });
+  const [selectedStack, setSelectedStack] = useState(BATTERY_STACKS[0]);
   const [selectedCluster, setSelectedCluster] = useState(BATTERY_CLUSTERS[0]);
   const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedStack(BATTERY_STACKS[0]);
+    setSelectedCluster(BATTERY_CLUSTERS[0]);
+  }, [lang]);
   
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [viewDate, setViewDate] = useState(new Date()); 
@@ -431,27 +467,43 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
             </ResponsiveContainer>
         </div>
 
-        {/* Filter / Preview Chart */}
+        {/* Filter / Preview Chart — 暗色下与卡片底接近的低对比拖拽条 */}
         <div className="h-[36px] w-full">
              <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={LOAD_CHART_DATA} syncId="loadSync" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                         <linearGradient id="colorPreview" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#819226" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#819226" stopOpacity={0}/>
+                            {isDark ? (
+                                <>
+                                    <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.22}/>
+                                    <stop offset="95%" stopColor="#94a3b8" stopOpacity={0}/>
+                                </>
+                            ) : (
+                                <>
+                                    <stop offset="5%" stopColor="#64748b" stopOpacity={0.28}/>
+                                    <stop offset="95%" stopColor="#64748b" stopOpacity={0}/>
+                                </>
+                            )}
                         </linearGradient>
                     </defs>
                     <XAxis dataKey="index" hide />
                     <YAxis domain={[-400, 1000]} hide />
-                    <Area type="monotone" dataKey="loadPower" stroke="#819226" strokeWidth={1} fill="url(#colorPreview)" isAnimationActive={false} />
+                    <Area
+                        type="monotone"
+                        dataKey="loadPower"
+                        stroke={isDark ? 'rgba(148, 163, 184, 0.45)' : 'rgba(100, 116, 139, 0.55)'}
+                        strokeWidth={1}
+                        fill="url(#colorPreview)"
+                        isAnimationActive={false}
+                    />
                     <Brush 
                         dataKey="index" 
                         height={36} 
                         y={0}
                         travellerWidth={10}
-                        stroke={isDark ? '#819226' : '#819226'}
-                        fill={isDark ? '#1e2128' : '#f1f5f9'}
-                        fillOpacity={0.5} 
+                        stroke={isDark ? 'rgba(255, 255, 255, 0.28)' : 'rgba(100, 116, 139, 0.45)'}
+                        fill={isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.06)'}
+                        fillOpacity={1}
                         tickFormatter={() => ''}
                     />
                 </ComposedChart>
@@ -568,26 +620,39 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
     </div>
   );
 
+  /** 电池分析底部时间刷：与图表/卡片底色接近，低对比 */
+  const batteryTimeBrush = () => (
+      <Brush
+          dataKey="time"
+          height={14}
+          stroke={isDark ? 'rgba(255, 255, 255, 0.28)' : 'rgba(100, 116, 139, 0.4)'}
+          fill={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.05)'}
+          travellerWidth={6}
+          tickFormatter={() => ''}
+      />
+  );
+
   const renderBatteryAnalysis = () => (
       <div className="w-full h-full overflow-y-auto custom-scrollbar p-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 1. Cluster Voltage */}
-              <SimpleChartContainer title={t.charts.clusterVol}>
+              <SimpleChartContainer title={t.charts.clusterVol} className="!h-[360px]">
                   <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                      <LineChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 22 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                           <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} stroke={chartColors.text} interval={12}/>
                           <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} domain={['auto', 'auto']} unit="V"/>
                           <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', fontWeight: 600 }} itemStyle={{color: '#3b82f6'}} />
-                          <Line type="monotone" dataKey="voltage" stroke="#3b82f6" strokeWidth={2} dot={false} name="Voltage"/>
+                          <Line type="monotone" dataKey="voltage" stroke="#3b82f6" strokeWidth={2} dot={false} name="Voltage" isAnimationActive={false}/>
+                          {batteryTimeBrush()}
                       </LineChart>
                   </ResponsiveContainer>
               </SimpleChartContainer>
 
               {/* 2. Cluster Current */}
-              <SimpleChartContainer title={t.charts.clusterCur}>
+              <SimpleChartContainer title={t.charts.clusterCur} className="!h-[360px]">
                   <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                      <AreaChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 22 }}>
                           <defs>
                               <linearGradient id="colorCur" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
@@ -598,15 +663,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                           <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} stroke={chartColors.text} interval={12}/>
                           <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} unit="A"/>
                           <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', fontWeight: 600 }} itemStyle={{color: '#f97316'}} />
-                          <Area type="monotone" dataKey="current" stroke="#f97316" fill="url(#colorCur)" strokeWidth={2} name="Current"/>
+                          <Area type="monotone" dataKey="current" stroke="#f97316" fill="url(#colorCur)" strokeWidth={2} name="Current" isAnimationActive={false}/>
+                          {batteryTimeBrush()}
                       </AreaChart>
                   </ResponsiveContainer>
               </SimpleChartContainer>
 
               {/* 3. Cluster SOC */}
-              <SimpleChartContainer title={t.charts.clusterSoc}>
+              <SimpleChartContainer title={t.charts.clusterSoc} className="!h-[360px]">
                   <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                      <AreaChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 22 }}>
                           <defs>
                               <linearGradient id="colorSocBat" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
@@ -617,20 +683,74 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                           <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} stroke={chartColors.text} interval={12}/>
                           <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} domain={[0, 100]} unit="%"/>
                           <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', fontWeight: 600 }} itemStyle={{color: '#10b981'}} />
-                          <Area type="monotone" dataKey="soc" stroke="#10b981" fill="url(#colorSocBat)" strokeWidth={2} name="SOC"/>
+                          <Area type="monotone" dataKey="soc" stroke="#10b981" fill="url(#colorSocBat)" strokeWidth={2} name="SOC" isAnimationActive={false}/>
+                          {batteryTimeBrush()}
                       </AreaChart>
                   </ResponsiveContainer>
               </SimpleChartContainer>
 
               {/* 4. Cluster SOH */}
-              <SimpleChartContainer title={t.charts.clusterSoh}>
+              <SimpleChartContainer title={t.charts.clusterSoh} className="!h-[360px]">
                   <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                      <LineChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 22 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                           <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} stroke={chartColors.text} interval={12}/>
                           <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} domain={[90, 100]} unit="%"/>
                           <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', fontWeight: 600 }} itemStyle={{color: '#14b8a6'}} />
-                          <Line type="step" dataKey="soh" stroke="#14b8a6" strokeWidth={2} dot={false} name="SOH"/>
+                          <Line type="step" dataKey="soh" stroke="#14b8a6" strokeWidth={2} dot={false} name="SOH" isAnimationActive={false}/>
+                          {batteryTimeBrush()}
+                      </LineChart>
+                  </ResponsiveContainer>
+              </SimpleChartContainer>
+
+              {/* 5. Cell Max/Min Voltage */}
+              <SimpleChartContainer title={t.charts.cellVol} className="!h-[360px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={BATTERY_CHART_DATA} margin={{ top: 28, right: 8, left: 0, bottom: 22 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                          <XAxis dataKey="time" fontSize={11} tickLine={false} axisLine={false} tickMargin={8} stroke={chartColors.text} interval={16}/>
+                          <YAxis
+                              fontSize={11}
+                              tickLine={false}
+                              axisLine={false}
+                              stroke={chartColors.text}
+                              domain={['dataMin - 0.02', 'dataMax + 0.02']}
+                              tickFormatter={(v) => `${v}V`}
+                          />
+                          <Tooltip
+                              contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '13px', fontWeight: 600 }}
+                              formatter={(value: number, name: string) => [`${value} V`, name]}
+                          />
+                          <Legend verticalAlign="top" align="right" height={24} iconType="line" wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
+                          <Line type="monotone" dataKey="cellVolMax" name={t.charts.cellVolMax} stroke="#6d28d9" strokeWidth={2} dot={false} isAnimationActive={false}/>
+                          <Line type="monotone" dataKey="cellVolMin" name={t.charts.cellVolMin} stroke="#c084fc" strokeWidth={2} dot={false} isAnimationActive={false}/>
+                          {batteryTimeBrush()}
+                      </LineChart>
+                  </ResponsiveContainer>
+              </SimpleChartContainer>
+
+              {/* 6. Cell Max/Min Temperature */}
+              <SimpleChartContainer title={t.charts.cellTemp} className="!h-[360px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={BATTERY_CHART_DATA} margin={{ top: 28, right: 8, left: 0, bottom: 22 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                          <XAxis dataKey="time" fontSize={11} tickLine={false} axisLine={false} tickMargin={8} stroke={chartColors.text} interval={16}/>
+                          <YAxis
+                              fontSize={11}
+                              tickLine={false}
+                              axisLine={false}
+                              stroke={chartColors.text}
+                              domain={['dataMin - 1', 'dataMax + 1']}
+                              tickFormatter={(v) => `${v}°C`}
+                          />
+                          <Tooltip
+                              contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '13px', fontWeight: 600 }}
+                              formatter={(value: number, name: string) => [`${value} °C`, name]}
+                          />
+                          <Legend verticalAlign="top" align="right" height={24} iconType="line" wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
+                          <Line type="monotone" dataKey="cellTempMax" name={t.charts.cellTempMax} stroke="#ea580c" strokeWidth={2} dot={false} isAnimationActive={false}/>
+                          <Line type="monotone" dataKey="cellTempMin" name={t.charts.cellTempMin} stroke="#fb923c" strokeWidth={2} dot={false} isAnimationActive={false}/>
+                          {batteryTimeBrush()}
                       </LineChart>
                   </ResponsiveContainer>
               </SimpleChartContainer>
@@ -639,94 +759,121 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   );
 
   return (
-    <div className="h-[calc(100vh-80px)] p-4 flex flex-col gap-4 animate-in fade-in duration-300">
+    <div className="h-[calc(100vh-72px)] ems-page-shell flex flex-col gap-4">
         
-        {/* Header Toolbar */}
-        <div className="flex flex-col xl:flex-row items-center justify-between mb-0 bg-white dark:bg-apple-surface-dark p-4 rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm gap-4 shrink-0">
-            {/* Left: Tabs */}
-            <div className="flex items-center gap-6 w-full xl:w-auto overflow-x-auto">
-                <div className="flex gap-2">
+        {/* Header / Toolbar — 与电价列表同款 */}
+        <div className="ems-card flex shrink-0 flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="custom-scrollbar-hide flex w-full min-w-0 flex-1 items-center overflow-x-auto">
+                <div className="ems-segmented shrink-0">
                     {[
                         { id: 'load', label: t.tabs.load, icon: Activity },
                         { id: 'power', label: t.tabs.power, icon: Zap },
-                        { id: 'battery', label: t.tabs.battery, icon: Battery },
-                        { id: 'curve', label: t.tabs.curve, icon: Layers }
+                        { id: 'battery', label: t.tabs.battery, icon: Battery }
                     ].map((item) => (
                         <button 
                             key={item.id} 
                             onClick={() => setActiveTab(item.id as any)}
-                            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap
+                            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap
                             ${activeTab === item.id 
-                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30' 
-                                : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark dark:text-slate-400'}`}
+                                ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400' 
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                         >
-                            <item.icon size={18} className={activeTab === item.id ? 'text-white' : 'text-slate-400'} />
+                            <item.icon size={16} />
                             {item.label}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Right: Controls */}
-            <div className="flex items-center gap-3 w-full xl:w-auto flex-wrap justify-end">
+            <div className="flex w-full flex-wrap items-center justify-start gap-3 lg:w-auto lg:shrink-0 lg:justify-end">
                 {activeTab === 'battery' && (
-                    <div className="relative">
-                        <div className="flex items-center bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-xl p-2 pr-3 h-[42px]">
-                            <Layers size={16} className="text-slate-400 ml-2 mr-2"/>
-                            <select 
-                                value={selectedCluster} 
-                                onChange={(e) => setSelectedCluster(e.target.value)}
-                                className="bg-transparent text-sm font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer appearance-none pr-6"
-                            >
-                                {BATTERY_CLUSTERS.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                            <ChevronDown size={14} className="text-slate-400 absolute right-3 pointer-events-none"/>
+                    <div className="flex shrink-0 items-center gap-2">
+                        <div className="relative">
+                            <div className="relative flex min-w-[132px] items-center rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark">
+                                <Package size={16} className="mr-2 shrink-0 text-slate-400" aria-hidden />
+                                <select
+                                    value={selectedStack}
+                                    onChange={(e) => setSelectedStack(e.target.value)}
+                                    className="w-full min-w-0 cursor-pointer appearance-none bg-transparent pr-1 text-sm font-bold text-slate-700 outline-none dark:text-slate-200"
+                                    aria-label={t.stackSelect}
+                                >
+                                    {BATTERY_STACKS.map((s) => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <div className="relative flex min-w-[132px] items-center rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark">
+                                <Layers size={16} className="mr-2 shrink-0 text-slate-400" aria-hidden />
+                                <select 
+                                    value={selectedCluster} 
+                                    onChange={(e) => setSelectedCluster(e.target.value)}
+                                    className="w-full min-w-0 cursor-pointer appearance-none bg-transparent pr-1 text-sm font-bold text-slate-700 outline-none dark:text-slate-200"
+                                    aria-label={t.clusterSelect}
+                                >
+                                    {BATTERY_CLUSTERS.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Date Range Picker (Calendar Dropdown) */}
-                <div className="relative">
-                    <button 
+                <div
+                    className={`relative flex min-w-[240px] items-stretch overflow-hidden rounded-xl border bg-slate-50 transition-all dark:bg-apple-surface-secondary-dark
+                    ${isDateOpen
+                        ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/30'
+                        : 'border-slate-200 dark:border-apple-border-dark hover:border-slate-300 dark:hover:border-white/15'}`}
+                >
+                    <button
+                        type="button"
                         onClick={() => setIsDateOpen(!isDateOpen)}
-                        className={`flex items-center gap-3 bg-slate-50 dark:bg-apple-surface-secondary-dark border rounded-xl px-4 py-2 h-[42px] transition-all group min-w-[240px] justify-between
-                        ${isDateOpen ? 'border-brand-500 ring-2 ring-brand-100 dark:ring-brand-900/30' : 'border-slate-200 dark:border-apple-border-dark hover:border-brand-400'}`}
+                        className="group flex min-w-0 flex-1 items-center justify-between gap-2 border-0 bg-transparent px-4 py-2 text-left outline-none ring-0"
                     >
-                        <div className="flex items-center gap-2">
-                             <Calendar size={16} className="text-slate-400 group-hover:text-brand-500 transition-colors"/>
-                             <span className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">
-                                {dateRange.start} <span className="text-slate-300 mx-1">→</span> {dateRange.end}
-                             </span>
+                        <div className="flex min-w-0 items-center gap-2">
+                            <Calendar size={16} className="shrink-0 text-slate-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400"/>
+                            <span className="truncate font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
+                                {dateRange.start} <span className="mx-1 text-slate-300">→</span> {dateRange.end}
+                            </span>
                         </div>
-                        <ChevronDown size={14} className={`text-slate-400 transition-transform duration-300 ${isDateOpen ? 'rotate-180' : ''}`}/>
+                        <ChevronDown size={14} className={`shrink-0 text-slate-400 transition-transform duration-300 ${isDateOpen ? 'rotate-180' : ''}`}/>
                     </button>
-                    
+                    <div className="w-px shrink-0 self-stretch bg-slate-200 dark:bg-apple-border-dark" aria-hidden />
+                    <button
+                        type="button"
+                        onClick={handleReset}
+                        title={t.reset}
+                        aria-label={t.reset}
+                        className="flex shrink-0 items-center justify-center border-0 bg-transparent px-3 py-2 text-slate-600 outline-none transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
+                    >
+                        <RotateCcw size={16} />
+                    </button>
+
                     {isDateOpen && (
                         <>
                             <div className="fixed inset-0 z-30" onClick={() => setIsDateOpen(false)}></div>
-                            <div className="absolute top-full right-0 mt-2 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark shadow-xl rounded-2xl z-40 animate-in fade-in zoom-in-95 duration-100">
+                            <div className="absolute right-0 top-full z-40 mt-2 animate-in fade-in zoom-in-95 rounded-2xl border border-slate-200 bg-white shadow-xl duration-100 dark:border-apple-border-dark dark:bg-apple-surface-dark">
                                 {renderCalendar()}
                             </div>
                         </>
                     )}
                 </div>
-                
-                <button 
-                    onClick={handleReset}
-                    className="flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark text-slate-600 dark:text-slate-300 text-sm font-bold rounded-xl transition-colors h-[42px]"
-                >
-                    <RotateCcw size={16} /> {t.reset}
-                </button>
             </div>
         </div>
 
-        {/* Main Chart Card */}
-        <div className="flex-1 bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm flex flex-col min-h-0">
+        {/* Main Chart Card — load（Power Analysis）略缩高度，其余 Tab 仍铺满 */}
+        <div
+            className={`flex-1 bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm flex flex-col min-h-0 ${
+                activeTab === 'load' ? 'max-h-[calc(100%-40px)]' : ''
+            }`}
+        >
             <div className="p-4 border-b border-slate-100 dark:border-apple-border-dark flex justify-between items-center shrink-0">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white pl-2 border-l-4 border-brand-500">
                     {activeTab === 'load' && t.titleLoad}
                     {activeTab === 'power' && t.titlePower}
-                    {activeTab === 'battery' && `${t.titleBattery} - ${selectedCluster}`}
+                    {activeTab === 'battery' && `${t.titleBattery} - ${selectedStack} · ${selectedCluster}`}
                 </h3>
             </div>
 
@@ -734,11 +881,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                 {activeTab === 'load' && renderLoadTracking()}
                 {activeTab === 'power' && renderPowerTracking()}
                 {activeTab === 'battery' && renderBatteryAnalysis()}
-                {activeTab === 'curve' && (
-                    <div className="flex items-center justify-center h-full text-slate-400 font-medium">
-                        Curve Analysis - Work in Progress
-                    </div>
-                )}
             </div>
         </div>
     </div>

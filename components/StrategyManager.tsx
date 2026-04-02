@@ -12,7 +12,8 @@ import {
     Battery, GitBranch, Link, FileText, ChevronRight, Search, BrainCircuit, TrendingDown, Sun, MoreHorizontal, Power,
     Timer, Hourglass, MapPin, Loader2, List, DollarSign, Coins, LayoutDashboard
 } from 'lucide-react';
-import { StrategyItem, ChartDataPoint, ForecastDataPoint, Language, StrategyTab, Theme, PriceRow, Coefficients, Template, StrategyStationBindings } from '../types';
+import { StrategyItem, ChartDataPoint, ForecastDataPoint, Language, StrategyTab, Theme, PriceRow, Coefficients, Template, StrategyStationBindings, StrategyStationDeployState, StrategyDeployStatus } from '../types';
+import { MOCK_STRATEGY_STATION_DEPLOY } from '../data/mockStrategyStationDeploy';
 import type { StationListItem } from './StationList';
 import { translations } from '../translations';
 import DeployModal from './DeployModal';
@@ -94,6 +95,8 @@ interface StrategyManagerProps {
     selectedStation: string;
     initialTab?: string;
     hideOverviewTab?: boolean;
+    /** 隐藏顶部「执行视图 / AI调度执行 / AI调度策略」切换条（仅标题区） */
+    hideStrategyTabBar?: boolean;
     onTabChange?: (tab: string) => void;
     onNavigate?: (path: string) => void;
     viewMode?: 'my' | 'site';
@@ -107,6 +110,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
     selectedStation,
     initialTab = 'overview',
     hideOverviewTab = false,
+    hideStrategyTabBar = false,
     onTabChange,
     onNavigate,
     viewMode = 'site',
@@ -166,6 +170,40 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
             },
         ],
     });
+
+    const [stationDeployState, setStationDeployState] = useState<StrategyStationDeployState>(() =>
+        JSON.parse(JSON.stringify(MOCK_STRATEGY_STATION_DEPLOY)) as StrategyStationDeployState
+    );
+
+    const deployStrategyToStations = React.useCallback(
+        (templateId: string) => {
+            const ids = strategyStationBindings[templateId] ?? [];
+            if (ids.length === 0) return;
+            setStationDeployState((prev) => {
+                const next: StrategyStationDeployState = { ...prev, [templateId]: { ...(prev[templateId] ?? {}) } };
+                for (const sid of ids) {
+                    const cur = next[templateId][sid] ?? { lastDeployTime: '', status: 'never' as const };
+                    next[templateId][sid] = { ...cur, status: 'pending' };
+                }
+                return next;
+            });
+            window.setTimeout(() => {
+                const now = new Date();
+                const ts =
+                    lang === 'zh'
+                        ? `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+                        : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                setStationDeployState((prev) => {
+                    const next: StrategyStationDeployState = { ...prev, [templateId]: { ...(prev[templateId] ?? {}) } };
+                    for (const sid of ids) {
+                        next[templateId][sid] = { lastDeployTime: ts, status: 'success' };
+                    }
+                    return next;
+                });
+            }, 650);
+        },
+        [strategyStationBindings, lang]
+    );
     
     const displayedTemplates = viewMode === 'my' 
         ? myTemplates.filter(t => t.isRemovable && t.id !== 'profit_max') 
@@ -395,7 +433,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
         const styles = {
             'Charge': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
             'Discharge': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-            'Standby': 'bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark text-apple-text-secondary-light dark:text-apple-text-secondary-dark border-apple-border-light dark:border-apple-border-dark'
+            'Standby': 'bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark text-apple-text-secondary-light dark:text-apple-text-secondary-dark border-slate-200 dark:border-apple-border-dark'
         };
         const icons = {
             'Charge': <PlayCircle size={12}/>,
@@ -427,8 +465,8 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
     };
 
     // Custom Legend
-    const CustomLegend = ({ payload, onClick }: any) => (
-        <div className="flex flex-wrap justify-end gap-6 mb-4">
+    const CustomLegend = ({ payload, onClick, legendMb = 'mb-4' }: any) => (
+        <div className={`flex flex-wrap justify-end gap-4 ${legendMb}`}>
             {payload.map((entry: any, index: number) => (
                 <button 
                     key={`item-${index}`} 
@@ -448,127 +486,177 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
         const activeTpl = displayedTemplates.find(t => t.id === activeTemplateId) || displayedTemplates[0];
         const templateName = getTemplateName(activeTpl.nameKey);
 
+        const todayChartTitle = `${t.realtimeMonitor} — ${lang === 'zh' ? '今日' : 'Today'}`;
+
         return (
-        <div className="space-y-4 animate-in fade-in duration-500">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-6 rounded-2xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col justify-between relative overflow-hidden h-[140px] transition-all hover:shadow-md">
-                    <div className="absolute right-[-10px] top-[-10px] p-4 opacity-[0.03] dark:opacity-[0.05] rotate-12"><Zap size={100} /></div>
-                    <div>
-                        <p className="text-apple-text-secondary-light dark:text-apple-text-secondary-dark text-[11px] font-bold uppercase tracking-wider mb-1">{t.power}</p>
+        <div className="space-y-4">
+            {/* KPI — 与数据总览 Dashboard 同款卡片结构 */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="ems-card group relative overflow-hidden p-4 transition-all hover:shadow-md">
+                    <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-purple-50 opacity-50 blur-2xl dark:bg-purple-900/10"></div>
+                    <div className="relative z-10 flex min-h-[112px] flex-col">
+                        <div className="mb-2 flex items-start justify-between">
+                            <div className="rounded-xl bg-purple-50 p-2 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
+                                <Cpu size={16} />
+                            </div>
+                            <span className="flex items-center gap-1 rounded-full border border-purple-200/50 bg-purple-100/50 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:border-purple-800/50 dark:bg-purple-900/30 dark:text-purple-400">
+                                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-500"></span>
+                                {t.overviewBadgeActive}
+                            </span>
+                        </div>
+                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t.currentTemplate}</p>
+                        <div className="line-clamp-2 text-lg font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white">{templateName}</div>
+                    </div>
+                </div>
+
+                <div className="ems-card group relative overflow-hidden p-4 transition-all hover:shadow-md">
+                    <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-50 opacity-50 blur-2xl dark:bg-amber-900/10"></div>
+                    <div className="relative z-10">
+                        <div className="mb-2 flex items-start justify-between">
+                            <div className="rounded-xl bg-amber-50 p-2 text-amber-500 dark:bg-amber-900/20 dark:text-amber-400">
+                                <Zap size={16} />
+                            </div>
+                            <span className="flex items-center gap-0.5 rounded-full border border-blue-200/50 bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:border-blue-800/50 dark:bg-blue-900/30 dark:text-blue-400">
+                                <Activity size={10} />
+                                {t.overviewBadgeDischarging}
+                            </span>
+                        </div>
+                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t.power}</p>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">-120</span>
-                            <span className="text-base font-bold text-apple-text-secondary-light dark:text-apple-text-secondary-dark">kW</span>
+                            <span className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">-120</span>
+                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">kW</span>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 w-fit px-2.5 py-1 rounded-full border border-blue-500/20">
-                        <Activity size={12} /> Discharging
                     </div>
                 </div>
 
-                <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-6 rounded-2xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col justify-between relative overflow-hidden h-[140px] transition-all hover:shadow-md">
-                     <div className="absolute right-[-10px] top-[-10px] p-4 opacity-[0.03] dark:opacity-[0.05] rotate-12"><Battery size={100} /></div>
-                    <div>
-                        <p className="text-apple-text-secondary-light dark:text-apple-text-secondary-dark text-[11px] font-bold uppercase tracking-wider mb-1">SOC</p>
+                <div className="ems-card group relative overflow-hidden p-4 transition-all hover:shadow-md">
+                    <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-emerald-50 opacity-50 blur-2xl dark:bg-emerald-900/10"></div>
+                    <div className="relative z-10">
+                        <div className="mb-2 flex items-start justify-between">
+                            <div className="rounded-xl bg-emerald-50 p-2 text-emerald-500 dark:bg-emerald-900/20 dark:text-emerald-400">
+                                <Battery size={16} />
+                            </div>
+                        </div>
+                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">SOC</p>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-semibold text-emerald-500 tracking-tight">85.4</span>
-                            <span className="text-sm font-medium text-apple-text-secondary-light dark:text-apple-text-secondary-dark">%</span>
+                            <span className="text-2xl font-extrabold tracking-tight text-emerald-500">85.4</span>
+                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">%</span>
                         </div>
-                    </div>
-                    <div className="w-full bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark rounded-full h-1.5 overflow-hidden">
-                        <div className="bg-emerald-500 h-1.5 rounded-full" style={{width: '85.4%'}}></div>
+                        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-apple-bg-light shadow-inner dark:bg-apple-bg-dark">
+                            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: '85.4%' }}></div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-6 rounded-2xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col justify-between relative overflow-hidden h-[140px] transition-all hover:shadow-md">
-                     <div className="absolute right-[-10px] top-[-10px] p-4 opacity-[0.03] dark:opacity-[0.05] rotate-12"><Cpu size={100} /></div>
-                    <div>
-                        <p className="text-apple-text-secondary-light dark:text-apple-text-secondary-dark text-[11px] font-bold uppercase tracking-wider mb-1">{t.currentTemplate}</p>
-                        <div className="text-lg font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark leading-tight mt-1 line-clamp-2">
-                            {templateName}
+                <div className="ems-card group relative overflow-hidden p-4 transition-all hover:shadow-md">
+                    <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-indigo-50 opacity-50 blur-2xl dark:bg-indigo-900/10"></div>
+                    <div className="relative z-10">
+                        <div className="mb-2 flex items-start justify-between">
+                            <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
+                                <DollarSign size={16} />
+                            </div>
+                            <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                {t.overviewLiveSync}
+                            </span>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 w-fit px-2.5 py-1 rounded-full border border-purple-500/20">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div> Active
-                    </div>
-                </div>
-
-                <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-6 rounded-2xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col justify-between relative overflow-hidden h-[140px] transition-all hover:shadow-md">
-                     <div className="absolute right-[-10px] top-[-10px] p-4 opacity-[0.03] dark:opacity-[0.05] rotate-12"><DollarSign size={100} /></div>
-                    <div>
-                        <p className="text-apple-text-secondary-light dark:text-apple-text-secondary-dark text-[11px] font-bold uppercase tracking-wider mb-1">{t.realtimePrice}</p>
-                        <div className="flex items-baseline gap-1 mt-1">
-                            <span className="text-3xl font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">0.85</span>
-                            <span className="text-sm font-medium text-apple-text-secondary-light dark:text-apple-text-secondary-dark">CNY/kWh</span>
+                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t.realtimePrice}</p>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">0.85</span>
+                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">CNY/kWh</span>
                         </div>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px] font-medium text-apple-text-secondary-light dark:text-apple-text-secondary-dark">
-                        <span className="flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                            {lang === 'zh' ? '实时同步' : 'Live Sync'}
-                        </span>
-                        <span className="font-mono bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark px-1.5 py-0.5 rounded">v2.1.0</span>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-apple-surface-light dark:bg-apple-surface-dark border border-apple-border-light dark:border-apple-border-dark rounded-2xl shadow-sm flex flex-col h-[500px] overflow-hidden">
-                    <div className="p-5 border-b border-apple-border-light dark:border-apple-border-dark flex items-center justify-between">
-                        <h3 className="font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark flex items-center gap-2 text-sm">
-                            <Activity size={16} className="text-blue-500"/>
-                            {t.realtimeMonitor} - {lang === 'zh' ? '今日' : 'Today'}
+            {/* 图表区 — 标题条与数据总览右侧分布卡一致 */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="ems-card flex min-h-[400px] flex-col overflow-hidden lg:min-h-0 lg:h-[600px]">
+                    <div className="border-b border-slate-100 bg-slate-50/50 p-4 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50">
+                        <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
+                            <span className="rounded-xl bg-blue-50 p-1.5 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                                <Activity size={16} />
+                            </span>
+                            {todayChartTitle}
                         </h3>
                     </div>
-                    <div className="flex-1 w-full min-h-0 relative p-6">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={MOCK_SYNC_DATA} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
-                                <defs>
-                                    <linearGradient id="colorEdgeToday" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                                <XAxis dataKey="time" fontSize={16} fontWeight="bold" tickLine={false} axisLine={false} tickMargin={12} minTickGap={30} stroke={chartColors.text} />
-                                <YAxis yAxisId="power" orientation="left" domain={[-300, 900]} ticks={[-300, -150, 0, 150, 300]} fontSize={16} fontWeight="bold" tickLine={false} axisLine={false} stroke={chartColors.text} tickFormatter={(val) => `${val}kW`} />
-                                <YAxis yAxisId="soc" orientation="right" domain={[0, 100]} ticks={[0, 50, 100]} fontSize={11} tickLine={false} axisLine={false} stroke={chartColors.text} tickFormatter={(val) => `${val}%`} />
-                                <Tooltip {...tooltipStyle} />
-                                <Legend verticalAlign="top" height={40} content={<CustomLegend onClick={toggleSeries}/>} />
-                                
-                                <Area hide={hiddenSeries.includes('edge')} yAxisId="power" name={t.legendEdge} type="stepAfter" dataKey="edge" stroke="#3b82f6" fill="url(#colorEdgeToday)" strokeWidth={2.5} animationDuration={500} />
-                                <Line hide={hiddenSeries.includes('cloud')} yAxisId="power" name={t.legendCloud} type="stepAfter" dataKey="cloud" stroke="#f97316" strokeWidth={2.5} strokeDasharray="4 4" dot={false} animationDuration={500} />
-                                <Line hide={hiddenSeries.includes('recommended')} yAxisId="power" name={t.legendAiForecast} type="monotone" dataKey="recommended" stroke="#10b981" strokeWidth={2} dot={false} animationDuration={500} />
-                                
-                                <Line hide={hiddenSeries.includes('socForecast1')} yAxisId="soc" name="SOC实际" type="monotone" dataKey="socForecast1" stroke="#8b5cf6" strokeWidth={2} dot={false} animationDuration={500} />
-                                <Line hide={hiddenSeries.includes('socForecast2')} yAxisId="soc" name="SOC Forecast 2" type="monotone" dataKey="socForecast2" stroke="#ec4899" strokeWidth={2} dot={false} animationDuration={500} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
+                    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+                        <p className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t.chartSectionPower}</p>
+                        <div className="min-h-0 w-full flex-[1.45]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={MOCK_SYNC_DATA} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorEdgeToday" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                                    <XAxis dataKey="time" hide />
+                                    {/* domain 与刻度一致，避免 [-300,900] 在 300kW 以上留出大块空白 */}
+                                    <YAxis orientation="left" domain={[-300, 300]} ticks={[-300, -150, 0, 150, 300]} fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} stroke={chartColors.text} tickFormatter={(val) => `${val}kW`} />
+                                    <Tooltip {...tooltipStyle} />
+                                    <Legend verticalAlign="top" height={28} content={<CustomLegend onClick={toggleSeries} legendMb="mb-0" />} />
+                                    <Area hide={hiddenSeries.includes('edge')} name={t.legendEdge} type="stepAfter" dataKey="edge" stroke="#3b82f6" fill="url(#colorEdgeToday)" strokeWidth={2.5} animationDuration={500} />
+                                    <Line hide={hiddenSeries.includes('cloud')} name={t.legendCloud} type="stepAfter" dataKey="cloud" stroke="#f97316" strokeWidth={2.5} strokeDasharray="4 4" dot={false} animationDuration={500} />
+                                    <Line hide={hiddenSeries.includes('recommended')} name={t.legendAiForecast} type="monotone" dataKey="recommended" stroke="#10b981" strokeWidth={2} dot={false} animationDuration={500} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <p className="shrink-0 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t.chartSectionSoc}</p>
+                        <div className="min-h-0 w-full flex-1">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={MOCK_SYNC_DATA} margin={{ top: 4, right: 10, left: -10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                                    <XAxis dataKey="time" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} tickMargin={8} minTickGap={30} stroke={chartColors.text} />
+                                    <YAxis orientation="left" domain={[0, 100]} ticks={[0, 50, 100]} fontSize={11} tickLine={false} axisLine={false} stroke={chartColors.text} tickFormatter={(val) => `${val}%`} />
+                                    <Tooltip {...tooltipStyle} />
+                                    <Legend verticalAlign="top" height={36} content={<CustomLegend onClick={toggleSeries}/>} />
+                                    <Line hide={hiddenSeries.includes('socForecast1')} name="SOC实际" type="monotone" dataKey="socForecast1" stroke="#8b5cf6" strokeWidth={2} dot={false} animationDuration={500} />
+                                    <Line hide={hiddenSeries.includes('socForecast2')} name="SOC Forecast 2" type="monotone" dataKey="socForecast2" stroke="#ec4899" strokeWidth={2} dot={false} animationDuration={500} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
-                <div className="bg-apple-surface-light dark:bg-apple-surface-dark border border-apple-border-light dark:border-apple-border-dark rounded-2xl shadow-sm flex flex-col h-[500px] overflow-hidden">
-                    <div className="p-5 border-b border-apple-border-light dark:border-apple-border-dark flex items-center justify-between">
-                        <h3 className="font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark flex items-center gap-2 text-sm">
-                            <Activity size={16} className="text-blue-500"/>
-                            {lang === 'zh' ? '调度预测 - 明日' : 'Dispatch Forecast - Tomorrow'}
+                <div className="ems-card flex min-h-[400px] flex-col overflow-hidden lg:min-h-0 lg:h-[600px]">
+                    <div className="border-b border-slate-100 bg-slate-50/50 p-4 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50">
+                        <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
+                            <span className="rounded-xl bg-blue-50 p-1.5 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                                <Activity size={16} />
+                            </span>
+                            {t.forecastTomorrowTitle}
                         </h3>
                     </div>
-                    <div className="flex-1 w-full min-h-0 relative p-6">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={MOCK_FORECAST_DATA} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                                <XAxis dataKey="time" fontSize={16} fontWeight="bold" tickLine={false} axisLine={false} tickMargin={12} minTickGap={30} stroke={chartColors.text} />
-                                <YAxis yAxisId="power" orientation="left" domain={[-300, 900]} ticks={[-300, -150, 0, 150, 300]} fontSize={16} fontWeight="bold" tickLine={false} axisLine={false} stroke={chartColors.text} tickFormatter={(val) => `${val}kW`} />
-                                <YAxis yAxisId="soc" orientation="right" domain={[0, 100]} ticks={[0, 50, 100]} fontSize={11} tickLine={false} axisLine={false} stroke={chartColors.text} tickFormatter={(val) => `${val}%`} />
-                                <Tooltip {...tooltipStyle} />
-                                <Legend verticalAlign="top" height={40} content={<CustomLegend onClick={toggleSeries}/>} />
-                                
-                                <Line hide={hiddenSeries.includes('cloud')} yAxisId="power" name={t.legendCloud} type="stepAfter" dataKey="cloud" stroke="#f97316" strokeWidth={2.5} strokeDasharray="4 4" dot={false} animationDuration={500} />
-                                <Line hide={hiddenSeries.includes('recommended')} yAxisId="power" name={t.legendAiForecast} type="monotone" dataKey="recommended" stroke="#10b981" strokeWidth={2} dot={false} animationDuration={500} />
-                                
-                                <Line hide={hiddenSeries.includes('socForecast1')} yAxisId="soc" name="SOC实际" type="monotone" dataKey="socForecast1" stroke="#8b5cf6" strokeWidth={2} dot={false} animationDuration={500} />
-                                <Line hide={hiddenSeries.includes('socForecast2')} yAxisId="soc" name="SOC Forecast 2" type="monotone" dataKey="socForecast2" stroke="#ec4899" strokeWidth={2} dot={false} animationDuration={500} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
+                    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+                        <p className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t.chartSectionPower}</p>
+                        <div className="min-h-0 w-full flex-[1.45]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={MOCK_FORECAST_DATA} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                                    <XAxis dataKey="time" hide />
+                                    <YAxis orientation="left" domain={[-300, 300]} ticks={[-300, -150, 0, 150, 300]} fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} stroke={chartColors.text} tickFormatter={(val) => `${val}kW`} />
+                                    <Tooltip {...tooltipStyle} />
+                                    <Legend verticalAlign="top" height={28} content={<CustomLegend onClick={toggleSeries} legendMb="mb-0" />} />
+                                    <Line hide={hiddenSeries.includes('cloud')} name={t.legendCloud} type="stepAfter" dataKey="cloud" stroke="#f97316" strokeWidth={2.5} strokeDasharray="4 4" dot={false} animationDuration={500} />
+                                    <Line hide={hiddenSeries.includes('recommended')} name={t.legendAiForecast} type="monotone" dataKey="recommended" stroke="#10b981" strokeWidth={2} dot={false} animationDuration={500} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <p className="shrink-0 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t.chartSectionSoc}</p>
+                        <div className="min-h-0 w-full flex-1">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={MOCK_FORECAST_DATA} margin={{ top: 4, right: 10, left: -10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                                    <XAxis dataKey="time" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} tickMargin={8} minTickGap={30} stroke={chartColors.text} />
+                                    <YAxis orientation="left" domain={[0, 100]} ticks={[0, 50, 100]} fontSize={11} tickLine={false} axisLine={false} stroke={chartColors.text} tickFormatter={(val) => `${val}%`} />
+                                    <Tooltip {...tooltipStyle} />
+                                    <Legend verticalAlign="top" height={36} content={<CustomLegend onClick={toggleSeries}/>} />
+                                    <Line hide={hiddenSeries.includes('socForecast1')} name="SOC实际" type="monotone" dataKey="socForecast1" stroke="#8b5cf6" strokeWidth={2} dot={false} animationDuration={500} />
+                                    <Line hide={hiddenSeries.includes('socForecast2')} name="SOC Forecast 2" type="monotone" dataKey="socForecast2" stroke="#ec4899" strokeWidth={2} dot={false} animationDuration={500} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -580,110 +668,121 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
         const [strategyDate, setStrategyDate] = useState('2025-09-16');
 
         return (
-            <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-                <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-4 border border-apple-border-light dark:border-apple-border-dark rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
-                    <div className="flex flex-wrap items-center gap-6 text-sm w-full md:w-auto">
+            <div className="animate-in space-y-4 slide-in-from-right-4 duration-500">
+                {/* 顶栏 — 与电价列表工具条一致 */}
+                <div className="ems-card mb-4 flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex w-full flex-wrap items-center gap-6 md:w-auto">
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] uppercase font-bold text-apple-text-secondary-light dark:text-apple-text-secondary-dark tracking-widest">{t.currentTemplate}</span>
-                            <div className="flex items-center gap-3">
-                                <span className="font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark flex items-center gap-2 text-base">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t.currentTemplate}</span>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="flex items-center gap-2 text-base font-bold text-slate-800 dark:text-slate-200">
                                     <LayoutTemplate size={18} className="text-purple-500" />
                                     {getTemplateDisplayNameForOrchestration(orchestrationCurrentTemplate)}
                                 </span>
-                                <button 
+                                <button
+                                    type="button"
                                     onClick={() => setShowTemplateModal(true)}
-                                    className="px-3 h-7 text-[11px] font-semibold text-brand-600 dark:text-brand-400 bg-brand-500/10 border border-brand-500/20 rounded-full hover:bg-brand-500/20 transition-all flex items-center gap-1.5"
+                                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
                                 >
-                                    <RefreshCcw size={12} /> {t.changeTemplate}
+                                    <RefreshCcw size={16} /> {t.changeTemplate}
                                 </button>
                             </div>
                         </div>
 
-                        <div className="h-10 w-px bg-apple-border-light dark:bg-apple-border-dark hidden md:block"></div>
+                        <div className="hidden h-8 w-px bg-slate-200 dark:bg-white/10 md:block" />
 
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] uppercase font-bold text-apple-text-secondary-light dark:text-apple-text-secondary-dark tracking-widest">{t.dispatchMode}</span>
-                            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-500/20">
-                                <Zap size={12} className="fill-current"/> 
-                                <span className="font-bold text-[10px] uppercase tracking-wider">{t.modeAuto}</span>
-                            </div>
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t.dispatchMode}</span>
+                            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                <Zap size={14} className="fill-current" />
+                                {t.modeAuto}
+                            </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark border border-apple-border-light dark:border-apple-border-dark rounded-full text-[11px] font-semibold text-apple-text-secondary-light dark:text-apple-text-secondary-dark">
-                            <MapPin size={12} className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark"/>
+                    <div className="flex w-full flex-wrap items-center gap-3 md:w-auto md:justify-end">
+                        <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-300 md:flex">
+                            <MapPin size={16} className="text-slate-400" />
                             {lang === 'zh' ? 'DE-BY 慕尼黑' : 'DE-BY Munich'}
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark border border-apple-border-light dark:border-apple-border-dark rounded-full text-[11px] font-mono font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark">
-                            <Clock size={12} className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark"/>
+                        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm font-bold text-slate-800 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200">
+                            <Clock size={16} className="text-slate-400" />
                             <span className="tracking-wide">2025-09-16 14:30:24</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-[500px]">
-                    <div className="bg-apple-surface-light dark:bg-apple-surface-dark border border-apple-border-light dark:border-apple-border-dark rounded-2xl flex flex-col h-[600px] overflow-hidden shadow-sm">
-                        <div className="p-5 border-b border-apple-border-light dark:border-apple-border-dark bg-apple-bg-light/50 dark:bg-apple-bg-dark/50">
-                            <div className="flex justify-between items-start mb-3">
-                                <h3 className="font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark text-sm flex items-center gap-2">
-                                    <Activity size={18} className="text-blue-500"/>
+                <div className="grid min-h-[500px] grid-cols-1 gap-4 lg:grid-cols-2">
+                    {/* 边缘策略表 — 与电价列表表格壳一致 */}
+                    <div className="ems-card relative flex h-[600px] flex-col overflow-hidden">
+                        <div className="border-b border-slate-100 bg-slate-50/50 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50">
+                            <div className="flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                                <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
+                                    <Activity size={18} className="text-blue-500" />
                                     {t.edgeStrategyTitle}
                                 </h3>
-                                <div className="flex bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark p-1 rounded-xl border border-apple-border-light dark:border-apple-border-dark">
-                                    <button 
+                                <div className="ems-segmented shrink-0">
+                                    <button
+                                        type="button"
                                         onClick={() => setEdgeViewDate('today')}
-                                        className={`px-4 h-7 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center ${edgeViewDate === 'today' ? 'bg-apple-surface-light dark:bg-apple-surface-dark text-apple-text-primary-light dark:text-apple-text-primary-dark shadow-sm' : 'text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-apple-text-primary-light dark:hover:text-apple-text-primary-dark'}`}
+                                        className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${edgeViewDate === 'today' ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                     >
                                         {t.viewToday}
                                     </button>
-                                    <button 
+                                    <button
+                                        type="button"
                                         onClick={() => setEdgeViewDate('yesterday')}
-                                        className={`px-4 h-7 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center ${edgeViewDate === 'yesterday' ? 'bg-apple-surface-light dark:bg-apple-surface-dark text-apple-text-primary-light dark:text-apple-text-primary-dark shadow-sm' : 'text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-apple-text-primary-light dark:hover:text-apple-text-primary-dark'}`}
+                                        className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${edgeViewDate === 'yesterday' ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                     >
                                         {t.viewYesterday}
                                     </button>
                                 </div>
                             </div>
-                            
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4 text-[11px]">
+
+                            <div className="flex flex-col gap-3 border-t border-slate-100 px-6 py-3 dark:border-apple-border-dark sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex flex-wrap items-center gap-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark font-bold uppercase tracking-widest">{t.edgeStatus}:</span>
-                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">{t.enabled}</span>
+                                        <span>{t.edgeStatus}:</span>
+                                        <span className="rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-0.5 normal-case text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                            {t.enabled}
+                                        </span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark font-bold uppercase tracking-widest">{t.edgeLastSync}:</span>
-                                        <span className="font-mono text-apple-text-primary-light dark:text-apple-text-primary-dark font-semibold">{edgeLastSyncTime}</span>
+                                    <div className="flex items-center gap-2 normal-case">
+                                        <span>{t.edgeLastSync}:</span>
+                                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{edgeLastSyncTime}</span>
                                     </div>
                                 </div>
-                                <button 
+                                <button
+                                    type="button"
                                     onClick={handleSyncEdge}
                                     disabled={isSyncingEdge}
-                                    className="text-[11px] bg-apple-surface-light dark:bg-apple-surface-dark border border-apple-border-light dark:border-apple-border-dark text-apple-text-primary-light dark:text-apple-text-primary-dark px-3 h-8 rounded-full hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark transition-colors flex items-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
                                 >
-                                    {isSyncingEdge ? <Loader2 size={12} className="animate-spin"/> : <RefreshCw size={12}/>} 
+                                    {isSyncingEdge ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                                     {isSyncingEdge ? t.syncing : t.fetch}
                                 </button>
                             </div>
                         </div>
-                        <div className="overflow-auto flex-1 custom-scrollbar">
-                            <table className="w-full text-sm text-left border-separate border-spacing-0">
-                                <thead className="text-[10px] text-apple-text-secondary-light dark:text-apple-text-secondary-dark bg-apple-bg-light/30 dark:bg-apple-bg-dark/30 font-bold uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md">
+                        <div className="custom-scrollbar flex-1 overflow-auto">
+                            <table className="w-full border-separate border-spacing-0 text-left text-sm">
+                                <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-sm dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/95 dark:text-slate-400">
                                     <tr>
-                                        <th className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark">{t.start}</th>
-                                        <th className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark">{t.end}</th>
-                                        <th className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark">{t.type}</th>
-                                        <th className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark text-right">{t.power}</th>
+                                        <th className="px-6 py-4">{t.start}</th>
+                                        <th className="px-6 py-4">{t.end}</th>
+                                        <th className="px-6 py-4">{t.type}</th>
+                                        <th className="px-6 py-4 text-right">{t.power}</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-apple-border-light dark:divide-apple-border-dark">
+                                <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                                     {edgeData[edgeViewDate].map((item) => (
-                                        <tr key={item.id} className="hover:bg-apple-surface-secondary-light/30 dark:hover:bg-apple-surface-secondary-dark/30 transition-colors group">
-                                            <td className="px-5 py-3 text-apple-text-secondary-light dark:text-apple-text-secondary-dark font-mono text-base font-bold">{item.startTime}</td>
-                                            <td className="px-5 py-3 text-apple-text-secondary-light dark:text-apple-text-secondary-dark font-mono text-base font-bold">{item.endTime}</td>
-                                            <td className="px-5 py-3">{renderTypeBadge(item.type)}</td>
-                                            <td className="px-5 py-3 text-right font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark text-base">{item.power} kW</td>
+                                        <tr
+                                            key={item.id}
+                                            className="transition-colors hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
+                                        >
+                                            <td className="px-6 py-4 font-mono text-sm font-bold text-slate-700 dark:text-slate-300">{item.startTime}</td>
+                                            <td className="px-6 py-4 font-mono text-sm font-bold text-slate-700 dark:text-slate-300">{item.endTime}</td>
+                                            <td className="px-6 py-4">{renderTypeBadge(item.type)}</td>
+                                            <td className="px-6 py-4 text-right text-sm font-bold text-slate-800 dark:text-slate-200">{item.power} kW</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -691,70 +790,89 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                         </div>
                     </div>
 
-                    <div className="bg-apple-surface-light dark:bg-apple-surface-dark border border-apple-border-light dark:border-apple-border-dark rounded-2xl flex flex-col h-[600px] overflow-hidden relative shadow-sm">
-                        <div className="p-5 border-b border-apple-border-light dark:border-apple-border-dark flex items-center justify-between bg-brand-500/5">
-                            <div className="flex items-center gap-3">
-                                <h3 className="font-semibold text-apple-text-primary-light dark:text-apple-text-primary-dark text-sm flex items-center gap-2">
-                                    <Cloud size={18} className="text-brand-500"/>
+                    {/* 云端调度表 */}
+                    <div className="ems-card relative flex h-[600px] flex-col overflow-hidden">
+                        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
+                                    <Cloud size={18} className="text-blue-500" />
                                     {t.cloudDispatch}
-                                    {isEditing && <span className="text-[10px] uppercase font-bold text-brand-600 bg-brand-500/10 px-2 py-0.5 rounded-full tracking-widest border border-brand-500/20">Editing</span>}
                                 </h3>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark px-2 py-1 rounded-full border border-apple-border-light dark:border-apple-border-dark">
-                                    <Clock size={10} className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark" />
-                                    <span className="uppercase tracking-widest">{t.lastDispatch}:</span>
-                                    <span className="font-mono text-apple-text-primary-light dark:text-apple-text-primary-dark">2025-09-16 14:30</span>
+                                {isEditing && (
+                                    <span className="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                        {t.editing}
+                                    </span>
+                                )}
+                                <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-500 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-400">
+                                    <Clock size={12} className="shrink-0" />
+                                    <span className="uppercase tracking-wider">{t.lastDispatch}</span>
+                                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">2025-09-16 14:30</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark bg-apple-surface-light dark:bg-apple-surface-dark flex items-center justify-start gap-6">
-                            <div className="flex items-center gap-2 text-apple-text-secondary-light dark:text-apple-text-secondary-dark">
-                                <Calendar size={14} className="text-brand-500" />
-                                <span className="font-bold text-[10px] uppercase tracking-widest">{t.strategyDate}:</span>
+                        <div className="flex flex-wrap items-center gap-6 border-b border-slate-100 px-6 py-3 dark:border-apple-border-dark">
+                            <div className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+                                <Calendar size={16} className="text-slate-400" />
+                                <span className="uppercase tracking-wider text-slate-500 dark:text-slate-400">{t.strategyDate}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <input 
-                                    type="date" 
-                                    value={strategyDate}
-                                    disabled={!isEditing}
-                                    onChange={(e) => setStrategyDate(e.target.value)}
-                                    className={`bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark border rounded-lg px-3 py-1.5 text-xs font-mono font-semibold outline-none transition-all
-                                        ${isEditing 
-                                            ? 'border-brand-500/50 text-apple-text-primary-light dark:text-apple-text-primary-dark focus:ring-2 focus:ring-brand-500/20' 
-                                            : 'border-transparent bg-transparent text-apple-text-primary-light dark:text-apple-text-primary-dark cursor-not-allowed'}`}
-                                />
-                            </div>
+                            <input
+                                type="date"
+                                value={strategyDate}
+                                disabled={!isEditing}
+                                onChange={(e) => setStrategyDate(e.target.value)}
+                                className={`rounded-xl border bg-slate-50 px-3 py-2 font-mono text-sm font-semibold outline-none transition-all dark:bg-apple-surface-secondary-dark ${
+                                    isEditing
+                                        ? 'border-blue-500/40 text-slate-800 focus:ring-2 focus:ring-blue-100 dark:border-blue-500/40 dark:text-slate-200 dark:focus:ring-blue-900'
+                                        : 'cursor-not-allowed border-transparent text-slate-500 opacity-80 dark:text-slate-400'
+                                }`}
+                            />
                         </div>
-                        
-                        <div className="overflow-auto flex-1 pb-16 custom-scrollbar bg-apple-bg-light/10 dark:bg-apple-bg-dark/10">
-                            <table className="w-full text-sm text-left border-separate border-spacing-0">
-                                <thead className="text-[10px] text-apple-text-secondary-light dark:text-apple-text-secondary-dark bg-apple-bg-light/30 dark:bg-apple-bg-dark/30 font-bold uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md">
+
+                        <div className="custom-scrollbar flex-1 overflow-auto pb-16">
+                            <table className="w-full border-separate border-spacing-0 text-left text-sm">
+                                <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-sm dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/95 dark:text-slate-400">
                                     <tr>
-                                        <th className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark w-32">{t.start}</th>
-                                        <th className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark w-32">{t.end}</th>
-                                        <th className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark">{t.type}</th>
-                                        <th className="px-5 py-3 border-b border-apple-border-light dark:border-apple-border-dark text-right">{t.power}</th>
+                                        <th className="w-32 px-6 py-4">{t.start}</th>
+                                        <th className="w-32 px-6 py-4">{t.end}</th>
+                                        <th className="px-6 py-4">{t.type}</th>
+                                        <th className="px-6 py-4 text-right">{t.power}</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-apple-border-light dark:divide-apple-border-dark">
+                                <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                                     {cloudStrategies.map((item) => (
-                                        <tr key={item.id} className="hover:bg-brand-500/5 group bg-apple-surface-light dark:bg-apple-surface-dark transition-colors">
-                                            <td className="px-5 py-3">
+                                        <tr key={item.id} className="transition-colors hover:bg-blue-50/30 dark:hover:bg-blue-900/10">
+                                            <td className="px-6 py-4">
                                                 {isEditing ? (
-                                                    <input type="time" defaultValue={item.startTime} className="w-24 border border-apple-border-light dark:border-apple-border-dark rounded-lg px-2 py-1 text-base font-bold font-mono bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark text-apple-text-primary-light dark:text-apple-text-primary-dark focus:ring-2 focus:ring-brand-500/20 outline-none" />
+                                                    <input
+                                                        type="time"
+                                                        defaultValue={item.startTime}
+                                                        className="w-28 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 font-mono text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200 dark:focus:ring-blue-900"
+                                                    />
                                                 ) : (
-                                                    <span className="font-mono text-apple-text-secondary-light dark:text-apple-text-secondary-dark bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark px-2 py-1 rounded-lg border border-apple-border-light dark:border-apple-border-dark text-base font-bold">{item.startTime}</span>
+                                                    <span className="inline-block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-sm font-bold text-slate-700 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-300">
+                                                        {item.startTime}
+                                                    </span>
                                                 )}
                                             </td>
-                                            <td className="px-5 py-3">
+                                            <td className="px-6 py-4">
                                                 {isEditing ? (
-                                                    <input type="time" defaultValue={item.endTime} className="w-24 border border-apple-border-light dark:border-apple-border-dark rounded-lg px-2 py-1 text-base font-bold font-mono bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark text-apple-text-primary-light dark:text-apple-text-primary-dark focus:ring-2 focus:ring-brand-500/20 outline-none" />
+                                                    <input
+                                                        type="time"
+                                                        defaultValue={item.endTime}
+                                                        className="w-28 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 font-mono text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200 dark:focus:ring-blue-900"
+                                                    />
                                                 ) : (
-                                                     <span className="font-mono text-apple-text-secondary-light dark:text-apple-text-secondary-dark bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark px-2 py-1 rounded-lg border border-apple-border-light dark:border-apple-border-dark text-base font-bold">{item.endTime}</span>
+                                                    <span className="inline-block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-sm font-bold text-slate-700 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-300">
+                                                        {item.endTime}
+                                                    </span>
                                                 )}
                                             </td>
-                                            <td className="px-5 py-3">
+                                            <td className="px-6 py-4">
                                                 {isEditing ? (
-                                                    <select defaultValue={item.type} className="border border-apple-border-light dark:border-apple-border-dark rounded-lg px-2 py-1 text-xs bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark text-apple-text-primary-light dark:text-apple-text-primary-dark focus:ring-2 focus:ring-brand-500/20 outline-none cursor-pointer">
+                                                    <select
+                                                        defaultValue={item.type}
+                                                        className="cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200 dark:focus:ring-blue-900"
+                                                    >
                                                         <option value="Charge">{t.charge}</option>
                                                         <option value="Discharge">{t.discharge}</option>
                                                         <option value="Standby">{t.standby}</option>
@@ -763,9 +881,13 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                     renderTypeBadge(item.type)
                                                 )}
                                             </td>
-                                            <td className="px-5 py-3 text-right font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark text-base">
-                                                 {isEditing ? (
-                                                    <input type="number" defaultValue={item.power} className="w-24 text-right border border-apple-border-light dark:border-apple-border-dark rounded-lg px-2 py-1 text-base font-bold bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark text-apple-text-primary-light dark:text-apple-text-primary-dark focus:ring-2 focus:ring-brand-500/20 outline-none" />
+                                            <td className="px-6 py-4 text-right text-sm font-bold text-slate-800 dark:text-slate-200">
+                                                {isEditing ? (
+                                                    <input
+                                                        type="number"
+                                                        defaultValue={item.power}
+                                                        className="w-24 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-right font-mono text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200 dark:focus:ring-blue-900"
+                                                    />
                                                 ) : (
                                                     `${item.power} kW`
                                                 )}
@@ -775,20 +897,24 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                 </tbody>
                             </table>
                             {isEditing && (
-                                <div className="p-6 border-t border-apple-border-light dark:border-apple-border-dark bg-brand-500/5 text-center">
-                                    <button className="px-6 h-9 text-[11px] text-brand-600 dark:text-brand-400 font-bold bg-apple-surface-light dark:bg-apple-surface-dark border border-brand-500/20 rounded-full hover:bg-brand-500/10 transition-all flex items-center justify-center gap-2 w-full max-w-xs mx-auto shadow-sm">
-                                        <Plus size={14}/> {t.addRow}
+                                <div className="border-t border-slate-100 bg-slate-50/50 p-4 text-center dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/30">
+                                    <button
+                                        type="button"
+                                        className="mx-auto flex max-w-xs items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
+                                    >
+                                        <Plus size={16} /> {t.addRow}
                                     </button>
                                 </div>
                             )}
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 px-6 bg-apple-surface-light/80 dark:bg-apple-surface-dark/80 backdrop-blur-xl border-t border-apple-border-light dark:border-apple-border-dark flex justify-end items-center">
-                             <div className="flex gap-3 w-full lg:w-auto">
-                                <button 
+                        <div className="absolute bottom-0 left-0 right-0 flex h-16 items-center justify-end border-t border-slate-100 bg-white/90 px-6 backdrop-blur-md dark:border-apple-border-dark dark:bg-apple-surface-dark/90">
+                            <div className="flex w-full gap-3 lg:w-auto">
+                                <button
+                                    type="button"
                                     onClick={handleDeployClick}
-                                    className="flex-1 lg:flex-none px-10 h-9 text-sm text-white rounded-full font-bold transition-all bg-brand-600 hover:bg-brand-500 flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
+                                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-700 lg:flex-none"
                                 >
-                                    <Download size={18}/> {t.deploy}
+                                    <Download size={18} /> {t.deploy}
                                 </button>
                             </div>
                         </div>
@@ -813,6 +939,20 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
         const linkedStations = stations.filter((s) => linkedIds.includes(s.id));
         const activeUserTpl = userTpls.find((t) => t.id === activeTemplateId) ?? userTpls[0];
         const isGreenStrategyActive = activeTemplateId === 'u3';
+        const tt = t.templates;
+
+        const deployStatusPillClass = (s: StrategyDeployStatus) => {
+            switch (s) {
+                case 'success':
+                    return 'bg-emerald-500/15 text-emerald-800 border-emerald-500/40 dark:text-emerald-200 dark:border-emerald-500/35';
+                case 'pending':
+                    return 'bg-amber-500/15 text-amber-900 border-amber-500/40 dark:text-amber-100 dark:border-amber-500/35';
+                case 'failed':
+                    return 'bg-red-500/15 text-red-800 border-red-500/40 dark:text-red-200 dark:border-red-500/35';
+                default:
+                    return 'bg-slate-100 text-apple-text-tertiary-light border-slate-200 dark:bg-apple-surface-secondary-dark dark:text-apple-text-tertiary-dark dark:border-apple-border-dark';
+            }
+        };
 
         return (
             <div className="space-y-8 animate-in slide-in-from-right-4 duration-300 pb-12">
@@ -820,8 +960,8 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                 <div>
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-6">
                     <div className="min-w-0 flex-1">
-                    <div className={`relative bg-apple-surface-light dark:bg-apple-surface-dark border transition-all overflow-hidden rounded-3xl shadow-sm
-                        ${profitMaxActive ? 'border-brand-500 ring-1 ring-brand-500' : 'border-apple-border-light dark:border-apple-border-dark'}`}>
+                    <div className={`relative bg-white dark:bg-apple-surface-dark border transition-all overflow-hidden rounded-3xl shadow-sm
+                        ${profitMaxActive ? 'border-brand-500 ring-1 ring-brand-500' : 'border-slate-200 dark:border-apple-border-dark'}`}>
                         {profitMaxActive && (
                             <span className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-500/30">
                                 {lang === 'zh' ? '已激活' : 'Activated'}
@@ -853,7 +993,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                         </div>
 
                                         {!profitMaxActive && (
-                                            <span className="flex shrink-0 items-center gap-2 self-start text-[10px] font-bold text-apple-text-secondary-light dark:text-apple-text-secondary-dark bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark px-3 py-1.5 rounded-full border border-apple-border-light dark:border-apple-border-dark uppercase tracking-widest w-fit">
+                                            <span className="flex shrink-0 items-center gap-2 self-start text-[10px] font-bold text-apple-text-secondary-light dark:text-apple-text-secondary-dark bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark px-3 py-1.5 rounded-full border border-slate-200 dark:border-apple-border-dark uppercase tracking-widest w-fit">
                                                 Ready
                                             </span>
                                         )}
@@ -871,14 +1011,14 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                     )}
                                     <button 
                                         onClick={() => setShowPriceSelectionModal(true)}
-                                        className="px-5 h-9 text-xs border border-apple-border-light dark:border-apple-border-dark hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark text-apple-text-primary-light dark:text-apple-text-primary-dark rounded-full font-bold transition-all flex items-center gap-2"
+                                        className="px-5 h-9 text-xs border border-slate-200 dark:border-apple-border-dark hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark text-apple-text-primary-light dark:text-apple-text-primary-dark rounded-full font-bold transition-all flex items-center gap-2"
                                     >
                                         <DollarSign size={16} />
                                         {lang === 'zh' ? '配置电价' : 'Configure Price'}
                                     </button>
                                     <button 
                                         onClick={() => setShowCoeffEditModal(true)}
-                                        className="px-5 h-9 text-xs border border-apple-border-light dark:border-apple-border-dark hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark text-apple-text-primary-light dark:text-apple-text-primary-dark rounded-full font-bold transition-all flex items-center gap-2"
+                                        className="px-5 h-9 text-xs border border-slate-200 dark:border-apple-border-dark hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark text-apple-text-primary-light dark:text-apple-text-primary-dark rounded-full font-bold transition-all flex items-center gap-2"
                                     >
                                         <Coins size={16} />
                                         {lang === 'zh' ? '发电收益与成本系数' : 'Generation Revenue & Cost Coefficients'}
@@ -887,22 +1027,25 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                             </div>
                         </div>
 
-                        {/* Bottom Part: Coefficients Configuration (Read-only View) */}
-                        <div className="border-t border-apple-border-light dark:border-apple-border-dark bg-apple-surface-secondary-light/30 dark:bg-apple-surface-secondary-dark/30 p-6">
-                            <div className="flex flex-col xl:flex-row gap-8">
-                                <div className="xl:w-1/4 xl:border-r border-apple-border-light dark:border-apple-border-dark xl:pr-8 flex flex-col justify-center">
-                                    <h3 className="text-sm font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark mb-2 flex items-center gap-2">
-                                        <div className="p-2 bg-brand-500/10 rounded-xl text-brand-600 dark:text-brand-400"><Zap size={18}/></div>
+                        {/* Bottom Part: Coefficients Configuration (Read-only View) — 标题与说明置于网格上方横向排列，三列参数占满宽 */}
+                        <div className="border-t border-slate-200 dark:border-apple-border-dark bg-apple-surface-secondary-light/30 dark:bg-apple-surface-secondary-dark/30 p-6">
+                            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
+                                        <Zap size={18} />
+                                    </div>
+                                    <h3 className="text-sm font-bold tracking-tight text-apple-text-primary-light dark:text-apple-text-primary-dark">
                                         {tPrice.coeffTitle}
                                     </h3>
-                                    <p className="text-xs text-apple-text-secondary-light dark:text-apple-text-secondary-dark leading-relaxed opacity-80">
-                                        {tPrice.note}
-                                    </p>
                                 </div>
+                                <p className="text-xs leading-relaxed text-apple-text-secondary-light dark:text-apple-text-secondary-dark opacity-90 sm:max-w-md sm:text-right md:max-w-lg lg:max-w-xl">
+                                    {tPrice.note}
+                                </p>
+                            </div>
 
-                                <div className="xl:w-3/4 grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                                     <div className="space-y-4">
-                                        <h4 className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark flex items-center gap-2 pb-2 border-b border-apple-border-light dark:border-apple-border-dark uppercase tracking-widest">
+                                        <h4 className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-apple-border-dark uppercase tracking-widest">
                                             <span className="w-2 h-2 rounded-full bg-orange-500"></span>
                                             {tPrice.pvCoeffs}
                                         </h4>
@@ -924,7 +1067,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <h4 className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark flex items-center gap-2 pb-2 border-b border-apple-border-light dark:border-apple-border-dark uppercase tracking-widest">
+                                        <h4 className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-apple-border-dark uppercase tracking-widest">
                                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                                             {tPrice.storageCharge}
                                         </h4>
@@ -946,7 +1089,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <h4 className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark flex items-center gap-2 pb-2 border-b border-apple-border-light dark:border-apple-border-dark uppercase tracking-widest">
+                                        <h4 className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-apple-border-dark uppercase tracking-widest">
                                             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                                             {tPrice.storageDischarge}
                                         </h4>
@@ -968,11 +1111,10 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                         </div>
                                     </div>
                                 </div>
-                            </div>
                         </div>
 
-                        <div className="border-t border-apple-border-light dark:border-apple-border-dark p-6 bg-apple-surface-secondary-light/20 dark:bg-apple-surface-secondary-dark/20">
-                            <div className="w-full bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark rounded-2xl border border-apple-border-light dark:border-apple-border-dark p-5 flex flex-col h-[220px] shadow-inner">
+                        <div className="border-t border-slate-200 dark:border-apple-border-dark p-6 bg-apple-surface-secondary-light/20 dark:bg-apple-surface-secondary-dark/20">
+                            <div className="w-full bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark p-5 flex flex-col h-[220px] shadow-inner">
                                 <div className="flex justify-between items-center mb-4 shrink-0">
                                     <div className="flex flex-col">
                                         <span className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark uppercase tracking-widest">{t.templates.profitMax.pricePreview}</span>
@@ -1017,10 +1159,10 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
 
                     <div className="min-w-0 flex-1 flex">
                         <div
-                            className={`w-full rounded-2xl border bg-apple-surface-light dark:bg-[#26292D] p-6 transition-all relative overflow-hidden
+                            className={`w-full rounded-2xl border bg-white dark:bg-[#26292D] p-6 transition-all relative overflow-hidden
                                 ${isGreenStrategyActive
                                     ? 'border-emerald-500/40 ring-1 ring-inset ring-emerald-400/50 shadow-md shadow-emerald-500/10 dark:border-emerald-400/70 dark:ring-emerald-400 dark:shadow-lg dark:shadow-emerald-500/20'
-                                    : 'border-apple-border-light dark:border-white/10 shadow-md'}`}
+                                    : 'border-slate-200 dark:border-white/10 shadow-md'}`}
                         >
                             {isGreenStrategyActive && (
                                 <>
@@ -1050,7 +1192,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                 </div>
                                             </div>
                                             {!isGreenStrategyActive && (
-                                                <span className="flex shrink-0 items-center gap-2 self-start text-[10px] font-bold text-apple-text-secondary-light dark:text-slate-400 bg-apple-surface-secondary-light dark:bg-white/5 px-3 py-1.5 rounded-full border border-apple-border-light dark:border-white/10 uppercase tracking-widest w-fit">
+                                                <span className="flex shrink-0 items-center gap-2 self-start text-[10px] font-bold text-apple-text-secondary-light dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10 uppercase tracking-widest w-fit">
                                                     Ready
                                                 </span>
                                             )}
@@ -1069,7 +1211,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                         <button
                                             type="button"
                                             onClick={() => setShowPriceSelectionModal(true)}
-                                            className="px-5 h-9 text-xs border border-apple-border-light dark:border-white/15 hover:bg-apple-surface-secondary-light dark:hover:bg-white/10 text-apple-text-primary-light dark:text-slate-200 rounded-full font-bold transition-all flex items-center gap-2"
+                                            className="px-5 h-9 text-xs border border-slate-200 dark:border-white/15 hover:bg-slate-100 dark:hover:bg-white/10 text-apple-text-primary-light dark:text-slate-200 rounded-full font-bold transition-all flex items-center gap-2"
                                         >
                                             <DollarSign size={16} />
                                             {lang === 'zh' ? '配置电价' : 'Configure Price'}
@@ -1077,7 +1219,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                     </div>
                                 </div>
                                 {/* 固定高度，避免 ResponsiveContainer 在 h-auto 下高度为 0 */}
-                                <div className="w-full shrink-0 rounded-2xl border border-apple-border-light dark:border-white/10 bg-apple-surface-secondary-light/90 dark:bg-black/25 p-5 shadow-inner flex h-[220px] flex-col">
+                                <div className="w-full shrink-0 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100/90 dark:bg-black/25 p-5 shadow-inner flex h-[220px] flex-col">
                                     <div className="flex shrink-0 justify-between items-center mb-4 gap-2">
                                         <div className="min-w-0 pr-2">
                                             <span className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-slate-500 uppercase tracking-widest block">
@@ -1141,6 +1283,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                 {userTpls.map((tpl) => {
                                     const isActive = activeTemplateId === tpl.id;
                                     const isAiDispatch = tpl.nameKey === 'aiDispatch';
+                                    const tplStationIds = strategyStationBindings[tpl.id] ?? [];
                                     const rows = setStrategies[tpl.id] ?? [];
                                     return (
                                         <div
@@ -1150,7 +1293,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                             className={`w-full text-left rounded-2xl border transition-all shadow-md cursor-pointer overflow-hidden
                                                 ${isAiDispatch
                                                     ? 'relative isolate border-brand-500/50 bg-gradient-to-br from-white via-apple-bg-light to-brand-50/90 dark:border-brand-700/80 dark:bg-gradient-to-r dark:from-brand-900 dark:via-brand-800 dark:to-brand-900 hover:border-brand-400 hover:shadow-xl hover:shadow-brand-900/15 dark:hover:shadow-brand-900/25'
-                                                    : 'border-apple-border-light dark:border-apple-border-dark bg-apple-bg-light dark:bg-apple-surface-dark hover:border-brand-500/40'}
+                                                    : 'border-slate-200 dark:border-apple-border-dark bg-apple-bg-light dark:bg-apple-surface-dark hover:border-brand-500/40'}
                                                 ${isActive ? 'ring-1 ring-inset ring-brand-400 border-brand-400' : ''}`}
                                         >
                                             {isAiDispatch && (
@@ -1172,17 +1315,31 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                                 {getTemplateName(tpl.nameKey)}
                                                             </h4>
                                                             {!isAiDispatch && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setActiveTemplateId(tpl.id);
-                                                                        onNavigate && onNavigate('/strategy/create');
-                                                                    }}
-                                                                    className="shrink-0 px-2.5 h-7 rounded-lg text-[11px] font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors"
-                                                                >
-                                                                    {lang === 'zh' ? '创建策略' : 'Create Strategy'}
-                                                                </button>
+                                                                <div className="flex flex-wrap gap-2 justify-end shrink-0">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            deployStrategyToStations(tpl.id);
+                                                                        }}
+                                                                        disabled={tplStationIds.length === 0}
+                                                                        className="shrink-0 inline-flex items-center gap-1 px-2.5 h-7 rounded-lg text-[11px] font-bold border border-slate-200 dark:border-apple-border-dark text-apple-text-primary-light dark:text-apple-text-primary-dark bg-white dark:bg-apple-surface-secondary-dark hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark/80 transition-colors disabled:opacity-45 disabled:pointer-events-none disabled:cursor-not-allowed"
+                                                                    >
+                                                                        <Download size={12} />
+                                                                        {tt.deployButton}
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setActiveTemplateId(tpl.id);
+                                                                            onNavigate && onNavigate('/strategy/create');
+                                                                        }}
+                                                                        className="shrink-0 px-2.5 h-7 rounded-lg text-[11px] font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors"
+                                                                    >
+                                                                        {lang === 'zh' ? '创建策略' : 'Create Strategy'}
+                                                                    </button>
+                                                                </div>
                                                             )}
                                                         </div>
                                                         {isAiDispatch && (
@@ -1212,12 +1369,12 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                     className={`w-full h-10 px-3 text-[12px] font-bold border rounded-xl transition-all flex items-center justify-between ${
                                                         expandedSets[tpl.id]
                                                             ? 'border-brand-300 dark:border-brand-700 bg-brand-50/80 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
-                                                            : 'border-apple-border-light dark:border-apple-border-dark text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark'
+                                                            : 'border-slate-200 dark:border-apple-border-dark text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark'
                                                     }`}
                                                 >
                                                     <span className="inline-flex items-center gap-1.5">
                                                         <List size={14} />
-                                                        <span>{lang === 'zh' ? '策略列表' : 'Strategies'}</span>
+                                                        <span>{tt.user}</span>
                                                         <span className={`px-1.5 h-5 rounded-md text-[10px] inline-flex items-center ${
                                                             expandedSets[tpl.id]
                                                                 ? 'bg-brand-100/80 dark:bg-brand-800/60'
@@ -1242,11 +1399,11 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                             </div>
                                             {!isAiDispatch && expandedSets[tpl.id] && (
                                                 <div
-                                                    className="border-t border-apple-border-light dark:border-apple-border-dark"
+                                                    className="border-t border-slate-200 dark:border-apple-border-dark"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     <div className="bg-apple-surface-secondary-light/70 dark:bg-apple-surface-secondary-dark/60 overflow-hidden">
-                                                        <div className="px-4 h-9 border-b border-apple-border-light dark:border-apple-border-dark flex items-center justify-between bg-white/70 dark:bg-black/25">
+                                                        <div className="px-4 h-9 border-b border-slate-200 dark:border-apple-border-dark flex items-center justify-between bg-white/70 dark:bg-black/25">
                                                             <span className="text-[11px] font-bold text-apple-text-secondary-light dark:text-apple-text-secondary-dark uppercase tracking-wider">
                                                                 {lang === 'zh' ? '策略详情' : 'Strategy Details'}
                                                             </span>
@@ -1259,7 +1416,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                         <div className="w-full overflow-x-auto">
                                                             <table className="w-full min-w-[560px] text-[14px]">
                                                                 <thead>
-                                                                    <tr className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark border-b border-apple-border-light dark:border-apple-border-dark">
+                                                                    <tr className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark border-b border-slate-200 dark:border-apple-border-dark">
                                                                         <th className="text-left font-bold py-1 pr-2">{lang === 'zh' ? '策略名称' : 'Name'}</th>
                                                                         <th className="text-left font-bold py-1 px-2 whitespace-nowrap">{lang === 'zh' ? '状态' : 'Status'}</th>
                                                                         <th className="text-right font-bold py-1 pl-2 whitespace-nowrap">{lang === 'zh' ? '最后更新' : 'Last updated'}</th>
@@ -1268,7 +1425,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                                 </thead>
                                                                 <tbody>
                                                                     {rows.map((row, idx) => (
-                                                                        <tr key={`${tpl.id}-r-${idx}`} className="text-apple-text-secondary-light dark:text-apple-text-secondary-dark border-b border-apple-border-light/60 dark:border-apple-border-dark/60 last:border-0">
+                                                                        <tr key={`${tpl.id}-r-${idx}`} className="text-apple-text-secondary-light dark:text-apple-text-secondary-dark border-b border-slate-100 dark:border-apple-border-dark/60 last:border-0">
                                                                             <td className="py-1.5 pr-2 align-top">{row.name}</td>
                                                                             <td className="py-1.5 px-2 align-top whitespace-nowrap">{formatStrategyRowStatus(row.status)}</td>
                                                                             <td className="py-1.5 pl-2 align-top text-right whitespace-nowrap">{row.lastUpdate}</td>
@@ -1276,7 +1433,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={() => openEditStrategyModal(tpl.id, idx, row)}
-                                                                                    className="inline-flex items-center gap-1 px-2 h-7 rounded-md border border-apple-border-light dark:border-apple-border-dark text-[14px] text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-brand-600 hover:border-brand-300 dark:hover:border-brand-700 hover:bg-apple-surface-light dark:hover:bg-apple-surface-secondary-dark transition-colors"
+                                                                                    className="inline-flex items-center gap-1 px-2 h-7 rounded-md border border-slate-200 dark:border-apple-border-dark text-[14px] text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-brand-600 hover:border-brand-300 dark:hover:border-brand-700 hover:bg-white dark:hover:bg-apple-surface-secondary-dark transition-colors"
                                                                                 >
                                                                                     <Edit size={12} />
                                                                                     {lang === 'zh' ? '编辑' : 'Edit'}
@@ -1300,7 +1457,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                     );
                                 })}
                             </div>
-                            <div className="lg:col-span-6 bg-apple-bg-light dark:bg-apple-surface-dark rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-md p-6 flex flex-col min-h-[280px]">
+                            <div className="lg:col-span-6 bg-apple-bg-light dark:bg-apple-surface-dark rounded-3xl border border-slate-200 dark:border-apple-border-dark shadow-md p-6 flex flex-col min-h-[280px]">
                                 <div className="mb-4">
                                     <h4 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
                                         {activeUserTpl ? getTemplateName(activeUserTpl.nameKey) : ''}
@@ -1315,32 +1472,83 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                     </span>
                                 </div>
                                 {linkedStations.length === 0 ? (
-                                    <div className="flex-1 flex items-center justify-center rounded-2xl border border-dashed border-apple-border-light dark:border-apple-border-dark bg-apple-surface-secondary-light/50 dark:bg-apple-surface-secondary-dark/30 px-4 py-10">
+                                    <div className="flex-1 flex items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-apple-border-dark bg-apple-surface-secondary-light/50 dark:bg-apple-surface-secondary-dark/30 px-4 py-10">
                                         <p className="text-sm text-apple-text-secondary-light dark:text-apple-text-secondary-dark text-center">
                                             {t.templates.noLinkedStations}
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
-                                        {linkedStations.map((st) => (
-                                            <div
-                                                key={st.id}
-                                                className="flex items-center justify-between gap-3 p-3 rounded-2xl border border-apple-border-light dark:border-apple-border-dark bg-apple-surface-secondary-light/40 dark:bg-apple-surface-secondary-dark/40"
-                                            >
-                                                <div className="min-w-0">
-                                                    <div className="text-sm font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark truncate">
-                                                        {st.name}
-                                                    </div>
-                                                    <div className="text-[11px] text-apple-text-secondary-light dark:text-apple-text-secondary-dark flex items-center gap-1 mt-0.5">
-                                                        <MapPin size={12} className="shrink-0 opacity-70" />
-                                                        <span className="truncate">{st.location}</span>
-                                                    </div>
-                                                </div>
-                                                <span className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark uppercase tracking-wider shrink-0">
-                                                    {st.status}
-                                                </span>
-                                            </div>
-                                        ))}
+                                    <div className="rounded-2xl border border-slate-200 dark:border-apple-border-dark bg-white dark:bg-apple-surface-dark shadow-sm overflow-hidden flex-1 min-h-0">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full min-w-[720px] text-sm text-left">
+                                                <thead className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-apple-surface-secondary-dark/50 border-b border-slate-100 dark:border-apple-border-dark font-bold uppercase tracking-wider">
+                                                    <tr>
+                                                        <th className="px-4 py-3 whitespace-nowrap">{tt.colStation}</th>
+                                                        <th className="px-4 py-3 whitespace-nowrap">{tt.colLocation}</th>
+                                                        <th className="px-4 py-3 whitespace-nowrap">{tt.lastStrategyDeploy}</th>
+                                                        <th className="px-4 py-3 whitespace-nowrap">{tt.deployStatusCol}</th>
+                                                        <th className="px-4 py-3 whitespace-nowrap">{tt.deploySiteStatus}</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 dark:divide-white/10">
+                                                    {linkedStations.map((st) => {
+                                                        const dep = stationDeployState[activeTemplateId]?.[st.id] ?? {
+                                                            lastDeployTime: '',
+                                                            status: 'never' as StrategyDeployStatus,
+                                                        };
+                                                        const lastDisp =
+                                                            dep.status === 'never' || !dep.lastDeployTime.trim()
+                                                                ? '—'
+                                                                : dep.lastDeployTime;
+                                                        return (
+                                                            <tr
+                                                                key={st.id}
+                                                                className="transition-colors group hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
+                                                            >
+                                                                <td className="px-4 py-3 align-top">
+                                                                    <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                                        {st.name}
+                                                                    </div>
+                                                                    <div className="text-xs text-slate-400 dark:text-slate-500 font-mono mt-0.5">
+                                                                        {st.id}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-300">
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        <MapPin size={14} className="text-slate-400 shrink-0" />
+                                                                        <span className="truncate">{st.location}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 align-top font-mono text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                                                    {dep.status === 'pending' ? (
+                                                                        <span className="inline-flex items-center gap-1.5">
+                                                                            <Loader2 size={14} className="animate-spin shrink-0 text-blue-500" />
+                                                                            <span>
+                                                                                {dep.lastDeployTime.trim() ? dep.lastDeployTime : '—'}
+                                                                            </span>
+                                                                        </span>
+                                                                    ) : (
+                                                                        lastDisp
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-4 py-3 align-top">
+                                                                    <span
+                                                                        className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-bold border ${deployStatusPillClass(dep.status)}`}
+                                                                    >
+                                                                        {tt.deployStatusLabels[dep.status]}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 align-top">
+                                                                    <span className="text-[13px] font-bold text-slate-700 dark:text-slate-200 tracking-wide">
+                                                                        {st.status}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1352,46 +1560,53 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
     };
 
     return (
-        <div className="min-h-screen bg-apple-bg-light dark:bg-apple-surface-dark p-2 md:p-4">
-            <div className="max-w-full mx-auto space-y-6">
-                {/* Header */}
-                {viewMode !== 'my' && (
-                <div className="flex flex-row items-center justify-between gap-4 mb-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">{t.title}</h1>
-                        <p className="text-apple-text-secondary-light dark:text-apple-text-secondary-dark text-sm mt-1">{t.subtitle}</p>
+        <div className="ems-page-shell w-full">
+            <div className="mx-auto max-w-full space-y-4">
+                {/* Header — 与电价列表同款分段时隐藏独立大标题（执行视图独立路由） */}
+                {viewMode !== 'my' && !hideStrategyTabBar && (
+                <div className="ems-card mb-4 flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0">
+                        <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white md:text-xl">{t.title}</h1>
+                        {t.subtitle != null && t.subtitle !== '' && (
+                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t.subtitle}</p>
+                        )}
                     </div>
-                    
-                    <div className="flex bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark p-1 rounded-2xl border border-apple-border-light dark:border-apple-border-dark shadow-sm">
+
+                    <div className="custom-scrollbar-hide flex min-w-0 w-full items-center overflow-x-auto md:w-auto">
+                        <div className="ems-segmented shrink-0">
                         {!hideOverviewTab && (
                         <button 
+                            type="button"
                             onClick={() => setActiveTab('overview')}
-                            className={`flex items-center gap-2 px-6 h-9 rounded-xl text-sm font-semibold transition-all ${activeTab === 'overview' ? 'bg-apple-surface-light dark:bg-black text-apple-text-primary-light dark:text-white shadow-md' : 'text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-apple-text-primary-light dark:hover:text-apple-text-primary-dark'}`}
+                            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'overview' ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                         >
                             <LayoutDashboard size={16} />
                             {t.tabOverview}
                         </button>
                         )}
                         <button 
+                            type="button"
                             onClick={() => setActiveTab('orchestration')}
-                            className={`flex items-center gap-2 px-6 h-9 rounded-xl text-sm font-semibold transition-all ${activeTab === 'orchestration' ? 'bg-apple-surface-light dark:bg-black text-apple-text-primary-light dark:text-white shadow-md' : 'text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-apple-text-primary-light dark:hover:text-apple-text-primary-dark'}`}
+                            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'orchestration' ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                         >
                             <Zap size={16} />
                             {t.tabOrchestration}
                         </button>
                         <button 
+                            type="button"
                             onClick={() => setActiveTab('templates')}
-                            className={`flex items-center gap-2 px-6 h-9 rounded-xl text-sm font-semibold transition-all ${activeTab === 'templates' ? 'bg-apple-surface-light dark:bg-black text-apple-text-primary-light dark:text-white shadow-md' : 'text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-apple-text-primary-light dark:hover:text-apple-text-primary-dark'}`}
+                            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'templates' ? 'bg-white text-purple-600 shadow-sm dark:bg-apple-surface-dark dark:text-purple-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                         >
                             <LayoutTemplate size={16} />
                             {t.tabLink}
                         </button>
+                        </div>
                     </div>
                 </div>
                 )}
 
                 {/* Tab Content */}
-                <div className="mt-6">
+                <div>
                     {activeTab === 'overview' && !hideOverviewTab && <OverviewTab />}
                     {activeTab === 'orchestration' && <OrchestrationTab />}
                     {activeTab === 'templates' && <TemplatesTab />}
@@ -1441,7 +1656,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
             {showCreateSetModal && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/30" onClick={() => setShowCreateSetModal(false)}></div>
-                    <div className="relative w-[92%] max-w-md bg-apple-surface-light dark:bg-apple-surface-dark rounded-2xl border border-apple-border-light dark:border-apple-border-dark shadow-2xl p-5">
+                    <div className="relative w-[92%] max-w-md bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-2xl p-5">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-base font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark">
                                 {lang === 'zh' ? '创建策略集' : 'Create Strategy Set'}
@@ -1461,12 +1676,12 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                 value={newSetName}
                                 onChange={(e) => setNewSetName(e.target.value)}
                                 placeholder={lang === 'zh' ? '请输入策略集名称' : 'Enter strategy set name'}
-                                className="w-full h-10 px-3 rounded-xl border border-apple-border-light dark:border-apple-border-dark bg-apple-surface-light dark:bg-apple-surface-secondary-dark text-sm text-apple-text-primary-light dark:text-apple-text-primary-dark outline-none focus:ring-2 focus:ring-brand-500/20"
+                                className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-apple-border-dark bg-white dark:bg-apple-surface-secondary-dark text-sm text-apple-text-primary-light dark:text-apple-text-primary-dark outline-none focus:ring-2 focus:ring-brand-500/20"
                             />
                             <div className="flex justify-end gap-2 pt-2">
                                 <button
                                     onClick={() => setShowCreateSetModal(false)}
-                                    className="px-4 h-9 rounded-lg text-sm font-bold border border-apple-border-light dark:border-apple-border-dark text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark"
+                                    className="px-4 h-9 rounded-lg text-sm font-bold border border-slate-200 dark:border-apple-border-dark text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark"
                                 >
                                     {lang === 'zh' ? '取消' : 'Cancel'}
                                 </button>
@@ -1484,7 +1699,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
             {showEditStrategyModal && (
                 <div className="fixed inset-0 z-[80] flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/30" onClick={closeEditStrategyModal}></div>
-                    <div className="relative w-[96%] max-w-6xl max-h-[85vh] overflow-y-auto bg-apple-surface-light dark:bg-apple-surface-dark rounded-2xl border border-apple-border-light dark:border-apple-border-dark shadow-2xl">
+                    <div className="relative w-[96%] max-w-6xl max-h-[85vh] overflow-y-auto bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-2xl">
                         <StrategyEditor
                             lang={lang}
                             theme={theme}

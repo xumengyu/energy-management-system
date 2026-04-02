@@ -61,14 +61,14 @@ const PriceList: React.FC<PriceListProps> = ({ lang, theme }) => {
     }
 
     return (
-        <div className="p-4 w-full animate-in fade-in duration-300">
+        <div className="ems-page-shell">
             {/* Header / Toolbar */}
-            <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="ems-card p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
                 
                 {/* Tabs & Title */}
                 <div className="flex items-center gap-6 w-full md:w-auto">
                     {/* Tab Switcher */}
-                    <div className="flex bg-slate-100 dark:bg-apple-surface-secondary-dark p-1 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                    <div className="ems-segmented">
                         <button 
                             onClick={() => setActiveTab('user')}
                             className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all
@@ -111,15 +111,16 @@ const PriceList: React.FC<PriceListProps> = ({ lang, theme }) => {
                     <button className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-apple-surface-dark hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-xl transition-colors">
                         <Filter size={16} /> {t.filter}
                     </button>
-                    <button className={`flex items-center gap-2 px-4 py-2 text-white rounded-xl shadow-md text-sm font-bold transition-all hover:-translate-y-0.5
-                        ${activeTab === 'user' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'}`}>
-                        <Plus size={18} /> {t.add}
-                    </button>
+                    {activeTab === 'user' && (
+                        <button className="flex items-center gap-2 px-4 py-2 text-white rounded-xl shadow-md text-sm font-bold transition-all hover:-translate-y-0.5 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20">
+                            <Plus size={18} /> {t.add}
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* List Table */}
-            <div className="bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm overflow-hidden">
+            <div className="ems-card overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-apple-surface-secondary-dark/50 border-b border-slate-100 dark:border-apple-border-dark font-bold uppercase tracking-wider">

@@ -1,11 +1,11 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Line, ComposedChart, LineChart, AreaChart, Area
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Line, ComposedChart
 } from 'recharts';
 import { 
   Calendar, Download, Zap, Sun, Battery, Cable, RotateCw, 
-  TrendingUp, DollarSign, Activity, ChevronLeft, ChevronRight, PieChart, ChevronDown
+  TrendingUp, Activity, ChevronLeft, ChevronRight, PieChart, ChevronDown, Copy
 } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
@@ -28,14 +28,15 @@ const generateEssData = () => {
         const charge = Math.floor(Math.random() * 500) + 200;
         const efficiency = 85 + Math.random() * 10;
         const discharge = Math.floor(charge * (efficiency / 100));
-        const cycles = (charge + discharge) / 2000;
+        const arbitrageEnergy = Math.floor(Math.random() * 220) + 45;
+        const replicationServiceEnergy = Math.floor(Math.random() * 160) + 28;
 
         return {
             day: `${i + 1}`,
             charge,
             discharge,
-            efficiency: parseFloat(efficiency.toFixed(1)),
-            cycles: parseFloat(cycles.toFixed(2)),
+            arbitrageEnergy,
+            replicationServiceEnergy,
             revenue: Math.floor(Math.random() * 100) + 50
         };
     });
@@ -103,8 +104,8 @@ const MonthPicker = ({ value, onChange, theme, lang }: { value: string, onChange
         <div className="relative" ref={pickerRef}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-3 px-4 py-2 bg-apple-surface-light dark:bg-apple-surface-dark rounded-xl border transition-all w-full md:w-auto min-w-[160px] justify-between
-                ${isOpen ? 'border-brand-500 ring-2 ring-brand-100 dark:ring-brand-900/30' : 'border-apple-border-light dark:border-apple-border-dark hover:border-brand-400 shadow-sm'}`}
+                className={`flex items-center gap-3 px-4 py-2 bg-white dark:bg-apple-surface-dark rounded-xl border transition-all w-full md:w-auto min-w-[160px] justify-between
+                ${isOpen ? 'border-brand-500 ring-2 ring-brand-100 dark:ring-brand-900/30' : 'border-slate-200 dark:border-apple-border-dark hover:border-brand-400 shadow-sm'}`}
             >
                 <div className="flex items-center gap-2 text-apple-text-secondary-light dark:text-apple-text-secondary-dark">
                     <Calendar size={18} className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark"/>
@@ -114,8 +115,8 @@ const MonthPicker = ({ value, onChange, theme, lang }: { value: string, onChange
             </button>
 
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 z-50 w-64 bg-apple-surface-light dark:bg-apple-surface-dark rounded-2xl shadow-2xl border border-apple-border-light dark:border-apple-border-dark overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-xl">
-                    <div className="flex items-center justify-between p-3 border-b border-apple-border-light dark:border-apple-border-dark bg-apple-bg-light/50 dark:bg-apple-bg-dark/50">
+                <div className="absolute top-full right-0 mt-2 z-50 w-64 bg-white dark:bg-apple-surface-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-apple-border-dark overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-xl">
+                    <div className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-apple-border-dark bg-apple-bg-light/50 dark:bg-apple-bg-dark/50">
                         <button onClick={() => setViewYear(y => y - 1)} className="p-1.5 rounded-lg hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark text-apple-text-secondary-light dark:text-apple-text-secondary-dark transition-colors"><ChevronLeft size={16}/></button>
                         <span className="font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark">{viewYear}{translations[lang].energyStatistics.units.year}</span>
                         <button onClick={() => setViewYear(y => y + 1)} className="p-1.5 rounded-lg hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark text-apple-text-secondary-light dark:text-apple-text-secondary-dark transition-colors"><ChevronRight size={16}/></button>
@@ -151,7 +152,7 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
   const t = translations[lang].energyStatistics;
   const isDark = theme === 'dark';
   const [activeTab, setActiveTab] = useState<'ess' | 'pv' | 'evse' | 'dg' | 'load'>('ess');
-  const [activeArea, setActiveArea] = useState<string>('all');
+  const [activeArea, setActiveArea] = useState<string>('areaA');
   const [month, setMonth] = useState('2025-09');
 
   // Memoized data to react to activeArea changes
@@ -167,9 +168,21 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
       return ESS_DATA.map(d => ({
           ...d,
           charge: activeArea === 'areaB' ? d.charge * 0.8 : d.charge,
-          discharge: activeArea === 'areaB' ? d.discharge * 0.9 : d.discharge
+          discharge: activeArea === 'areaB' ? d.discharge * 0.9 : d.discharge,
+          arbitrageEnergy:
+              activeArea === 'areaB' ? Math.round(d.arbitrageEnergy * 0.88) : d.arbitrageEnergy,
+          replicationServiceEnergy:
+              activeArea === 'areaB'
+                  ? Math.round(d.replicationServiceEnergy * 0.92)
+                  : d.replicationServiceEnergy,
       }));
   }, [activeArea]);
+
+  const essMonthlyArbRep = useMemo(() => {
+      const arb = essData.reduce((s, d) => s + d.arbitrageEnergy, 0);
+      const rep = essData.reduce((s, d) => s + d.replicationServiceEnergy, 0);
+      return { arb: (arb / 1000).toFixed(1), rep: (rep / 1000).toFixed(1) };
+  }, [essData]);
 
   const pvData = useMemo(() => {
       return PV_DATA.map(d => ({
@@ -220,7 +233,7 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
   };
 
   const renderKpiCard = (title: string, value: string, unit: string, icon: React.ReactNode, colorClass: string = 'brand') => (
-    <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-4 rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+    <div className="ems-card p-4 hover:shadow-md transition-all group relative overflow-hidden">
       <div className="flex justify-between items-start mb-2">
         <div className={`p-2 rounded-2xl bg-${colorClass}-500/10 transition-transform group-hover:scale-110 duration-300`}>
           {React.cloneElement(icon as React.ReactElement, { size: 18, className: `text-${colorClass}-500` })}
@@ -285,14 +298,14 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
         {renderKpiCard(t?.kpi?.loadFactor || 'Load Factor', '49.3', t?.units?.percent || '%', <PieChart />, 'indigo')}
       </div>
       
-      <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-8 rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col min-h-[450px]">
+      <div className="ems-card p-8 flex flex-col min-h-[450px]">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-1.5 h-6 bg-brand-600 rounded-full"></div>
           <h3 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
             {t?.charts?.loadTitle || 'Daily Load Consumption'}
           </h3>
         </div>
-        <div className="flex-1 w-full min-h-0">
+        <div className="w-full h-[360px]">
           <ResponsiveContainer width="100%" height="100%" key={`load-${activeArea}`}>
             <ComposedChart data={dailyLoadData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
@@ -315,70 +328,40 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {renderKpiCard(t?.kpi?.totalCharge || 'Monthly Charge', '375.0', t?.units?.mwh || 'MWh', <Battery />, 'emerald')}
         {renderKpiCard(t?.kpi?.totalDischarge || 'Monthly Discharge', '354.0', t?.units?.mwh || 'MWh', <Zap />, 'blue')}
-        {renderKpiCard(t?.kpi?.efficiency || 'Monthly Efficiency', '94.4', t?.units?.percent || '%', <Activity />, 'yellow')}
-        {renderKpiCard(`${t?.kpi?.dailyAvgCycles} / ${t?.kpi?.cumulativeCycles}`, '1.2 / 315', t?.units?.count || 'Count', <RotateCw />, 'amber')}
+        {renderKpiCard(
+            t?.kpi?.monthlyArbitrageEnergy || 'Monthly Arbitrage Energy',
+            essMonthlyArbRep.arb,
+            t?.units?.mwh || 'MWh',
+            <TrendingUp />,
+            'indigo'
+        )}
+        {renderKpiCard(
+            t?.kpi?.monthlyReplicationServiceEnergy || 'Monthly Ancillary Service Energy',
+            essMonthlyArbRep.rep,
+            t?.units?.mwh || 'MWh',
+            <Copy />,
+            'purple'
+        )}
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="xl:col-span-2 bg-apple-surface-light dark:bg-apple-surface-dark p-8 rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col min-h-[400px]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
-            <h3 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
-              {t?.charts?.essTitle || 'ESS Charge/Discharge'}
-            </h3>
-          </div>
-          <div className="flex-1 w-full min-h-0">
-            <ResponsiveContainer width="100%" height="100%" key={`ess-main-${activeArea}`}>
-              <BarChart data={essData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                <XAxis dataKey="day" fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} fontWeight={500} tickMargin={12} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} fontWeight={500} tickMargin={12} />
-                <Tooltip cursor={{fill: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', radius: 8}} {...tooltipStyle} />
-                <Legend content={<CustomLegend onClick={toggleSeries} />} verticalAlign="top" align="right" />
-                <Bar isAnimationActive={false} hide={hiddenSeries.includes('charge')} name={t?.kpi?.totalCharge || 'Charge'} dataKey="charge" fill={chartColors.emerald} radius={[6, 6, 0, 0]} barSize={12} />
-                <Bar isAnimationActive={false} hide={hiddenSeries.includes('discharge')} name={t?.kpi?.totalDischarge || 'Discharge'} dataKey="discharge" fill={chartColors.blue} radius={[6, 6, 0, 0]} barSize={12} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="ems-card p-8 flex flex-col min-h-[400px]">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
+          <h3 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
+            {t?.charts?.essTitle || 'BESS Charge/Discharge'}
+          </h3>
         </div>
-        <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-8 rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col min-h-[350px]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1.5 h-6 bg-yellow-500 rounded-full"></div>
-            <h3 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
-              {t?.charts?.essEfficiency || 'Efficiency'}
-            </h3>
-          </div>
-          <div className="flex-1 w-full min-h-0">
-            <ResponsiveContainer width="100%" height="100%" key={`ess-eff-${activeArea}`}>
-              <LineChart data={essData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                <XAxis dataKey="day" fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} tickMargin={12} />
-                <YAxis domain={[80, 100]} fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} fontWeight={500} tickMargin={12} />
-                <Tooltip cursor={{fill: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', radius: 8}} {...tooltipStyle} />
-                <Legend content={<CustomLegend onClick={toggleSeries} />} verticalAlign="top" align="right" />
-                <Line isAnimationActive={false} hide={hiddenSeries.includes('efficiency')} name={t?.kpi?.efficiency || 'Efficiency'} type="monotone" dataKey="efficiency" stroke={chartColors.yellow} strokeWidth={3} dot={{ r: 4, fill: chartColors.yellow, strokeWidth: 2, stroke: isDark ? '#1e2128' : '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-8 rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col min-h-[350px]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1.5 h-6 bg-amber-500 rounded-full"></div>
-            <h3 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
-              {t?.charts?.essCycles || 'Cycles'}
-            </h3>
-          </div>
-          <div className="flex-1 w-full min-h-0">
-            <ResponsiveContainer width="100%" height="100%" key={`ess-cycles-${activeArea}`}>
-              <BarChart data={essData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                <XAxis dataKey="day" fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} tickMargin={12} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} fontWeight={500} tickMargin={12} />
-                <Tooltip cursor={{fill: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', radius: 8}} {...tooltipStyle} />
-                <Legend content={<CustomLegend onClick={toggleSeries} />} verticalAlign="top" align="right" />
-                <Bar isAnimationActive={false} hide={hiddenSeries.includes('cycles')} name={t?.kpi?.totalCycles || 'Cycles'} dataKey="cycles" fill={chartColors.amber} radius={[6, 6, 0, 0]} barSize={12} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="w-full h-[360px]">
+          <ResponsiveContainer width="100%" height="100%" key={`ess-main-${activeArea}`}>
+            <BarChart data={essData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+              <XAxis dataKey="day" fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} fontWeight={500} tickMargin={12} />
+              <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} fontWeight={500} tickMargin={12} />
+              <Tooltip cursor={{fill: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', radius: 8}} {...tooltipStyle} />
+              <Legend content={<CustomLegend onClick={toggleSeries} />} verticalAlign="top" align="right" />
+              <Bar isAnimationActive={false} hide={hiddenSeries.includes('charge')} name={t?.kpi?.totalCharge || 'Charge'} dataKey="charge" fill={chartColors.emerald} radius={[6, 6, 0, 0]} barSize={12} />
+              <Bar isAnimationActive={false} hide={hiddenSeries.includes('discharge')} name={t?.kpi?.totalDischarge || 'Discharge'} dataKey="discharge" fill={chartColors.blue} radius={[6, 6, 0, 0]} barSize={12} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
@@ -391,14 +374,14 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
         {renderKpiCard(t?.kpi?.annualGeneration || 'Annual Generation', '542.8', t?.units?.mwh || 'MWh', <Sun />, 'blue')}
         {renderKpiCard(t?.kpi?.monthlyGeneration || 'Monthly Generation', '45.2', t?.units?.mwh || 'MWh', <Zap />, 'emerald')}
       </div>
-      <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-8 rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col min-h-[450px]">
+      <div className="ems-card p-8 flex flex-col min-h-[450px]">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-1.5 h-6 bg-amber-500 rounded-full"></div>
           <h3 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
             {t?.charts?.pvTitle || 'PV Generation'}
           </h3>
         </div>
-        <div className="flex-1 w-full min-h-0">
+        <div className="w-full h-[360px]">
           <ResponsiveContainer width="100%" height="100%" key={`pv-${activeArea}`}>
             <BarChart data={pvData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
@@ -420,14 +403,14 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
         {renderKpiCard(t?.kpi?.cumulativeCharge || 'Cumulative Charge', '245.8', t?.units?.mwh || 'MWh', <Cable />, 'blue')}
         {renderKpiCard(t?.kpi?.monthlyCharge || 'Monthly Charge', '8.4', t?.units?.mwh || 'MWh', <Zap />, 'purple')}
       </div>
-      <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-8 rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col min-h-[450px]">
+      <div className="ems-card p-8 flex flex-col min-h-[450px]">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
           <h3 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
             {t?.charts?.evseTitle || 'EVSE Charging'}
           </h3>
         </div>
-        <div className="flex-1 w-full min-h-0">
+        <div className="w-full h-[360px]">
           <ResponsiveContainer width="100%" height="100%" key={`evse-${activeArea}`}>
             <BarChart data={evseData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
@@ -445,14 +428,14 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
 
   const renderDgView = () => (
     <div className="space-y-6">
-      <div className="bg-apple-surface-light dark:bg-apple-surface-dark p-8 rounded-3xl border border-apple-border-light dark:border-apple-border-dark shadow-sm flex flex-col min-h-[450px]">
+      <div className="ems-card p-8 flex flex-col min-h-[450px]">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-1.5 h-6 bg-slate-500 rounded-full"></div>
           <h3 className="text-lg font-bold text-apple-text-primary-light dark:text-apple-text-primary-dark tracking-tight">
             {t?.charts?.dgTitle || 'DG Performance'}
           </h3>
         </div>
-        <div className="flex-1 w-full min-h-0">
+        <div className="w-full h-[360px]">
           <ResponsiveContainer width="100%" height="100%" key={`dg-${activeArea}`}>
             <BarChart data={dgData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
@@ -468,63 +451,71 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
     </div>
   );
 
+  const segmentedTabBtn = (active: boolean) =>
+    `flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap ${
+      active
+        ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
+        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+    }`;
+
+  /** 页面内第三层（并网点）——较主 Tab 更紧凑 */
+  const segmentedAreaBtn = (active: boolean) =>
+    `flex items-center rounded-md px-2.5 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
+      active
+        ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
+        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+    }`;
+
   return (
-    <div className="h-[calc(100vh-80px)] p-2 flex flex-col gap-6 animate-in fade-in duration-500 overflow-y-auto custom-scrollbar">
-      {/* Header / Filter */}
-      <div className="flex flex-col gap-4 shrink-0">
-        <div className="flex flex-col md:flex-row items-center justify-between bg-apple-surface-light dark:bg-apple-surface-dark p-4 rounded-2xl border border-apple-border-light dark:border-apple-border-dark shadow-sm gap-4">
-          <div className="bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark p-1 rounded-xl flex gap-1 overflow-x-auto">
-            {[
-              { id: 'ess', label: t?.tabs?.ess || 'ESS', icon: Battery },
-              { id: 'pv', label: t?.tabs?.pv || 'PV', icon: Sun },
-              { id: 'evse', label: t?.tabs?.evse || 'EVSE', icon: Cable },
-              { id: 'dg', label: t?.tabs?.dg || 'DG', icon: RotateCw },
-              { id: 'load', label: t?.tabs?.load || 'Load', icon: Activity }
-            ].map((item) => (
-              <button 
-                key={item.id} 
-                onClick={() => handleTabChange(item.id as any)}
-                className={`px-5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-2 whitespace-nowrap
-                  ${activeTab === item.id 
-                    ? 'bg-apple-surface-light dark:bg-apple-surface-dark text-brand-600 shadow-sm' 
-                    : 'text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-apple-text-primary-light dark:hover:text-apple-text-primary-dark'}`}
-              >
-                <item.icon size={14} />
-                {item.label}
-              </button>
-            ))}
+    <div className="h-[calc(100vh-72px)] ems-page-shell flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+      {/* Header / Toolbar — 与电价列表同款 segmented + 二级并网点 */}
+      <div className="ems-card flex shrink-0 flex-col gap-4 p-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="custom-scrollbar-hide flex w-full min-w-0 flex-1 items-center overflow-x-auto">
+            <div className="ems-segmented shrink-0">
+              {[
+                { id: 'ess', label: t?.tabs?.ess || 'BESS', icon: Battery },
+                { id: 'pv', label: t?.tabs?.pv || 'PV', icon: Sun },
+                { id: 'evse', label: t?.tabs?.evse || 'EVSE', icon: Cable },
+                { id: 'dg', label: t?.tabs?.dg || 'DG', icon: RotateCw },
+                { id: 'load', label: t?.tabs?.load || 'Load', icon: Activity }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleTabChange(item.id as any)}
+                  className={segmentedTabBtn(activeTab === item.id)}
+                >
+                  <item.icon size={16} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex w-full shrink-0 items-center gap-3 md:w-auto">
             <MonthPicker value={month} onChange={setMonth} theme={theme} lang={lang} />
-            <button className="p-2.5 bg-apple-surface-light dark:bg-apple-surface-dark border border-apple-border-light dark:border-apple-border-dark rounded-xl text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-brand-600 transition-all shadow-sm">
-              <Download size={18}/>
+            <button
+              type="button"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-500 transition-colors hover:text-blue-600 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-400 dark:hover:text-blue-400"
+            >
+              <Download size={18} />
             </button>
           </div>
         </div>
 
-        {/* Area Selection Bar */}
-        <div className="flex items-center gap-3 bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark p-1 rounded-xl shadow-sm overflow-x-auto">
-          <div className="flex items-center gap-2 px-3 py-1 border-r border-apple-border-light dark:border-apple-border-dark mr-1">
-            <Cable size={14} className="text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark" />
-            <span className="text-[10px] font-bold text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark uppercase tracking-widest whitespace-nowrap">
-              {t?.areas?.label || 'Area / Grid Point'}
-            </span>
-          </div>
-          <div className="flex gap-1">
+        <div className="custom-scrollbar-hide flex min-w-0 overflow-x-auto border-t border-slate-200 pt-3 dark:border-apple-border-dark">
+          <div className="flex shrink-0 gap-0.5 rounded-xl border border-slate-200 bg-slate-100 p-0.5 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark">
             {[
-              { id: 'all', label: t?.areas?.all || 'All Areas' },
               { id: 'areaA', label: t?.areas?.areaA || 'Area A Grid Point' },
               { id: 'areaB', label: t?.areas?.areaB || 'Area B Grid Point' },
               { id: 'areaC', label: t?.areas?.areaC || 'Area C Grid Point' }
             ].map((area) => (
               <button
                 key={area.id}
+                type="button"
                 onClick={() => setActiveArea(area.id)}
-                className={`px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap
-                  ${activeArea === area.id 
-                    ? 'bg-apple-surface-light dark:bg-apple-surface-dark text-brand-600 shadow-sm' 
-                    : 'text-apple-text-secondary-light dark:text-apple-text-secondary-dark hover:text-apple-text-primary-light dark:hover:text-apple-text-primary-dark'}`}
+                className={segmentedAreaBtn(activeArea === area.id)}
               >
                 {area.label}
               </button>

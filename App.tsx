@@ -14,12 +14,13 @@ import DataAnalysis from './components/DataAnalysis';
 import StationList, { StationListItem } from './components/StationList';
 import CreateStation from './components/CreateStation';
 import EnergyStatistics from './components/EnergyStatistics';
+import SiteRevenueDetail from './components/SiteRevenueDetail';
 import FaultAlarms from './components/FaultAlarms';
 import StationMap from './components/StationMap';
 import EntityManagement from './components/EntityManagement';
 import { 
-  Bell, User, Globe, ChevronDown, Moon, Sun, Menu, Search, Check, Folder, ChevronLeft,
-  Building2, Repeat, LogOut
+  Bell, User, Globe, ChevronDown, Menu, Search, Check, Folder, ChevronLeft,
+  Building2, Repeat, LogOut, Sun, Moon
 } from 'lucide-react';
 import { Language, Theme } from './types';
 import { translations } from './translations';
@@ -52,7 +53,7 @@ const INITIAL_STATIONS_ZH: StationListItem[] = [
 const WIP = ({ title, lang }: { title: string, lang: Language }) => {
     const t = translations[lang].common;
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-80px)] text-slate-400 dark:text-slate-500">
+      <div className="flex items-center justify-center h-[calc(100vh-72px)] text-slate-400 dark:text-slate-500">
         <div className="text-center p-8 bg-apple-surface-light dark:bg-apple-surface-dark rounded-2xl shadow-sm border border-apple-border-light dark:border-apple-border-dark">
             <div className="w-16 h-16 bg-apple-surface-secondary-light dark:bg-apple-surface-secondary-dark rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="text-slate-300 dark:text-slate-600" size={32}/>
@@ -69,10 +70,11 @@ const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('en');
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme') as Theme;
-      return saved || 'light';
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+      return 'dark';
     }
-    return 'light';
+    return 'dark';
   });
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -176,10 +178,6 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
-
   const getLangLabel = (l: Language) => {
       if(l === 'en') return 'English';
       if(l === 'zh') return '中文';
@@ -234,7 +232,7 @@ const App: React.FC = () => {
                         onSave={handleSaveStation} 
                      />;
           case '/stations/map':
-              return <StationMap lang={lang} theme={theme} />;
+              return <StationMap lang={lang} theme={theme} onNavigate={handleNavigate} />;
           case '/stations/architecture':
               return <StationArchitecture lang={lang} theme={theme} selectedStation={selectedStation} />;
           case '/stations/realtime':
@@ -246,7 +244,7 @@ const App: React.FC = () => {
           case '/faults':
               return <FaultAlarms lang={lang} theme={theme} />;
           case '/strategy/execution-view':
-              return <StrategyManager lang={lang} theme={theme} selectedStation={selectedStation} stations={stations} strategyStationBindings={{}} initialTab="overview" onTabChange={(tab) => handleNavigate(tab === 'templates' ? '/strategy/templates' : tab === 'overview' ? '/strategy/execution-view' : '/strategy/orchestration')} onNavigate={handleNavigate} />;
+              return <StrategyManager lang={lang} theme={theme} selectedStation={selectedStation} stations={stations} strategyStationBindings={{}} initialTab="overview" hideStrategyTabBar onTabChange={(tab) => handleNavigate(tab === 'templates' ? '/strategy/templates' : tab === 'overview' ? '/strategy/execution-view' : '/strategy/orchestration')} onNavigate={handleNavigate} />;
           case '/strategy/orchestration':
               return <StrategyManager lang={lang} theme={theme} selectedStation={selectedStation} stations={stations} strategyStationBindings={{}} initialTab="orchestration" hideOverviewTab onTabChange={(tab) => handleNavigate(tab === 'templates' ? '/strategy/templates' : tab === 'overview' ? '/strategy/execution-view' : '/strategy/orchestration')} onNavigate={handleNavigate} />;
           case '/strategy/md':
@@ -262,13 +260,14 @@ const App: React.FC = () => {
           case '/price/list':
               return <PriceList lang={lang} theme={theme} />;
           case '/revenue':
-              return <WIP title={lang === 'zh' ? "收益管理" : "Revenue Management"} lang={lang} />;
+              return <SiteRevenueDetail lang={lang} theme={theme} />;
           default:
               return <Dashboard lang={lang} theme={theme} selectedStation={selectedStation} onNavigate={handleNavigate} />;
       }
   };
 
-  const userMenuT = translations[lang].header.userMenu;
+  const headerT = translations[lang].header;
+  const userMenuT = headerT.userMenu;
   const isEntityMgmt = currentPath === '/entity-mgmt';
 
   return (
@@ -282,25 +281,25 @@ const App: React.FC = () => {
         />
       )}
       
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${isSidebarCollapsed || isEntityMgmt ? (isEntityMgmt ? 'ml-0' : 'ml-14') : 'ml-48'}`}>
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${isSidebarCollapsed || isEntityMgmt ? (isEntityMgmt ? 'ml-0' : 'ml-14') : 'ml-64'}`}>
         {/* Top Header - Hidden in Entity Mgmt because it has its own shell or header logic */}
         {!isEntityMgmt && (
-            <header className="h-[54px] bg-apple-surface-light/80 dark:bg-apple-surface-dark/80 backdrop-blur-xl border-b border-apple-border-light dark:border-apple-border-dark shadow-sm sticky top-0 z-50 px-3 flex items-center justify-between transition-all">
+            <header className="h-[72px] shrink-0 bg-apple-surface-light/80 dark:bg-apple-surface-dark/80 backdrop-blur-xl border-b border-apple-border-light dark:border-apple-border-dark shadow-sm sticky top-0 z-50 px-5 flex items-center justify-between transition-all">
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
                 <button 
                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className="p-1.5 rounded-lg hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark text-slate-600 dark:text-slate-400 transition-colors"
+                    className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-apple-surface-secondary-light dark:text-slate-400 dark:hover:bg-apple-surface-secondary-dark"
                 >
-                    <Menu size={16} />
+                    <Menu size={20} />
                 </button>
 
                 {isCreatingOrEditing && (
                     <button 
                         onClick={() => { setEditingStation(null); handleNavigate('/stations'); }}
-                        className="flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold text-slate-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-all border border-transparent hover:border-brand-100 dark:hover:border-brand-800"
+                        className="flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-bold text-slate-500 transition-all hover:border-brand-100 hover:bg-brand-50 hover:text-brand-600 dark:hover:border-brand-800 dark:hover:bg-brand-900/20"
                     >
-                        <ChevronLeft size={12} />
+                        <ChevronLeft size={14} />
                         {lang === 'zh' ? '返回列表' : 'Back'}
                     </button>
                 )}
@@ -308,39 +307,39 @@ const App: React.FC = () => {
                 {isCreatingStrategy && (
                     <button
                         onClick={() => handleNavigate('/strategy/my-templates')}
-                        className="flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold text-slate-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-all border border-transparent hover:border-brand-100 dark:hover:border-brand-800"
+                        className="flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-bold text-slate-500 transition-all hover:border-brand-100 hover:bg-brand-50 hover:text-brand-600 dark:hover:border-brand-800 dark:hover:bg-brand-900/20"
                     >
-                        <ChevronLeft size={12} />
-                        {lang === 'zh' ? '返回策略列表' : 'Back to Strategy List'}
+                        <ChevronLeft size={14} />
+                        {lang === 'zh' ? '返回手动调度' : 'Back to Manual Dispatch'}
                     </button>
                 )}
 
                 <div className="w-0.5"></div>
 
                 {shouldShowStationSelector && (
-                    <div className="relative w-[200px] z-50">
+                    <div className="relative z-50 w-[240px] min-w-0 sm:w-[260px]">
                         <button 
                             onClick={() => setIsStationMenuOpen(!isStationMenuOpen)}
-                            className="w-full h-8 flex items-center justify-between bg-white dark:bg-apple-surface-dark hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark hover:border-slate-300 dark:hover:border-white/15 rounded-lg px-3 transition-all group shadow-sm"
+                            className="group flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:hover:border-white/15 dark:hover:bg-apple-surface-secondary-dark"
                         >
-                                <div className="flex items-center overflow-hidden min-w-0">
-                                    <span className="font-bold text-slate-700 dark:text-slate-200 text-sm truncate w-full text-left">{selectedStation}</span>
+                                <div className="flex min-w-0 items-center overflow-hidden">
+                                    <span className="w-full truncate text-left text-base font-bold text-slate-700 dark:text-slate-200">{selectedStation}</span>
                                 </div>
-                                <ChevronDown size={12} className={`text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform duration-300 ${isStationMenuOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={16} className={`shrink-0 text-slate-400 transition-transform duration-300 group-hover:text-slate-600 dark:group-hover:text-slate-300 ${isStationMenuOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         {isStationMenuOpen && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setIsStationMenuOpen(false)}></div>
-                                    <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                                    <div className="absolute left-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg animate-in fade-in zoom-in-95 duration-100 dark:border-apple-border-dark dark:bg-apple-surface-dark">
                                         {/* Search Box */}
-                                        <div className="p-2 border-b border-slate-200 dark:border-apple-border-dark bg-white dark:bg-apple-surface-dark">
-                                            <div className="h-8 flex items-center gap-2 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark px-3 rounded-lg focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900 transition-all">
-                                                <Search size={12} className="text-slate-400"/>
+                                        <div className="border-b border-slate-200 bg-white p-2.5 dark:border-apple-border-dark dark:bg-apple-surface-dark">
+                                            <div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 transition-all focus-within:ring-2 focus-within:ring-brand-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:focus-within:ring-brand-900">
+                                                <Search size={16} className="shrink-0 text-slate-400"/>
                                                 <input 
                                                     type="text" 
                                                     placeholder={lang === 'zh' ? "搜索站点或分组..." : "Search station or group..."}
-                                                    className="w-full bg-transparent outline-none text-sm font-medium text-slate-700 dark:text-slate-200 placeholder-slate-400"
+                                                    className="w-full bg-transparent text-base font-medium text-slate-700 outline-none placeholder-slate-400 dark:text-slate-200"
                                                     value={stationSearch}
                                                     onChange={(e) => setStationSearch(e.target.value)}
                                                     autoFocus
@@ -362,16 +361,16 @@ const App: React.FC = () => {
                                                             setIsStationMenuOpen(false); 
                                                             setStationSearch(''); 
                                                         }}
-                                                        className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-between group
+                                                        className={`group flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-base font-bold transition-colors
                                                             ${selectedStation === station.name 
                                                                 ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400' 
                                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark'}`}
                                                     >
-                                                        <div className="flex flex-col">
+                                                        <div className="flex flex-col gap-0.5">
                                                             <span>{station.name}</span>
-                                                            <span className="text-[10px] font-mono opacity-50">{station.id}</span>
+                                                            <span className="font-mono text-xs opacity-50">{station.id}</span>
                                                         </div>
-                                                        {selectedStation === station.name && <Check size={14} className="text-brand-500" />}
+                                                        {selectedStation === station.name && <Check size={18} className="shrink-0 text-brand-500" />}
                                                     </button>
                                                 ))}
                                             </div>
@@ -380,8 +379,8 @@ const App: React.FC = () => {
                                             {(Object.entries(groupedStations) as [string, StationListItem[]][]).map(([groupName, stationsInGroup]) => (
                                                 <div key={groupName} className="mb-1">
                                                     {/* Group Header */}
-                                                    <div className="px-3 py-1.5 flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest bg-slate-50 dark:bg-apple-surface-secondary-dark rounded-lg mb-1">
-                                                        <Folder size={12} className="text-amber-500/70" />
+                                                    <div className="mb-1 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-400 dark:bg-apple-surface-secondary-dark dark:text-slate-500">
+                                                        <Folder size={14} className="text-amber-500/70" />
                                                         {groupName}
                                                     </div>
                                                     
@@ -395,16 +394,16 @@ const App: React.FC = () => {
                                                                     setIsStationMenuOpen(false); 
                                                                     setStationSearch(''); 
                                                                 }}
-                                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-between group pl-7
+                                                                className={`group flex w-full items-center justify-between rounded-lg py-2.5 pl-8 pr-3 text-left text-base font-bold transition-colors
                                                                     ${selectedStation === station.name 
                                                                         ? 'bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400' 
                                                                         : 'text-slate-600 dark:text-slate-400 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark'}`}
                                                             >
-                                                                <div className="flex flex-col">
+                                                                <div className="flex flex-col gap-0.5">
                                                                     <span>{station.name}</span>
-                                                                    <span className="text-[10px] font-mono opacity-50">{station.id}</span>
+                                                                    <span className="font-mono text-xs opacity-50">{station.id}</span>
                                                                 </div>
-                                                                {selectedStation === station.name && <Check size={14} className="text-brand-500" />}
+                                                                {selectedStation === station.name && <Check size={18} className="shrink-0 text-brand-500" />}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -412,7 +411,7 @@ const App: React.FC = () => {
                                             ))}
 
                                             {ungroupedStations.length === 0 && Object.keys(groupedStations).length === 0 && (
-                                                <div className="p-12 text-center text-slate-400 text-sm font-bold">
+                                                <div className="p-12 text-center text-base font-bold text-slate-400">
                                                     {lang === 'zh' ? '未找到匹配项' : 'No matches found'}
                                                 </div>
                                             )}
@@ -424,33 +423,25 @@ const App: React.FC = () => {
                 )}
             </div>
             
-            <div className="flex items-center justify-end gap-2">
-                <button 
-                    onClick={toggleTheme}
-                    className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark hover:text-brand-600 dark:hover:text-brand-400 rounded-full transition-all"
-                    title="Toggle Theme"
-                >
-                    {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                </button>
-
+            <div className="flex items-center justify-end gap-2.5">
                 <div className="relative">
                     <button 
                     onClick={() => setShowLangMenu(!showLangMenu)}
-                    className="px-1.5 py-1 rounded-lg hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark text-slate-600 dark:text-slate-300 font-medium text-[9px] border border-apple-border-light dark:border-apple-border-dark flex items-center gap-1 transition-all"
+                    className="flex items-center gap-1.5 rounded-lg border border-apple-border-light px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-all hover:bg-apple-surface-secondary-light dark:border-apple-border-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
                     title="Switch Language"
                     >
-                    <Globe size={11} />
+                    <Globe size={15} />
                     <span>{getLangLabel(lang)}</span>
                     </button>
                     {showLangMenu && (
                         <>
                             <div className="fixed inset-0 z-10" onClick={() => setShowLangMenu(false)}></div>
-                            <div className="absolute right-0 mt-1 w-24 bg-apple-surface-light dark:bg-apple-surface-dark rounded-xl shadow-lg border border-apple-border-light dark:border-apple-border-dark py-1 z-20 overflow-hidden">
+                            <div className="absolute right-0 z-20 mt-1.5 w-28 overflow-hidden rounded-xl border border-apple-border-light bg-apple-surface-light py-1 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark">
                                 {(['en', 'zh', 'fr'] as Language[]).map(l => (
                                     <button 
                                         key={l}
                                         onClick={() => { setLang(l); setShowLangMenu(false); }}
-                                        className={`w-full text-left px-2.5 py-1 text-[9px] font-medium hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark transition-colors ${lang === l ? 'text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-900/40' : 'text-slate-600 dark:text-slate-300'}`}
+                                        className={`w-full px-3 py-2 text-left text-xs font-semibold transition-colors hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark ${lang === l ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400' : 'text-slate-600 dark:text-slate-300'}`}
                                     >
                                         {getLangLabel(l)}
                                     </button>
@@ -460,25 +451,48 @@ const App: React.FC = () => {
                     )}
                 </div>
 
-                <div className="h-4 w-px bg-apple-border-light dark:bg-apple-border-dark"></div>
-
-                <div 
-                    onClick={toggleTheme}
-                    className="flex items-center w-10 h-5 bg-slate-100 dark:bg-slate-800 rounded-full p-0.5 cursor-pointer transition-all border border-apple-border-light dark:border-apple-border-dark hover:border-brand-400 dark:hover:border-brand-500 group relative"
-                    title={theme === 'light' ? (lang === 'zh' ? '切换至暗色模式' : 'Switch to Dark Mode') : (lang === 'zh' ? '切换至亮色模式' : 'Switch to Light Mode')}
+                <div
+                    className="flex items-center rounded-lg border border-apple-border-light bg-slate-100/90 p-0.5 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark"
+                    role="group"
+                    aria-label={userMenuT.themeSwitch}
                 >
-                    <div className={`w-4 h-4 rounded-full shadow-sm transition-all duration-300 flex items-center justify-center ${theme === 'dark' ? 'translate-x-5 bg-brand-500' : 'translate-x-0 bg-white'}`}>
-                        {theme === 'light' ? <Sun size={10} className="text-amber-500" /> : <Moon size={10} className="text-white" />}
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setTheme('light')}
+                        title={headerT.themeLight}
+                        aria-pressed={theme === 'light'}
+                        className={`rounded-md p-2 transition-all ${
+                            theme === 'light'
+                                ? 'bg-white text-amber-600 shadow-sm dark:bg-apple-surface-dark dark:text-amber-400'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                        }`}
+                    >
+                        <Sun size={18} strokeWidth={2} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setTheme('dark')}
+                        title={headerT.themeDark}
+                        aria-pressed={theme === 'dark'}
+                        className={`rounded-md p-2 transition-all ${
+                            theme === 'dark'
+                                ? 'bg-slate-700 text-slate-100 shadow-sm dark:bg-slate-600 dark:text-white'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                        }`}
+                    >
+                        <Moon size={18} strokeWidth={2} />
+                    </button>
                 </div>
+
+                <div className="h-5 w-px bg-apple-border-light dark:bg-apple-border-dark"></div>
 
                 <button 
                     onClick={() => handleNavigate('/faults')}
-                    className="relative p-1.5 text-slate-500 dark:text-slate-400 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark hover:text-brand-600 dark:hover:text-brand-400 rounded-full transition-all group"
+                    className="group relative rounded-full p-2 text-slate-500 transition-all hover:bg-apple-surface-secondary-light hover:text-brand-600 dark:text-slate-400 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-brand-400"
                 >
-                    <Bell size={16} />
+                    <Bell size={20} />
                     {activeAlarmsCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 min-w-[12px] h-[12px] px-0.5 bg-red-500 text-white rounded-full border border-white dark:border-apple-bg-dark shadow-sm flex items-center justify-center text-[7px] font-black group-hover:scale-110 transition-transform">
+                        <span className="absolute -right-0.5 -top-0.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full border border-white bg-red-500 px-0.5 text-[8px] font-black text-white shadow-sm transition-transform group-hover:scale-110 dark:border-apple-bg-dark">
                             {activeAlarmsCount}
                         </span>
                     )}
@@ -487,59 +501,51 @@ const App: React.FC = () => {
                 <div className="relative">
                 <div 
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center gap-1.5 pl-1 pr-0.5 py-0.5 rounded-full hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark transition-all cursor-pointer border border-transparent hover:border-apple-border-light dark:hover:border-apple-border-dark group"
+                    className="group flex cursor-pointer items-center gap-2 rounded-full border border-transparent py-1 pl-1 pr-1 transition-all hover:border-apple-border-light hover:bg-apple-surface-secondary-light dark:hover:border-apple-border-dark dark:hover:bg-apple-surface-secondary-dark"
                 >
-                    <div className="text-right hidden md:block">
-                        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-200 leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{lang === 'zh' ? '管理员' : 'Admin User'}</div>
-                        <div className="text-[8px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wide">{lang === 'zh' ? '超级管理员' : 'Super Admin'}</div>
+                    <div className="hidden text-right md:block">
+                        <div className="text-sm font-bold leading-tight text-slate-700 transition-colors group-hover:text-brand-600 dark:text-slate-200 dark:group-hover:text-brand-400">{lang === 'zh' ? '管理员' : 'Admin User'}</div>
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{lang === 'zh' ? '超级管理员' : 'Super Admin'}</div>
                     </div>
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-200 dark:shadow-brand-900/20 border border-white dark:border-apple-border-dark">
-                    <User size={14} />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white bg-gradient-to-tr from-brand-500 to-brand-600 text-white shadow-md shadow-brand-200 dark:border-apple-border-dark dark:shadow-brand-900/20">
+                    <User size={18} />
                     </div>
-                    <ChevronDown size={10} className={`text-slate-400 dark:text-slate-500 mr-0.5 transition-transform duration-300 ${showUserMenu ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={14} className={`mr-0.5 text-slate-400 transition-transform duration-300 dark:text-slate-500 ${showUserMenu ? 'rotate-180' : ''}`} />
                 </div>
 
                 {showUserMenu && (
                     <>
                         <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)}></div>
-                        <div className="absolute right-0 mt-3 w-56 bg-apple-surface-light dark:bg-apple-surface-dark rounded-2xl shadow-2xl border border-apple-border-light dark:border-apple-border-dark py-2 z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="absolute right-0 z-20 mt-3 w-60 overflow-hidden rounded-2xl border border-apple-border-light bg-apple-surface-light py-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200 dark:border-apple-border-dark dark:bg-apple-surface-dark">
                             <button 
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark hover:text-brand-600 transition-all text-left"
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-bold text-slate-600 transition-all hover:bg-apple-surface-secondary-light hover:text-brand-600 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
                                 onClick={() => { setShowUserMenu(false); handleNavigate('/entity-mgmt'); }}
                             >
-                                <Building2 size={16} className="text-slate-400" />
+                                <Building2 size={18} className="shrink-0 text-slate-400" />
                                 {userMenuT.manageOrg}
                             </button>
                             <button 
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark hover:text-brand-600 transition-all text-left"
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-bold text-slate-600 transition-all hover:bg-apple-surface-secondary-light hover:text-brand-600 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
                                 onClick={() => { setShowUserMenu(false); }}
                             >
-                                <Repeat size={16} className="text-slate-400" />
+                                <Repeat size={18} className="shrink-0 text-slate-400" />
                                 {userMenuT.switchOrg}
                             </button>
                             <button 
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark hover:text-brand-600 transition-all text-left"
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-bold text-slate-600 transition-all hover:bg-apple-surface-secondary-light hover:text-brand-600 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
                                 onClick={() => { setShowUserMenu(false); }}
                             >
-                                <User size={16} className="text-slate-400" />
+                                <User size={18} className="shrink-0 text-slate-400" />
                                 {userMenuT.editProfile}
                             </button>
                             
-                            <button 
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark hover:text-brand-600 transition-all text-left"
-                                onClick={() => { toggleTheme(); setShowUserMenu(false); }}
-                            >
-                                {theme === 'light' ? <Moon size={16} className="text-slate-400" /> : <Sun size={16} className="text-slate-400" />}
-                                {userMenuT.themeSwitch}
-                            </button>
-                            
-                            <div className="h-px bg-apple-border-light dark:bg-apple-border-dark my-2"></div>
+                            <div className="my-2 h-px bg-apple-border-light dark:bg-apple-border-dark"></div>
                             
                             <button 
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/10 transition-all text-left"
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-bold text-rose-600 transition-all hover:bg-rose-50 dark:hover:bg-rose-900/10"
                                 onClick={() => { setShowUserMenu(false); }}
                             >
-                                <LogOut size={16} className="text-rose-500" />
+                                <LogOut size={18} className="shrink-0 text-rose-500" />
                                 {userMenuT.logout}
                             </button>
                         </div>

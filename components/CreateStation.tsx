@@ -394,7 +394,7 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
                 {label('Connected Equipment Types', '接入设备类型', true)}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                   {[
-                    { id: 'ess', label: 'ESS', zh: '储能', icon: Battery, color: 'text-purple-500' },
+                    { id: 'ess', label: 'BESS', zh: '储能', icon: Battery, color: 'text-purple-500' },
                     { id: 'pv', label: 'PV', zh: '光伏', icon: Sun, color: 'text-amber-500' },
                     { id: 'dg', label: 'DG', zh: '柴发', icon: RotateCw, color: 'text-slate-500' },
                     { id: 'evse', label: 'EVSE', zh: '充电桩', icon: Cable, color: 'text-blue-500' },
@@ -425,7 +425,7 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
                 {formData.deviceTypes.includes('ess') && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-purple-50/30 dark:bg-purple-900/5 rounded-lg border border-purple-100 dark:border-purple-900/20">
                     <div className="md:col-span-2 flex items-center gap-1.5 text-purple-600 font-bold text-[11px] uppercase tracking-wider">
-                      <Battery size={13} /> {lang === 'zh' ? '储能规模' : 'ESS Scale'}
+                      <Battery size={13} /> {lang === 'zh' ? '储能规模' : 'BESS Scale'}
                     </div>
                     <div>
                       {label('Power', '装机功率')}

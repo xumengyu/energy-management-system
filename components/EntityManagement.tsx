@@ -49,7 +49,7 @@ const EntityManagement: React.FC<EntityManagementProps> = ({ lang, theme, onBack
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-apple-bg-dark flex animate-in fade-in duration-500 overflow-hidden text-slate-800 dark:text-slate-100">
+        <div className="min-h-screen bg-apple-bg-light dark:bg-apple-bg-dark flex animate-in fade-in duration-500 overflow-hidden text-slate-800 dark:text-slate-100">
             {/* Left Management Sidebar - 保持结构不变 */}
             <aside className="w-64 bg-white dark:bg-apple-surface-dark border-r border-slate-200 dark:border-apple-border-dark flex flex-col h-screen shrink-0">
                 <div className="p-4 border-b border-slate-100 dark:border-apple-border-dark bg-slate-50/50 dark:bg-apple-surface-secondary-dark/30">
@@ -92,19 +92,19 @@ const EntityManagement: React.FC<EntityManagementProps> = ({ lang, theme, onBack
                     ))}
                 </div>
                 
-                <div className="p-4 border-t border-slate-100 dark:border-apple-border-dark bg-slate-50/50 dark:bg-apple-surface-secondary-dark/30">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white shadow-sm font-black text-xs">EC</div>
-                        <div>
-                            <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">EcoWatt Ltd.</div>
-                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Enterprise ID: 8849</div>
+                <div className="px-4 py-2.5 border-t border-slate-100 dark:border-apple-border-dark bg-slate-50/50 dark:bg-apple-surface-secondary-dark/30 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center text-white shadow-sm font-black text-sm">EC</div>
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">EcoWatt Ltd.</div>
+                            <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Enterprise ID: 8849</div>
                         </div>
                     </div>
                 </div>
             </aside>
 
             {/* Content Area - 已清空内容部分 */}
-            <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#fcfdfa] dark:bg-apple-bg-dark">
+            <main className="flex-1 overflow-y-auto custom-scrollbar bg-apple-bg-light dark:bg-apple-bg-dark">
                 {/* 此区域现已清空，仅作为空白展示 */}
             </main>
         </div>

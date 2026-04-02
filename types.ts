@@ -80,3 +80,14 @@ export interface Template {
 
 /** Strategy template id -> station ids that use this strategy */
 export type StrategyStationBindings = Record<string, string[]>;
+
+/** Per-station strategy deploy row (demo / UI state) */
+export type StrategyDeployStatus = 'success' | 'pending' | 'failed' | 'never';
+
+export interface StrategyStationDeployInfo {
+    lastDeployTime: string;
+    status: StrategyDeployStatus;
+}
+
+/** templateId -> stationId -> last deploy snapshot */
+export type StrategyStationDeployState = Record<string, Record<string, StrategyStationDeployInfo>>;

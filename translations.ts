@@ -10,7 +10,9 @@ const en = {
     sidebar: {
       title: 'EMS Cloud Platform',
       categoryManagement: 'Management',
+      categoryAlarms: 'Alarms',
       categoryPriceTrading: 'Price & Trading',
+      categoryRevenue: 'Revenue',
       categoryControl: 'Control',
       categoryTrading: 'Trading',
       assets: 'Asset Overview',
@@ -33,7 +35,7 @@ const en = {
       protectionStrategy: 'Protection Strategy',
       manualControl: 'Manual Control',
       strategyTemplates: 'Strategy Templates',
-      myStrategies: 'Strategy List',
+      myStrategies: 'Manual Dispatch',
       siteStrategyTemplates: 'Site Strategy Templates',
       executionView: 'Execution View',
       dispatchOrchestration: 'AI Dispatch',
@@ -44,6 +46,8 @@ const en = {
       production: 'Production',
       energyMgmt: 'Energy Mgmt',
       admin: 'Admin',
+      themeLight: 'Light mode',
+      themeDark: 'Dark mode',
       userMenu: {
         manageOrg: 'Manage Entity',
         switchOrg: 'Switch Entity',
@@ -135,10 +139,10 @@ const en = {
         title: 'Energy Statistics',
         tabs: {
             load: 'Load',
-            ess: 'Energy Storage',
-            pv: 'Photovoltaic',
-            evse: 'Charging Piles',
-            dg: 'Diesel Generator'
+            ess: 'BESS',
+            pv: 'PV',
+            evse: 'EVSE',
+            dg: 'DG'
         },
         kpi: {
             monthlyCons: 'Monthly Consumption',
@@ -151,6 +155,8 @@ const en = {
             totalCycles: 'Total Cycles',
             dailyAvgCycles: 'Daily Avg Cycles',
             cumulativeCycles: 'Cumulative Cycles',
+            monthlyArbitrageEnergy: 'Monthly Arbitrage Energy',
+            monthlyReplicationServiceEnergy: 'Monthly Ancillary Service Energy',
             totalGeneration: 'Total Generation',
             selfConsumption: 'Self-Consumption',
             co2Reduction: 'CO₂ Reduction',
@@ -191,7 +197,6 @@ const en = {
         },
         areas: {
             label: 'Area / Grid Point',
-            all: 'All Areas',
             areaA: 'Area A Grid Point',
             areaB: 'Area B Grid Point',
             areaC: 'Area C Grid Point'
@@ -234,7 +239,7 @@ const en = {
         totalStations: 'Total Stations',
         totalPv: 'Total PV Cap.',
         totalGen: 'Total Generation',
-        essScale: 'ESS Scale',
+        essScale: 'BESS Scale',
         totalCharge: 'Total Charge',
         totalDischarge: 'Total Discharge'
       },
@@ -242,7 +247,7 @@ const en = {
         trendTitle: 'Aggregated Power Trend (24h)',
         legendPv: 'PV Generation',
         legendLoad: 'Load Consumption',
-        legendEss: 'ESS Power',
+        legendEss: 'BESS Power',
         distribution: 'Energy Distribution'
       },
       table: {
@@ -271,7 +276,7 @@ const en = {
         runningDays: 'Running Days (Day)',
         soc: 'SOC',
         remainingCap: 'Remaining Capacity',
-        essCabinet: 'String ESS Cabinet',
+        essCabinet: 'String BESS Cabinet',
         quantity: 'Quantity',
         specs: 'Specs',
         capacity: 'Capacity',
@@ -284,6 +289,7 @@ const en = {
         loadCurve: 'Today Load Tracking Curve',
         socPowerCurve: 'Today SOC-Power Tracking Curve',
         pvRealtimePower: 'Total PV Real-time Power Curve',
+        pvForecastPower: 'PV forecast power',
         pvDailyCurve: 'Individual Inverter Real-time Power Curves',
         timeRange: {
             d1: '1D',
@@ -292,7 +298,7 @@ const en = {
         },
         subNav: {
             station: 'Station',
-            ess: 'ESS',
+            ess: 'BESS',
             pv: 'PV',
             evse: 'EVSE',
             dg: 'DG'
@@ -336,13 +342,14 @@ const en = {
         tabs: {
             load: 'Power Analysis',
             power: 'SOC Analysis',
-            battery: 'Battery Analysis',
-            curve: 'Data Curve Analysis'
+            battery: 'Battery Analysis'
         },
         time: 'Time',
         to: 'to',
         query: 'Query',
         reset: 'Reset',
+        stackSelect: 'Battery stack',
+        clusterSelect: 'Battery cluster',
         titleLoad: 'Power Analysis',
         titlePower: 'SOC Analysis',
         titleBattery: 'Battery Analysis',
@@ -352,13 +359,17 @@ const en = {
             clusterSoc: 'Cluster SOC Curve',
             clusterSoh: 'Cluster SOH Curve',
             cellVol: 'Cell Max/Min Voltage Curve',
-            cellTemp: 'Cell Max/Min Temperature Curve'
+            cellTemp: 'Cell Max/Min Temperature Curve',
+            cellVolMax: 'Max V',
+            cellVolMin: 'Min V',
+            cellTempMax: 'Max T',
+            cellTempMin: 'Min T'
         },
         legend: {
             gridPoint: 'Grid Meter Power',
             meter: 'Meter Power',
             load: 'Load Power',
-            ess: 'ESS Power',
+            ess: 'BESS Power',
             pv: 'PV Power',
             evse: 'EVSE Power',
             dg: 'DG Power',
@@ -509,10 +520,17 @@ const en = {
       tabPrice: 'Station Price Config',
       tabLink: 'AI Dispatch Strategy',
       title: 'Station #2 — AI Dispatch',
+      subtitle: 'Real-time AI dispatch monitoring and forecast.',
       syncNormal: 'Sync Normal',
       lastSync: 'Last Sync',
       version: 'Version',
       realtimeMonitor: 'Real-time Dispatch Monitor',
+      forecastTomorrowTitle: 'Dispatch Forecast — Tomorrow',
+      overviewBadgeActive: 'Active',
+      overviewBadgeDischarging: 'Discharging',
+      overviewLiveSync: 'Live Sync',
+      chartSectionPower: 'Power (kW)',
+      chartSectionSoc: 'SOC (%)',
       executionQueue: 'Execution Queue',
       totalCharge: 'Total Charge',
       totalDischarge: 'Total Discharge',
@@ -554,7 +572,7 @@ const en = {
           success: 'Strategy deployed successfully!'
       },
       addRow: 'Add Strategy Row',
-      currentTemplate: 'Current Template',
+      currentTemplate: 'Current Strategy',
       changeTemplate: 'Change Strategy',
       dispatchMode: 'Dispatch Mode',
       modeAuto: 'Auto',
@@ -586,12 +604,24 @@ const en = {
       },
       templates: {
           builtin: 'Built-in Templates',
-          user: 'Strategy List',
+          user: 'Manual Dispatch',
           loadTemplate: 'Load Template',
           lastUpdate: 'Last Updated',
           linkedStations: 'Linked Stations',
           linkedStationsHint: 'Stations using this strategy',
           noLinkedStations: 'No stations linked to this strategy.',
+          colStation: 'Station',
+          colLocation: 'Location',
+          lastStrategyDeploy: 'Last deploy time',
+          deployStatusCol: 'Deploy status',
+          deploySiteStatus: 'Station status',
+          deployButton: 'Deploy',
+          deployStatusLabels: {
+            success: 'Succeeded',
+            pending: 'Deploying',
+            failed: 'Failed',
+            never: 'Not deployed',
+          },
           status: { active: 'Active', draft: 'Draft' },
           profitMax: {
               title: 'Profit Maximization',
@@ -646,7 +676,14 @@ const en = {
     },
     manualControl: {
         title: 'Manual Control',
-        tabs: { ess: 'Energy Storage', dg: 'Diesel Generator' },
+        tabs: { ess: 'BESS', dg: 'Diesel Generator' },
+        refresh: 'Refresh',
+        search: 'Search device or ID...',
+        filter: 'Filter',
+        emptyList: 'No devices in this category.',
+        emptyHint: 'Try switching tab.',
+        colActions: 'Actions',
+        colMode: 'Mode',
         device: 'Device',
         status: 'Status',
         running: 'Running',
@@ -683,10 +720,18 @@ const en = {
     },
     faultAlarms: {
         title: 'Fault Alarms',
+        search: 'Search station, device or code...',
+        emptyTitle: 'No alarms found.',
+        emptyHint: 'Try adjusting your search, status tab, date range, or level filter.',
         levels: { all: 'All Levels', l1: 'Hint', l2: 'Warning', l3: 'Fault' },
         status: { all: 'All Status', active: 'Active', recovered: 'Recovered' },
         cols: { time: 'Time', level: 'Level', station: 'Station', device: 'Device', code: 'Code', desc: 'Description', status: 'Status', action: 'Action' },
-        actions: { ack: 'Acknowledge', view: 'View Details' }
+        actions: { ack: 'Acknowledge', view: 'View Details' },
+        footer: {
+            summary: 'Showing {filtered} of {total} alarms',
+            prev: 'Previous',
+            next: 'Next'
+        }
     },
     createStation: {
         bindStation: 'Bind Station',
@@ -699,7 +744,46 @@ const en = {
         overviewView: 'Overview Architecture',
         powerViewZh: '电力架构',
         overviewViewZh: '总览架构'
-    }
+    },
+    siteRevenueDetail: {
+        pageTitle: 'Site Revenue Detail',
+        search: 'Search period or mode...',
+        filter: 'Filter',
+        emptyList: 'No records match your search.',
+        emptyHint: 'Try another keyword.',
+        kpi: {
+            today: "Today's revenue",
+            month: 'Month-to-date revenue',
+            cumulative: 'Cumulative revenue',
+            unit: 'Revenue per MWh',
+        },
+        structure: {
+            title: 'Revenue structure',
+            arbitrage: 'Arbitrage',
+            ancillary: 'Ancillary services',
+            trendTitle: 'Revenue trend',
+        },
+        mode: {
+            title: 'Operating mode mix',
+            arb: 'Arbitrage-led',
+            anc: 'Ancillary-led',
+            hybrid: 'Hybrid',
+            standby: 'Standby / derated',
+        },
+        table: {
+            title: 'Revenue detail',
+            export: 'Export',
+            period: 'Period',
+            arb: 'Arbitrage',
+            ancillary: 'Ancillary',
+            total: 'Total',
+            mode: 'Mode',
+            notes: 'Notes',
+            prev: 'Previous',
+            next: 'Next',
+            showing: 'Showing {from}–{to} of {total}',
+        },
+    },
 };
 
 const zh = {
@@ -711,7 +795,9 @@ const zh = {
     sidebar: {
       title: 'EMS 云平台',
       categoryManagement: '管理',
+      categoryAlarms: '告警',
       categoryPriceTrading: '调度',
+      categoryRevenue: '收益',
       categoryControl: '控制与保护',
       categoryTrading: '交易',
       assets: '资产总览',
@@ -734,7 +820,7 @@ const zh = {
       protectionStrategy: '保护策略',
       manualControl: '手动控制',
       strategyTemplates: '策略模板',
-      myStrategies: '策略列表',
+      myStrategies: '手动调度',
       siteStrategyTemplates: '站点策略模板',
       executionView: '执行视图',
       dispatchOrchestration: 'AI 调度',
@@ -745,6 +831,8 @@ const zh = {
       production: '生产',
       energyMgmt: '能源管理',
       admin: '管理员',
+      themeLight: '亮色模式',
+      themeDark: '暗色模式',
       userMenu: {
         manageOrg: '管理主体',
         switchOrg: '切换主体',
@@ -836,10 +924,10 @@ const zh = {
         title: '能量统计',
         tabs: {
             load: '负载',
-            ess: '储能',
-            pv: '光伏',
-            evse: '充电桩',
-            dg: '柴发'
+            ess: 'BESS',
+            pv: 'PV',
+            evse: 'EVSE',
+            dg: 'DG'
         },
         kpi: {
             monthlyCons: '月用电量',
@@ -852,6 +940,8 @@ const zh = {
             totalCycles: '循环次数',
             dailyAvgCycles: '日均循环次',
             cumulativeCycles: '累计循环次',
+            monthlyArbitrageEnergy: '月套利电能量',
+            monthlyReplicationServiceEnergy: '月辅助服务能量',
             totalGeneration: '总发电量',
             selfConsumption: '自用率',
             co2Reduction: '碳减排',
@@ -892,7 +982,6 @@ const zh = {
         },
         areas: {
             label: '区域 / 并网点',
-            all: '全部区域',
             areaA: 'A区域并网点',
             areaB: 'B区域并网点',
             areaC: 'C区域并网点'
@@ -985,6 +1074,7 @@ const zh = {
         loadCurve: '今日负荷跟踪曲线',
         socPowerCurve: '今日 SOC-功率曲线',
         pvRealtimePower: '光伏总实时功率曲线',
+        pvForecastPower: '光伏预测功率',
         pvDailyCurve: '各逆变器实时功率曲线',
         timeRange: {
             d1: '1天',
@@ -1037,13 +1127,14 @@ const zh = {
         tabs: {
             load: '功率分析',
             power: 'SOC 分析',
-            battery: '电池分析',
-            curve: '曲线分析'
+            battery: '电池分析'
         },
         time: '时间',
         to: '至',
         query: '查询',
         reset: '重置',
+        stackSelect: '电池堆',
+        clusterSelect: '电池簇',
         titleLoad: '功率分析',
         titlePower: 'SOC 分析',
         titleBattery: '电池分析',
@@ -1052,14 +1143,18 @@ const zh = {
             clusterCur: 'Cluster Current Curve',
             clusterSoc: 'Cluster SOC Curve',
             clusterSoh: 'Cluster SOH Curve',
-            cellVol: 'Cell Max/Min Voltage Curve',
-            cellTemp: 'Cell Max/Min Temperature Curve'
+            cellVol: '单体最高/最低电压曲线',
+            cellTemp: '单体最高/最低温度曲线',
+            cellVolMax: '最高电压',
+            cellVolMin: '最低电压',
+            cellTempMax: '最高温度',
+            cellTempMin: '最低温度'
         },
         legend: {
             gridPoint: 'Grid Meter Power',
             meter: 'Meter Power',
             load: 'Load Power',
-            ess: 'ESS Power',
+            ess: 'BESS 功率',
             pv: 'PV Power',
             evse: 'EVSE Power',
             dg: 'DG Power',
@@ -1210,10 +1305,17 @@ const zh = {
       tabPrice: '站点电价配置',
       tabLink: 'AI调度策略',
       title: '站点 #2 — AI 调度',
+      subtitle: '实时 AI 调度监控与预测。',
       syncNormal: '同步正常',
       lastSync: '最后同步',
       version: '版本',
       realtimeMonitor: '实时调度监控',
+      forecastTomorrowTitle: '调度预测 — 明日',
+      overviewBadgeActive: '运行中',
+      overviewBadgeDischarging: '放电中',
+      overviewLiveSync: '实时同步',
+      chartSectionPower: '功率 (kW)',
+      chartSectionSoc: 'SOC (%)',
       executionQueue: '执行队列',
       totalCharge: '总充电',
       totalDischarge: '总放电',
@@ -1255,7 +1357,7 @@ const zh = {
           success: '策略下发成功！'
       },
       addRow: '添加策略行',
-      currentTemplate: '当前模板',
+      currentTemplate: '当前策略',
       changeTemplate: '更换策略',
       dispatchMode: '调度模式',
       modeAuto: '自动',
@@ -1287,12 +1389,24 @@ const zh = {
       },
       templates: {
           builtin: '内置策略',
-          user: '策略列表',
+          user: '手动调度',
           loadTemplate: '从模板加载',
           lastUpdate: '最后更新',
           linkedStations: '关联电站',
           linkedStationsHint: '应用此策略的电站',
           noLinkedStations: '暂无关联电站',
+          colStation: '场站',
+          colLocation: '位置',
+          lastStrategyDeploy: '策略最后下发时间',
+          deployStatusCol: '下发状态',
+          deploySiteStatus: '站点状态',
+          deployButton: '下发',
+          deployStatusLabels: {
+            success: '成功',
+            pending: '下发中',
+            failed: '失败',
+            never: '未下发',
+          },
           status: { active: '激活', draft: '草稿' },
           profitMax: {
               title: '收益最大化',
@@ -1348,6 +1462,13 @@ const zh = {
     manualControl: {
         title: '手动控制',
         tabs: { ess: '储能', dg: '柴发' },
+        refresh: '刷新',
+        search: '搜索设备或编号...',
+        filter: '筛选',
+        emptyList: '当前分类下暂无设备。',
+        emptyHint: '可尝试切换标签。',
+        colActions: '操作',
+        colMode: '模式',
         device: '设备',
         status: '状态',
         running: '运行中',
@@ -1384,10 +1505,18 @@ const zh = {
     },
     faultAlarms: {
         title: '故障告警',
+        search: '搜索站点、设备或代码...',
+        emptyTitle: '未找到告警',
+        emptyHint: '请尝试调整搜索、状态、日期范围或等级筛选。',
         levels: { all: '所有等级', l1: '提示', l2: '告警', l3: '故障' },
         status: { all: '所有状态', active: '未恢复', recovered: '已恢复' },
         cols: { time: '时间', level: '等级', station: '站点', device: '设备', code: '代码', desc: '描述', status: '状态', action: '操作' },
-        actions: { ack: '确认', view: '查看详情' }
+        actions: { ack: '确认', view: '查看详情' },
+        footer: {
+            summary: '显示 {filtered} 条，共 {total} 条告警',
+            prev: '上一页',
+            next: '下一页'
+        }
     },
     createStation: {
         bindStation: '绑定站点',
@@ -1400,7 +1529,46 @@ const zh = {
         overviewView: 'Overview Architecture',
         powerViewZh: '电力架构',
         overviewViewZh: '总览架构'
-    }
+    },
+    siteRevenueDetail: {
+        pageTitle: '站点收益明细',
+        search: '搜索周期或模式...',
+        filter: '筛选',
+        emptyList: '没有匹配的明细。',
+        emptyHint: '请尝试其他关键词。',
+        kpi: {
+            today: '今日收益',
+            month: '本月收益',
+            cumulative: '累计收益',
+            unit: '单位收益',
+        },
+        structure: {
+            title: '收益构成',
+            arbitrage: '套利',
+            ancillary: '辅助服务',
+            trendTitle: '收益趋势',
+        },
+        mode: {
+            title: '运行模式占比',
+            arb: '套利主导',
+            anc: '辅助服务主导',
+            hybrid: '混合',
+            standby: '待机/降额',
+        },
+        table: {
+            title: '收益明细',
+            export: '导出',
+            period: '周期',
+            arb: '套利',
+            ancillary: '辅助服务',
+            total: '合计',
+            mode: '模式',
+            notes: '备注',
+            prev: '上一页',
+            next: '下一页',
+            showing: '第 {from}–{to} 条，共 {total} 条',
+        },
+    },
 };
 
 export const translations: Record<Language, typeof en> = {

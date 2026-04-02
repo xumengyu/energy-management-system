@@ -32,9 +32,10 @@ const STATIONS_ZH = [
 interface StationMapProps {
   lang: Language;
   theme: Theme;
+  onNavigate?: (path: string) => void;
 }
 
-const StationMap: React.FC<StationMapProps> = ({ lang, theme }) => {
+const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
   const t = translations[lang].stationList; // Use StationList translations for consistent header
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -50,22 +51,22 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme }) => {
   });
 
   return (
-    <div className="w-full h-[calc(100vh-80px)] p-4 flex flex-col animate-in fade-in duration-300">
-        {/* Header copied from StationList */}
-        <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-2xl border border-slate-100 dark:border-apple-border-dark shadow-sm mb-4 flex flex-col md:flex-row items-center justify-between gap-4 z-10 relative">
-            <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto md:overflow-visible">
-                <div className="relative w-full md:w-80 min-w-[200px]">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+    <div className="ems-page-shell flex flex-col h-[calc(100vh-72px)] min-h-0">
+        {/* Toolbar — same structure as StationList */}
+        <div className="ems-card p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 z-10 relative">
+            <div className="flex items-center gap-6 w-full md:w-auto overflow-x-auto md:overflow-visible">
+                <div className="relative w-full md:w-64 min-w-[160px]">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
                         type="text" 
                         placeholder={t.search} 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all"
+                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all"
                     />
                 </div>
                 <div className="h-8 w-px bg-slate-200 dark:bg-white/10 hidden md:block"></div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                     {['All', 'Normal', 'Warning', 'Offline'].map(status => (
                         <button 
                             key={status}
@@ -86,14 +87,18 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme }) => {
             </div>
             
             <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md shadow-blue-500/20 text-sm font-bold transition-all hover:-translate-y-0.5 whitespace-nowrap">
+                <button 
+                  type="button"
+                  onClick={() => onNavigate?.('/stations/new')}
+                  className="flex items-center gap-2 px-4 py-2 text-white rounded-xl shadow-md text-sm font-bold transition-all hover:-translate-y-0.5 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 whitespace-nowrap"
+                >
                     <Plus size={18} /> {t.addStation}
                 </button>
             </div>
         </div>
 
         {/* Map Area */}
-        <div className="flex-1 bg-slate-100 dark:bg-apple-bg-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark relative overflow-hidden group shadow-inner">
+        <div className="flex-1 min-h-0 bg-slate-100 dark:bg-apple-bg-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark relative overflow-hidden group shadow-inner shadow-sm">
             {/* Background Pattern */}
             <div className="absolute inset-0 bg-[#e5e7eb] dark:bg-apple-bg-dark opacity-50">
                  <div className="w-full h-full opacity-10" style={{ backgroundImage: 'radial-gradient(#64748b 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
