@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, Plus, MapPin, Link as BindIcon,
   Battery, AlertCircle, CheckCircle2, Power, Settings, Sun,
-  ChevronDown, ChevronRight, Folder, Edit3, Check, X, FileText
+  ChevronDown, ChevronRight, Folder, Edit3, Check, X, FileText, GitBranch
 } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
@@ -34,6 +34,7 @@ interface StationListProps {
   onRenameGroup: (oldName: string, newName: string) => void;
   onNavigate?: (path: string) => void;
   onEdit?: (station: StationListItem) => void;
+  onConfigureBranches?: (station: StationListItem) => void;
 }
 
 const StationList: React.FC<StationListProps> = ({ 
@@ -44,7 +45,8 @@ const StationList: React.FC<StationListProps> = ({
     onSelectStation, 
     onRenameGroup,
     onNavigate,
-    onEdit
+    onEdit,
+    onConfigureBranches
 }) => {
   const t = translations[lang].stationList;
   const isDark = theme === 'dark';
@@ -160,7 +162,7 @@ const StationList: React.FC<StationListProps> = ({
             <td className="px-3 py-2.5">
                 <div className="flex flex-col gap-0">
                     <div className="flex items-center gap-1 text-sm font-medium text-slate-600 dark:text-slate-300">
-                        <Sun size={10} className="text-amber-500" /> {station.pvCap} kWp
+                        <Sun size={10} className="text-amber-500" /> {station.pvCap} kW
                     </div>
                     {station.essCap > 0 && (
                         <div className="flex items-center gap-1 text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -207,6 +209,16 @@ const StationList: React.FC<StationListProps> = ({
                         {isIncomplete && (
                             <div className="absolute top-0 right-0 w-1 h-1 bg-rose-500 rounded-full border border-white dark:border-apple-bg-dark"></div>
                         )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onConfigureBranches?.(station)}
+                        disabled={!onConfigureBranches}
+                        className="flex items-center gap-1 rounded-lg border border-transparent px-1.5 py-0.5 text-violet-600 transition-all hover:border-violet-200 hover:bg-violet-50 disabled:pointer-events-none disabled:opacity-40 dark:text-violet-400 dark:hover:border-violet-800 dark:hover:bg-violet-900/20"
+                        title={t.actionBranchConfig}
+                    >
+                        <GitBranch size={12} />
+                        <span className="hidden text-xs font-bold xl:inline">{t.actionBranchConfig}</span>
                     </button>
                     <button 
                         onClick={() => {

@@ -322,15 +322,15 @@ const SiteRevenueDetail: React.FC<SiteRevenueDetailProps> = ({ lang, theme }) =>
               {t.structure.title}
             </h3>
           </div>
-          <div className="p-4">
-            <div className="h-[200px] w-full">
+          <div className="flex flex-1 flex-col p-4">
+            <div className="h-[220px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
                   <Pie
                     data={composition}
                     dataKey="value"
                     nameKey="name"
-                    cx="50%"
+                    cx="36%"
                     cy="50%"
                     innerRadius={52}
                     outerRadius={86}
@@ -341,7 +341,12 @@ const SiteRevenueDetail: React.FC<SiteRevenueDetailProps> = ({ lang, theme }) =>
                     ))}
                   </Pie>
                   <Tooltip {...tooltipStyle} />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Legend
+                    layout="vertical"
+                    verticalAlign="middle"
+                    align="right"
+                    wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingLeft: 4 }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>

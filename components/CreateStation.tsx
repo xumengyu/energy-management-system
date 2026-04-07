@@ -104,22 +104,25 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
         ? prev.deviceTypes.filter(t => t !== type)
         : [...prev.deviceTypes, type]
     }));
+    setErrors(prev => ({ ...prev, deviceTypes: false }));
   };
 
   const handleSave = () => {
     const newErrors: Record<string, boolean> = {};
     if (!formData.sn) newErrors.sn = true;
     if (!formData.name) newErrors.name = true;
-    
-    if (isModifyMode) {
-        if (formData.deviceTypes.length === 0) newErrors.deviceTypes = true;
+    const voltageStr = String(formData.voltage ?? '').trim();
+    if (!voltageStr || Number.isNaN(Number(voltageStr)) || Number(voltageStr) <= 0) {
+      newErrors.voltage = true;
     }
+    if (formData.deviceTypes.length === 0) newErrors.deviceTypes = true;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
+    setErrors({});
     onSave(formData);
   };
 
@@ -209,9 +212,9 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
             </h1>
         </div>
         <p className="text-[11px] text-slate-500 mt-1">
-          {isModifyMode 
+          {isModifyMode
             ? (lang === 'zh' ? '修改电站的注册信息、基本参数与电力配置' : 'Update station registration, basic parameters and electrical config')
-            : (lang === 'zh' ? '绑定新的 EMS 设备并创建电站' : 'Bind a new EMS device and create station')}
+            : (lang === 'zh' ? '填写 EMS 注册信息、电站基本参数与电力配置以完成绑定' : 'Enter EMS registration, station details and electrical configuration to complete binding')}
         </p>
       </div>
 
@@ -281,9 +284,8 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
           </div>
         </div>
 
-        {/* Section 2: Basic Info (Only in Modify Mode) */}
-        {isModifyMode && (
-          <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-xl border border-slate-200 dark:border-apple-border-dark shadow-sm">
+        {/* Section 2: Basic Info（绑定与编辑同一套表单） */}
+        <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-xl border border-slate-200 dark:border-apple-border-dark shadow-sm">
             {sectionTitle('Station Basic Info', '电站基本信息')}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
@@ -291,7 +293,8 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
                 <input 
                   type="text"
                   disabled
-                  className="w-full px-3 py-1.5 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-lg text-[13px] outline-none opacity-70 cursor-not-allowed"
+                  placeholder={isModifyMode ? undefined : (lang === 'zh' ? '保存后自动分配' : 'Assigned after save')}
+                  className="w-full px-3 py-1.5 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-lg text-[13px] outline-none opacity-70 cursor-not-allowed placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   value={formData.id}
                 />
               </div>
@@ -366,11 +369,9 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
               </div>
             </div>
           </div>
-        )}
 
-        {/* Section 3: Electrical Info (Only in Modify Mode) */}
-        {isModifyMode && (
-          <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-xl border border-slate-200 dark:border-apple-border-dark shadow-sm">
+        {/* Section 3: Electrical Info（绑定与编辑同一套表单） */}
+        <div className="bg-white dark:bg-apple-surface-dark p-4 rounded-xl border border-slate-200 dark:border-apple-border-dark shadow-sm">
             {sectionTitle('Electrical Information', '电力信息')}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -381,9 +382,12 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
                       type="number"
                       min="0"
                       placeholder="e.g. 10"
-                      className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-lg text-[13px] outline-none"
+                      className={`flex-1 px-3 py-1.5 bg-slate-50 dark:bg-apple-surface-secondary-dark border rounded-lg text-[13px] outline-none transition-all ${errors.voltage ? 'border-rose-500 ring-2 ring-rose-100' : 'border-slate-200 dark:border-apple-border-dark focus:ring-2 focus:ring-brand-100'}`}
                       value={formData.voltage}
-                      onChange={e => setFormData({...formData, voltage: e.target.value})}
+                      onChange={e => {
+                        setFormData({ ...formData, voltage: e.target.value });
+                        if (errors.voltage) setErrors(prev => ({ ...prev, voltage: false }));
+                      }}
                     />
                     <span className="text-[11px] font-bold text-slate-400">kV</span>
                   </div>
@@ -392,7 +396,7 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
 
               <div>
                 {label('Connected Equipment Types', '接入设备类型', true)}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                <div className={`grid grid-cols-2 md:grid-cols-4 gap-2.5 rounded-lg p-1 -m-1 transition-all ${errors.deviceTypes ? 'ring-2 ring-rose-100 border-2 border-rose-500 border-dashed' : ''}`}>
                   {[
                     { id: 'ess', label: 'BESS', zh: '储能', icon: Battery, color: 'text-purple-500' },
                     { id: 'pv', label: 'PV', zh: '光伏', icon: Sun, color: 'text-amber-500' },
@@ -453,7 +457,7 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
                       {label('Installed Power', '光伏装机功率')}
                       <div className="flex items-center gap-2">
                         <input type="number" min="0" placeholder="0" className="w-full px-2.5 py-1 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-lg text-[13px] outline-none focus:ring-2 focus:ring-brand-100" value={formData.pvPower} onChange={e => setFormData({...formData, pvPower: e.target.value})} />
-                        <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap">kWp</span>
+                        <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap">kW</span>
                       </div>
                     </div>
                   </div>
@@ -505,7 +509,6 @@ const CreateStation: React.FC<CreateStationProps> = ({ lang, theme, groups, init
               </div>
             </div>
           </div>
-        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pb-8 pt-1">

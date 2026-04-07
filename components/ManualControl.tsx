@@ -1,9 +1,5 @@
-
 import React, { useState } from 'react';
-import { 
-    Battery, RotateCw, Play, Square, AlertTriangle, Activity, 
-    RefreshCw, Clock, BatteryLow
-} from 'lucide-react';
+import { Search, Filter, RefreshCw, X } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
 
@@ -13,258 +9,310 @@ interface ManualControlProps {
     selectedStation: string;
 }
 
-type DeviceType = 'ess' | 'dg';
-type DeviceStatus = 'Running' | 'Stopped' | 'Fault';
+type ControlCategory = 'dido' | 'ats' | 'diesel' | 'ac' | 'bessPv';
 
-interface DeviceData {
-    id: string;
-    name: string;
-    type: DeviceType;
-    status: DeviceStatus;
-    power: number; // kW
-    soc?: number; // % for ESS
-    fuel?: number; // % for DG
-    mode?: 'Charge' | 'Discharge'; // for ESS
-}
+type BessActionKey = 'pcs' | 'bms' | 'ioControl' | 'ups' | 'dehumidifier';
 
-const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme }) => {
+type BessPanelKey = 'bess1' | 'bess2' | 'bess3' | 'bess4';
+
+const BESS_CARD_LAYOUT: { panelKey: BessPanelKey; actions: BessActionKey[] }[] = [
+    { panelKey: 'bess1', actions: ['pcs', 'bms', 'ioControl'] },
+    { panelKey: 'bess2', actions: ['pcs', 'bms', 'ioControl', 'ups', 'dehumidifier'] },
+    { panelKey: 'bess3', actions: ['pcs', 'bms', 'ioControl', 'ups', 'dehumidifier'] },
+    { panelKey: 'bess4', actions: ['pcs', 'bms', 'ioControl', 'ups', 'dehumidifier'] },
+];
+
+const CATEGORY_ORDER: ControlCategory[] = ['bessPv', 'dido', 'ats', 'diesel', 'ac'];
+
+const btnBlueSolid =
+    'inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500';
+
+const btnRed =
+    'inline-flex flex-1 items-center justify-center rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-sm font-bold text-rose-700 transition-colors hover:bg-rose-50 dark:border-rose-800/80 dark:bg-apple-surface-dark dark:text-rose-400 dark:hover:bg-rose-950/40';
+
+const btnGreen =
+    'inline-flex flex-1 items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm font-bold text-emerald-800 transition-colors hover:bg-emerald-50 dark:border-emerald-800/80 dark:bg-apple-surface-dark dark:text-emerald-400 dark:hover:bg-emerald-950/35';
+
+const PcsDrawerSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <section className="space-y-4">
+        <div className="border-l-4 border-blue-600 py-0.5 pl-3 dark:border-blue-400">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">{title}</h3>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div>
+    </section>
+);
+
+type PcsMetricProps = {
+    label: string;
+    value: string;
+    children?: React.ReactNode;
+};
+
+const PcsMetricCard = ({ label, value, children }: PcsMetricProps) => (
+    <div className={`ems-card flex flex-col gap-3 p-5 ${children ? 'min-h-[200px]' : ''}`}>
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-blue-400 md:text-3xl">{value}</p>
+        {children ? (
+            <div className="mt-auto flex flex-col gap-2 border-t border-slate-100 pt-4 dark:border-apple-border-dark">
+                {children}
+            </div>
+        ) : null}
+    </div>
+);
+
+const PcsControlDrawer = ({
+    open,
+    panelKey,
+    unitTitle,
+    onClose,
+    lang,
+}: {
+    open: boolean;
+    panelKey: BessPanelKey | null;
+    unitTitle: string;
+    onClose: () => void;
+    lang: Language;
+}) => {
+    const t = translations[lang].manualControl.pcsDrawer;
+    if (!open || !panelKey) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-[115] flex animate-in fade-in justify-end duration-200 bg-slate-900/45 backdrop-blur-[2px] dark:bg-black/50"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pcs-drawer-title"
+        >
+            <button type="button" className="absolute inset-0 cursor-default" aria-label="Close" onClick={onClose} />
+            <aside
+                className="animate-in slide-in-from-right relative z-10 flex h-full w-full max-w-2xl flex-col border-l border-slate-200 bg-white shadow-2xl duration-300 dark:border-apple-border-dark dark:bg-apple-surface-dark"
+                onMouseDown={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 dark:border-apple-border-dark">
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                            {t.unitLabel.replace('{unit}', unitTitle)}
+                        </p>
+                        <h2 id="pcs-drawer-title" className="mt-1 text-lg font-black text-slate-900 dark:text-white">
+                            {t.title}
+                        </h2>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-slate-200"
+                        aria-label="Close"
+                    >
+                        <X size={22} />
+                    </button>
+                </div>
+
+                <div className="custom-scrollbar-hide flex-1 overflow-y-auto px-4 pb-8 pt-4">
+                    <div className="space-y-10">
+                        <PcsDrawerSection title={t.faultStatus}>
+                            <div className="ems-card p-5 md:col-span-2">
+                                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-8">
+                                    <div className="flex min-h-[160px] flex-col gap-4">
+                                        <div>
+                                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{t.totalFault}</p>
+                                            <p className="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-blue-400 md:text-3xl">
+                                                {t.valNormal}
+                                            </p>
+                                        </div>
+                                        <div className="mt-auto border-t border-slate-100 pt-4 dark:border-apple-border-dark">
+                                            <button type="button" className={btnBlueSolid}>
+                                                {t.faultReset}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div
+                                        className={`flex flex-col justify-center gap-2 md:border-l md:border-slate-100 md:pl-8 dark:md:border-apple-border-dark`}
+                                    >
+                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{t.totalAlarm}</p>
+                                        <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-blue-400 md:text-3xl">
+                                            {t.valNormal}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </PcsDrawerSection>
+
+                        <PcsDrawerSection title={t.powerOnStatus}>
+                            <PcsMetricCard label={t.powerSwitch} value={t.valCharge}>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <button type="button" className={`${btnRed} w-full sm:flex-1`}>
+                                        {t.deviceShutdown}
+                                    </button>
+                                    <button type="button" className={`${btnGreen} w-full sm:flex-1`}>
+                                        {t.deviceStartup}
+                                    </button>
+                                </div>
+                            </PcsMetricCard>
+                            <PcsMetricCard label={t.offGrid} value={t.valGridTied}>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <button type="button" className={`${btnRed} w-full sm:flex-1`}>
+                                        {t.gridConnect}
+                                    </button>
+                                    <button type="button" className={`${btnGreen} w-full sm:flex-1`}>
+                                        {t.gridDisconnect}
+                                    </button>
+                                </div>
+                            </PcsMetricCard>
+                        </PcsDrawerSection>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    );
+};
+
+const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, selectedStation: _selectedStation }) => {
     const t = translations[lang].manualControl;
-    const [activeTab, setActiveTab] = useState<DeviceType>('ess');
+    const [activeCategory, setActiveCategory] = useState<ControlCategory>('bessPv');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [lastHit, setLastHit] = useState<{ panel: string; action: BessActionKey } | null>(null);
+    const [pcsDrawer, setPcsDrawer] = useState<{ open: boolean; panelKey: BessPanelKey | null }>({
+        open: false,
+        panelKey: null,
+    });
 
-    const [devices, setDevices] = useState<DeviceData[]>([
-        { id: 'PCS-01', name: 'PCS #1', type: 'ess', status: 'Running', power: 120, soc: 85, mode: 'Discharge' },
-        { id: 'PCS-02', name: 'PCS #2', type: 'ess', status: 'Stopped', power: 0, soc: 42, mode: 'Charge' },
-        { id: 'PCS-03', name: 'PCS #3', type: 'ess', status: 'Fault', power: 0, soc: 12, mode: 'Charge' },
-        { id: 'DG-01', name: 'Diesel Gen #1', type: 'dg', status: 'Stopped', power: 0, fuel: 88 },
-        { id: 'DG-02', name: 'Diesel Gen #2', type: 'dg', status: 'Running', power: 450, fuel: 65 },
-    ]);
-
-    const visibleDevices = devices.filter((d) => d.type === activeTab);
-
-    const toggleStatus = (id: string) => {
-        setDevices(prev => prev.map(d => {
-            if (d.id === id) {
-                const newStatus = d.status === 'Running' ? 'Stopped' : 'Running';
-                return { ...d, status: newStatus, power: newStatus === 'Stopped' ? 0 : 50 };
-            }
-            return d;
-        }));
-    };
-
-    const updatePower = (id: string, newPower: string) => {
-        const num = parseFloat(newPower);
-        if (!isNaN(num)) {
-            setDevices(prev => prev.map(d => d.id === id ? { ...d, power: num } : d));
+    const tabLabel = (id: ControlCategory) => {
+        switch (id) {
+            case 'dido':
+                return t.tabs.dido;
+            case 'ats':
+                return t.tabs.ats;
+            case 'diesel':
+                return t.tabs.diesel;
+            case 'ac':
+                return t.tabs.ac;
+            case 'bessPv':
+                return t.tabs.bessPv;
+            default:
+                return id;
         }
     };
 
-    const toggleMode = (id: string) => {
-        setDevices(prev => prev.map(d => {
-            if (d.id === id && d.type === 'ess') {
-                return { ...d, mode: d.mode === 'Charge' ? 'Discharge' : 'Charge' };
-            }
-            return d;
-        }));
+    const actionLabel = (key: BessActionKey) => t.actionsIo[key];
+
+    const outlineBtn =
+        'flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark';
+
+    const onBessAction = (panelKey: BessPanelKey, key: BessActionKey) => {
+        setLastHit({ panel: panelKey, action: key });
+        if (key === 'pcs') {
+            setPcsDrawer({ open: true, panelKey });
+        }
     };
 
-    const statusBadge = (status: DeviceStatus) => {
-        if (status === 'Running') {
-            return (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                    <Activity size={12} className="animate-pulse shrink-0" />
-                    {t.running}
-                </span>
-            );
-        }
-        if (status === 'Fault') {
-            return (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">
-                    <AlertTriangle size={12} className="shrink-0" />
-                    {t.fault}
-                </span>
-            );
-        }
-        return (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-apple-surface-secondary-dark text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-apple-border-dark">
-                <Clock size={12} className="shrink-0" />
-                {t.stopped}
-            </span>
-        );
-    };
-
-    const rowHover = 'hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark/60';
+    const drawerUnitTitle = pcsDrawer.panelKey ? t.bessPanels[pcsDrawer.panelKey] : '';
 
     return (
         <div className="ems-page-shell">
-            {/* 顶栏：与实时总览 StationRealtime 同款 */}
+            <PcsControlDrawer
+                open={pcsDrawer.open}
+                panelKey={pcsDrawer.panelKey}
+                unitTitle={drawerUnitTitle}
+                onClose={() => setPcsDrawer({ open: false, panelKey: null })}
+                lang={lang}
+            />
+
+            {/* 顶栏：与电价列表 PriceList 同款结构 */}
             <div className="ems-card mb-4 flex flex-col items-center justify-between gap-4 p-4 md:flex-row">
-                <div className="custom-scrollbar-hide flex w-full items-center gap-6 overflow-x-auto md:w-auto">
-                    <div className="ems-segmented shrink-0">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('ess')}
-                            className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold transition-all
-                            ${activeTab === 'ess'
-                                ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
-                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
-                        >
-                            <Battery size={16} />
-                            {t.tabs.ess}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('dg')}
-                            className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold transition-all
-                            ${activeTab === 'dg'
-                                ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
-                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
-                        >
-                            <RotateCw size={16} />
-                            {t.tabs.dg}
-                        </button>
+                <div className="flex w-full flex-col gap-4 md:w-auto md:flex-row md:items-center md:gap-6">
+                    <div className="custom-scrollbar-hide max-w-full overflow-x-auto rounded-xl">
+                        <div className="ems-segmented w-max">
+                            {CATEGORY_ORDER.map((id) => {
+                                const active = activeCategory === id;
+                                return (
+                                    <button
+                                        key={id}
+                                        type="button"
+                                        onClick={() => setActiveCategory(id)}
+                                        className={`shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                                            active
+                                                ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
+                                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                        }`}
+                                    >
+                                        {tabLabel(id)}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="hidden h-8 w-px shrink-0 bg-slate-200 md:block dark:bg-white/10" />
+
+                    <div className="relative w-full md:w-64">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder={t.search}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:focus:ring-blue-900"
+                        />
                     </div>
                 </div>
 
                 <div className="flex w-full items-center justify-end gap-3 md:w-auto">
                     <button
                         type="button"
-                        className="flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
+                    >
+                        <Filter size={16} />
+                        {t.filter}
+                    </button>
+                    <button
+                        type="button"
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
                         title={t.refresh}
                     >
                         <RefreshCw size={16} />
+                        {t.refresh}
                     </button>
                 </div>
             </div>
 
-            <div className="min-h-0 space-y-4">
-                <div className="ems-card overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="border-b border-slate-100 bg-slate-50/50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50 dark:text-slate-400">
-                                <tr>
-                                    <th className="px-6 py-4">{t.device}</th>
-                                    <th className="px-6 py-4">{t.power}</th>
-                                    <th className="px-6 py-4">{activeTab === 'ess' ? t.soc : t.fuel}</th>
-                                    {activeTab === 'ess' && <th className="px-6 py-4">{t.colMode}</th>}
-                                    <th className="px-6 py-4">{t.status}</th>
-                                    <th className="px-6 py-4 text-right">{t.colActions}</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-white/10">
-                                {visibleDevices.map((device) => (
-                                    <tr
-                                        key={device.id}
-                                        className={`group transition-colors ${rowHover}`}
-                                    >
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-slate-800 dark:text-slate-200">
-                                                {device.name}
-                                            </div>
-                                            <div className="mt-0.5 font-mono text-xs text-slate-400">{device.id}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="mb-2 font-mono text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                {device.power} <span className="text-slate-400">kW</span>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <input
-                                                    type="number"
-                                                    value={device.power}
-                                                    disabled={device.status !== 'Running'}
-                                                    onChange={(e) => updatePower(device.id, e.target.value)}
-                                                    className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-white dark:focus:ring-brand-900"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    disabled={device.status !== 'Running'}
-                                                    className="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-brand-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-apple-surface-secondary-dark dark:text-slate-300 dark:hover:bg-brand-600"
-                                                >
-                                                    {t.actions.setPower}
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={`font-mono text-sm font-bold ${
-                                                    (device.soc != null && device.soc < 20) || (device.fuel != null && device.fuel < 20)
-                                                        ? 'text-rose-500'
-                                                        : 'text-emerald-500'
-                                                }`}
-                                            >
-                                                {device.type === 'ess' ? device.soc : device.fuel}
-                                                <span className="text-slate-400"> %</span>
-                                            </span>
-                                        </td>
-                                        {activeTab === 'ess' && (
-                                            <td className="px-6 py-4">
-                                                <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 dark:border-apple-border-dark dark:bg-apple-surface-dark">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => device.mode !== 'Charge' && toggleMode(device.id)}
-                                                        disabled={device.status !== 'Running'}
-                                                        className={`rounded-md px-2.5 py-1 text-xs font-bold transition-all ${
-                                                            device.mode === 'Charge'
-                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                                                        } disabled:opacity-50`}
-                                                    >
-                                                        {t.charge}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => device.mode !== 'Discharge' && toggleMode(device.id)}
-                                                        disabled={device.status !== 'Running'}
-                                                        className={`rounded-md px-2.5 py-1 text-xs font-bold transition-all ${
-                                                            device.mode === 'Discharge'
-                                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                                                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                                                        } disabled:opacity-50`}
-                                                    >
-                                                        {t.discharge}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        )}
-                                        <td className="px-6 py-4">{statusBadge(device.status)}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex flex-col items-end gap-2 sm:flex-row sm:justify-end">
-                                                {device.status === 'Running' ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleStatus(device.id)}
-                                                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-rose-100 bg-white px-3 py-2 text-xs font-bold text-rose-600 transition-colors hover:border-rose-500 hover:bg-rose-50 dark:border-rose-900/30 dark:bg-apple-surface-dark dark:text-rose-400 dark:hover:border-rose-500 dark:hover:bg-rose-900/20"
-                                                    >
-                                                        <Square size={14} fill="currentColor" /> {t.actions.stop}
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleStatus(device.id)}
-                                                        disabled={device.status === 'Fault'}
-                                                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    >
-                                                        <Play size={14} fill="currentColor" /> {t.actions.start}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {visibleDevices.length === 0 && (
-                        <div className="flex flex-col items-center justify-center p-12 text-center">
-                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 dark:bg-apple-surface-secondary-dark">
-                                <BatteryLow className="text-slate-300 dark:text-slate-500" size={32} />
+            {activeCategory === 'bessPv' ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {BESS_CARD_LAYOUT.map(({ panelKey, actions }) => (
+                        <div key={panelKey} className="ems-card flex flex-col overflow-hidden p-6">
+                            <h3 className="mb-5 text-center text-base font-bold text-slate-800 dark:text-slate-200">
+                                {t.bessPanels[panelKey]}
+                            </h3>
+                            <div className="flex flex-col gap-3">
+                                {actions.map((key) => {
+                                    const pressed = lastHit?.panel === panelKey && lastHit?.action === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            onClick={() => onBessAction(panelKey, key)}
+                                            className={`${outlineBtn} ${
+                                                pressed
+                                                    ? 'border-blue-500 bg-blue-50/50 text-blue-700 dark:border-blue-500 dark:bg-blue-900/20 dark:text-blue-300'
+                                                    : ''
+                                            }`}
+                                        >
+                                            {actionLabel(key)}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                            <p className="font-medium text-slate-500 dark:text-slate-400">{t.emptyList}</p>
-                            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{t.emptyHint}</p>
                         </div>
-                    )}
+                    ))}
                 </div>
-            </div>
+            ) : (
+                <div className="ems-card overflow-hidden">
+                    <div className="flex min-h-[240px] items-center justify-center p-12">
+                        <p className="max-w-md text-center text-sm font-medium text-slate-500 dark:text-slate-400">
+                            {t.categoryPlaceholder}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

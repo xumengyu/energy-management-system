@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { 
   Calendar, Download, Zap, Sun, Battery, Cable, RotateCw, 
-  TrendingUp, Activity, ChevronLeft, ChevronRight, PieChart, ChevronDown, Copy
+  TrendingUp, Activity, ChevronLeft, ChevronRight, PieChart, ChevronDown
 } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
@@ -28,15 +28,13 @@ const generateEssData = () => {
         const charge = Math.floor(Math.random() * 500) + 200;
         const efficiency = 85 + Math.random() * 10;
         const discharge = Math.floor(charge * (efficiency / 100));
-        const arbitrageEnergy = Math.floor(Math.random() * 220) + 45;
-        const replicationServiceEnergy = Math.floor(Math.random() * 160) + 28;
+        const cycleCount = Math.floor(Math.random() * 4) + 2;
 
         return {
             day: `${i + 1}`,
             charge,
             discharge,
-            arbitrageEnergy,
-            replicationServiceEnergy,
+            cycleCount,
             revenue: Math.floor(Math.random() * 100) + 50
         };
     });
@@ -169,19 +167,20 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
           ...d,
           charge: activeArea === 'areaB' ? d.charge * 0.8 : d.charge,
           discharge: activeArea === 'areaB' ? d.discharge * 0.9 : d.discharge,
-          arbitrageEnergy:
-              activeArea === 'areaB' ? Math.round(d.arbitrageEnergy * 0.88) : d.arbitrageEnergy,
-          replicationServiceEnergy:
-              activeArea === 'areaB'
-                  ? Math.round(d.replicationServiceEnergy * 0.92)
-                  : d.replicationServiceEnergy,
+          cycleCount:
+              activeArea === 'areaB' ? Math.max(1, Math.round(d.cycleCount * 0.95)) : d.cycleCount,
       }));
   }, [activeArea]);
 
-  const essMonthlyArbRep = useMemo(() => {
-      const arb = essData.reduce((s, d) => s + d.arbitrageEnergy, 0);
-      const rep = essData.reduce((s, d) => s + d.replicationServiceEnergy, 0);
-      return { arb: (arb / 1000).toFixed(1), rep: (rep / 1000).toFixed(1) };
+  const essBessMonthlyKpis = useMemo(() => {
+      const totalCharge = essData.reduce((s, d) => s + d.charge, 0);
+      const totalDischarge = essData.reduce((s, d) => s + d.discharge, 0);
+      const effPct = totalCharge > 0 ? (totalDischarge / totalCharge) * 100 : 0;
+      const cycles = essData.reduce((s, d) => s + d.cycleCount, 0);
+      return {
+          monthlyGenEfficiency: effPct.toFixed(1),
+          cumulativeCycles: String(cycles),
+      };
   }, [essData]);
 
   const pvData = useMemo(() => {
@@ -329,17 +328,17 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
         {renderKpiCard(t?.kpi?.totalCharge || 'Monthly Charge', '375.0', t?.units?.mwh || 'MWh', <Battery />, 'emerald')}
         {renderKpiCard(t?.kpi?.totalDischarge || 'Monthly Discharge', '354.0', t?.units?.mwh || 'MWh', <Zap />, 'blue')}
         {renderKpiCard(
-            t?.kpi?.monthlyArbitrageEnergy || 'Monthly Arbitrage Energy',
-            essMonthlyArbRep.arb,
-            t?.units?.mwh || 'MWh',
+            t?.kpi?.monthlyArbitrageEnergy || 'Monthly Generation Efficiency',
+            essBessMonthlyKpis.monthlyGenEfficiency,
+            t?.units?.percent || '%',
             <TrendingUp />,
             'indigo'
         )}
         {renderKpiCard(
-            t?.kpi?.monthlyReplicationServiceEnergy || 'Monthly Ancillary Service Energy',
-            essMonthlyArbRep.rep,
-            t?.units?.mwh || 'MWh',
-            <Copy />,
+            t?.kpi?.monthlyReplicationServiceEnergy || 'Cumulative Cycle Count',
+            essBessMonthlyKpis.cumulativeCycles,
+            t?.units?.cycleTimes || 'cycles',
+            <RotateCw />,
             'purple'
         )}
       </div>

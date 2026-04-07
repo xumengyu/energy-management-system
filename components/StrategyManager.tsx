@@ -86,7 +86,25 @@ const generateTimeSlots = (): PriceRow[] => {
       });
     }
   }
+  const last = slots[slots.length - 1];
+  if (last) {
+    slots.push({ time: '24:00', priceA: last.priceA, source: last.source });
+  }
   return slots;
+};
+
+/** AI 调度策略页电价预览：横轴固定 0:00–24:00，刻度稀疏避免重叠 */
+const PRICE_PREVIEW_X_AXIS_TICKS = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+
+const formatPricePreviewTimeTick = (raw: string): string => {
+  if (raw === '00:00') return '0:00';
+  if (raw === '24:00') return '24:00';
+  const [hs, ms] = raw.split(':');
+  const h = parseInt(hs, 10);
+  const m = parseInt(ms, 10);
+  if (Number.isNaN(h)) return raw;
+  if (m === 0) return `${h}:00`;
+  return raw;
 };
 
 interface StrategyManagerProps {
@@ -1126,7 +1144,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                 </div>
                                 <div className="flex-1 w-full min-h-0">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={priceRows}>
+                                        <AreaChart data={priceRows} margin={{ top: 6, right: 8, left: 4, bottom: 30 }}>
                                             <defs>
                                                 <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                                                     <stop offset="5%" stopColor="#819226" stopOpacity={0.3}/>
@@ -1134,7 +1152,17 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                 </linearGradient>
                                             </defs>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                                            <XAxis dataKey="time" fontSize={16} fontWeight="bold" tickLine={false} axisLine={false} interval={3} stroke={chartColors.text} />
+                                            <XAxis
+                                                dataKey="time"
+                                                ticks={PRICE_PREVIEW_X_AXIS_TICKS}
+                                                tickFormatter={formatPricePreviewTimeTick}
+                                                fontSize={12}
+                                                fontWeight="bold"
+                                                tickLine={false}
+                                                axisLine={false}
+                                                tickMargin={10}
+                                                stroke={chartColors.text}
+                                            />
                                             <YAxis fontSize={9} tickLine={false} axisLine={false} stroke={chartColors.text} />
                                             <Tooltip 
                                                 contentStyle={{
@@ -1233,7 +1261,7 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                     </div>
                                     <div className="flex-1 min-h-0 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={priceRows} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+                                            <AreaChart data={priceRows} margin={{ top: 4, right: 8, left: -14, bottom: 28 }}>
                                                 <defs>
                                                     <linearGradient id="colorPriceGreenPreview" x1="0" y1="0" x2="0" y2="1">
                                                         <stop offset="5%" stopColor="#34d399" stopOpacity={0.35}/>
@@ -1241,7 +1269,16 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
                                                     </linearGradient>
                                                 </defs>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} />
-                                                <XAxis dataKey="time" fontSize={10} tickLine={false} axisLine={false} interval={3} stroke="#94a3b8" />
+                                                <XAxis
+                                                    dataKey="time"
+                                                    ticks={PRICE_PREVIEW_X_AXIS_TICKS}
+                                                    tickFormatter={formatPricePreviewTimeTick}
+                                                    fontSize={10}
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                    tickMargin={8}
+                                                    stroke="#94a3b8"
+                                                />
                                                 <YAxis fontSize={9} width={32} tickLine={false} axisLine={false} stroke="#94a3b8" />
                                                 <Tooltip
                                                     contentStyle={{

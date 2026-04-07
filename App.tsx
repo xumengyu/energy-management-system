@@ -12,6 +12,7 @@ import StationRealtime from './components/StationRealtime';
 import StationArchitecture from './components/StationArchitecture';
 import DataAnalysis from './components/DataAnalysis';
 import StationList, { StationListItem } from './components/StationList';
+import StationBranchConfig, { StationFeederConfig } from './components/StationBranchConfig';
 import CreateStation from './components/CreateStation';
 import EnergyStatistics from './components/EnergyStatistics';
 import SiteRevenueDetail from './components/SiteRevenueDetail';
@@ -48,6 +49,8 @@ const INITIAL_STATIONS_ZH: StationListItem[] = [
   { id: 'ST-006', name: '站点 #8 (罗马)', location: '意大利, 罗马', type: '商业', pvCap: 300, essCap: 200, soc: 78, power: 150, status: 'Normal', grid: 'Connected', lastUpdate: '30 秒前', group: '商业综合体', deviceTypes: ['ess', 'pv'] },
   { id: 'ST-008', name: '站点 #11 (奥斯陆)', location: '挪威, 奥斯陆', type: '商业', pvCap: 800, essCap: 1200, soc: 45, power: 400, status: 'Normal', grid: 'Connected', lastUpdate: '2 分钟前', group: '', deviceTypes: ['ess', 'pv', 'evse'] }, // 未分组
 ];
+
+const EMPTY_STATION_FEEDER_CONFIG: StationFeederConfig = { branches: [], assignments: {} };
 
 // WIP Component for placeholder routes
 const WIP = ({ title, lang }: { title: string, lang: Language }) => {
@@ -90,6 +93,8 @@ const App: React.FC = () => {
   // Lifted Stations State
   const [stations, setStations] = useState<StationListItem[]>(() => lang === 'zh' ? INITIAL_STATIONS_ZH : INITIAL_STATIONS_EN);
   const [editingStation, setEditingStation] = useState<StationListItem | null>(null);
+  const [branchConfigStationId, setBranchConfigStationId] = useState<string | null>(null);
+  const [feederConfigsByStation, setFeederConfigsByStation] = useState<Record<string, StationFeederConfig>>({});
 
   // Sync state on lang change
   useEffect(() => {
@@ -143,6 +148,11 @@ const App: React.FC = () => {
       setCurrentPath('/stations/edit');
   };
 
+  const handleConfigureBranches = (station: StationListItem) => {
+      setBranchConfigStationId(station.id);
+      handleNavigate('/stations/branches');
+  };
+
   // Grouping logic for Header Dropdown
   const { ungroupedStations, groupedStations } = useMemo(() => {
     const filtered = stations.filter(s => 
@@ -184,9 +194,10 @@ const App: React.FC = () => {
       return 'Français';
   }
 
-  const shouldShowStationSelector = !['/', '/stations', '/stations/map', '/faults', '/price/list', '/stations/new', '/stations/edit', '/entity-mgmt', '/strategy/my-templates', '/strategy/create'].includes(currentPath);
+  const shouldShowStationSelector = !['/', '/stations', '/stations/map', '/faults', '/price/list', '/stations/new', '/stations/edit', '/stations/branches', '/entity-mgmt', '/strategy/my-templates', '/strategy/create'].includes(currentPath);
   const isCreatingOrEditing = currentPath === '/stations/new' || currentPath === '/stations/edit';
   const isCreatingStrategy = currentPath === '/strategy/create';
+  const isBranchConfig = currentPath === '/stations/branches';
 
   const handleNavigate = (path: string) => {
       setCurrentPath(path);
@@ -213,7 +224,44 @@ const App: React.FC = () => {
                         onRenameGroup={handleRenameGroup}
                         onNavigate={handleNavigate} 
                         onEdit={handleEditStation}
+                        onConfigureBranches={handleConfigureBranches}
                      />;
+          case '/stations/branches': {
+              const branchStation = branchConfigStationId
+                  ? stations.find((s) => s.id === branchConfigStationId)
+                  : undefined;
+              if (!branchStation) {
+                  return (
+                      <StationList
+                          lang={lang}
+                          theme={theme}
+                          selectedStation={selectedStation}
+                          stations={stations}
+                          onSelectStation={setSelectedStation}
+                          onRenameGroup={handleRenameGroup}
+                          onNavigate={handleNavigate}
+                          onEdit={handleEditStation}
+                          onConfigureBranches={handleConfigureBranches}
+                      />
+                  );
+              }
+              return (
+                  <StationBranchConfig
+                      key={branchStation.id}
+                      lang={lang}
+                      theme={theme}
+                      station={branchStation}
+                      initialConfig={feederConfigsByStation[branchStation.id] ?? EMPTY_STATION_FEEDER_CONFIG}
+                      onBack={() => {
+                          setBranchConfigStationId(null);
+                          handleNavigate('/stations');
+                      }}
+                      onSave={(stationId, config) => {
+                          setFeederConfigsByStation((prev) => ({ ...prev, [stationId]: config }));
+                      }}
+                  />
+              );
+          }
           case '/stations/new':
               return <CreateStation 
                         lang={lang} 
@@ -314,10 +362,24 @@ const App: React.FC = () => {
                     </button>
                 )}
 
+                {isBranchConfig && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setBranchConfigStationId(null);
+                            handleNavigate('/stations');
+                        }}
+                        className="flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-bold text-slate-500 transition-all hover:border-brand-100 hover:bg-brand-50 hover:text-brand-600 dark:hover:border-brand-800 dark:hover:bg-brand-900/20"
+                    >
+                        <ChevronLeft size={14} />
+                        {lang === 'zh' ? '返回列表' : 'Back'}
+                    </button>
+                )}
+
                 <div className="w-0.5"></div>
 
                 {shouldShowStationSelector && (
-                    <div className="relative z-50 w-[240px] min-w-0 sm:w-[260px]">
+                    <div className="relative z-50 min-w-0 w-[340px] shrink sm:w-[440px]">
                         <button 
                             onClick={() => setIsStationMenuOpen(!isStationMenuOpen)}
                             className="group flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:hover:border-white/15 dark:hover:bg-apple-surface-secondary-dark"
@@ -452,7 +514,7 @@ const App: React.FC = () => {
                 </div>
 
                 <div
-                    className="flex items-center rounded-lg border border-apple-border-light bg-slate-100/90 p-0.5 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark"
+                    className="inline-flex items-center rounded-full border border-apple-border-light bg-slate-100/90 px-1 py-0.5 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark"
                     role="group"
                     aria-label={userMenuT.themeSwitch}
                 >
@@ -461,26 +523,26 @@ const App: React.FC = () => {
                         onClick={() => setTheme('light')}
                         title={headerT.themeLight}
                         aria-pressed={theme === 'light'}
-                        className={`rounded-md p-2 transition-all ${
+                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs transition-all ${
                             theme === 'light'
-                                ? 'bg-white text-amber-600 shadow-sm dark:bg-apple-surface-dark dark:text-amber-400'
+                                ? 'bg-white text-amber-500 shadow-sm dark:bg-apple-surface-dark dark:text-amber-300'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                         }`}
                     >
-                        <Sun size={18} strokeWidth={2} />
+                        <Sun size={16} strokeWidth={2} />
                     </button>
                     <button
                         type="button"
                         onClick={() => setTheme('dark')}
                         title={headerT.themeDark}
                         aria-pressed={theme === 'dark'}
-                        className={`rounded-md p-2 transition-all ${
+                        className={`ml-1 flex h-7 w-7 items-center justify-center rounded-full text-xs transition-all ${
                             theme === 'dark'
-                                ? 'bg-slate-700 text-slate-100 shadow-sm dark:bg-slate-600 dark:text-white'
+                                ? 'bg-slate-800 text-slate-50 shadow-sm dark:bg-slate-600 dark:text-white'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                         }`}
                     >
-                        <Moon size={18} strokeWidth={2} />
+                        <Moon size={16} strokeWidth={2} />
                     </button>
                 </div>
 

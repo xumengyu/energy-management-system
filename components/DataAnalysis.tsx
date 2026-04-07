@@ -152,16 +152,9 @@ const SimpleChartContainer = ({
     children?: React.ReactNode;
     className?: string;
 }) => (
-    <div
-        className={`flex flex-col rounded-2xl border border-slate-200 bg-slate-50/50 p-6 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/30 h-[320px] ${className}`}
-    >
-        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-            <span className="w-1.5 h-4 bg-brand-500 rounded-sm"></span>
-            {title}
-        </h4>
-        <div className="flex-1 w-full min-h-0">
-            {children}
-        </div>
+    <div className={`ems-card flex min-h-0 flex-col p-5 ${className}`}>
+        <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
+        <div className="min-h-0 w-full flex-1">{children}</div>
     </div>
 );
 
@@ -213,7 +206,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   };
 
   const chartColors = {
-      grid: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+      grid: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
       text: isDark ? '#94a3b8' : '#64748b',
       tooltipBg: isDark ? '#1e2128' : '#ffffff',
       tooltipBorder: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
@@ -378,128 +371,119 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   const CustomLegend = (props: any) => {
       const { payload, onClick } = props;
       return (
-          <div className="flex flex-wrap justify-end gap-x-6 gap-y-2 mb-4 text-xs font-medium text-slate-600 dark:text-slate-400">
+          <div className="mt-5 flex flex-wrap justify-center gap-x-7 gap-y-2.5">
               {payload.map((entry: any, index: number) => {
                   const isHidden = hiddenSeries.includes(entry.dataKey);
                   return (
-                    <button 
-                        key={`item-${index}`} 
-                        onClick={() => onClick(entry.dataKey)}
-                        className={`flex items-center gap-2 transition-all ${isHidden ? 'opacity-40 grayscale' : 'opacity-100'}`}
-                    >
-                        {['dynamicDemand', 'reverseRef'].includes(entry.dataKey) ? (
-                            <div className="flex items-center">
-                                <div className="w-3 h-3 rounded-full border-2 bg-transparent" style={{borderColor: entry.color}}></div>
-                                <div className="w-4 h-0.5 border-t-2 border-dashed ml-1" style={{borderColor: entry.color}}></div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                                <div className="w-4 h-0.5 ml-1" style={{ backgroundColor: entry.color }}></div>
-                            </div>
-                        )}
-                        <span>{entry.value}</span>
-                    </button>
-                  )
+                      <button
+                          key={`item-${index}`}
+                          onClick={() => onClick(entry.dataKey)}
+                          className={`flex items-center gap-2.5 text-sm font-bold transition-all ${isHidden ? 'opacity-40 grayscale' : 'opacity-100'} text-slate-600 dark:text-slate-300`}
+                      >
+                          {['dynamicDemand', 'reverseRef'].includes(entry.dataKey) ? (
+                              <div className="flex items-center">
+                                  <div className="h-3.5 w-3.5 rounded-full border-2 bg-transparent" style={{ borderColor: entry.color }} />
+                                  <div className="ml-1 h-0.5 w-4 border-t-2 border-dashed" style={{ borderColor: entry.color }} />
+                              </div>
+                          ) : (
+                              <span className="h-3 w-3 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
+                          )}
+                          {entry.value}
+                      </button>
+                  );
               })}
           </div>
       );
   };
 
   const tooltipStyle = {
-      contentStyle: { borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' },
-      itemStyle: { fontSize: '14px', fontWeight: 600, padding: '2px 0' },
-      labelStyle: { color: isDark ? '#94a3b8' : '#64748b', marginBottom: '8px', fontSize: '12px' }
+      contentStyle: {
+          borderRadius: '16px',
+          border: `1px solid ${chartColors.tooltipBorder}`,
+          backgroundColor: chartColors.tooltipBg,
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+      },
+      itemStyle: { fontSize: '15px', fontWeight: 600, padding: '4px 0' },
+      labelStyle: {
+          color: isDark ? '#94a3b8' : '#64748b',
+          marginBottom: '8px',
+          fontSize: '13px',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+      },
   };
 
   const renderLoadTracking = () => (
-    <div className="w-full h-full min-h-0 relative flex flex-col gap-2">
-        <div className="flex-1 min-h-0">
+    /* Recharts 3：主图与带 Brush 的子图共用 syncId 时，会用 Brush 的索引切片主图数据，易导致主图数据为空。
+       将曲线与 Brush 放在同一 ComposedChart，并给容器固定高度，避免 ResponsiveContainer 高度为 0。 */
+    <div className="w-full">
+        <div className="h-[600px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={LOAD_CHART_DATA} syncId="loadSync" margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                <ComposedChart
+                    data={LOAD_CHART_DATA}
+                    margin={{ top: 16, right: 28, left: 4, bottom: 4 }}
+                >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                    <XAxis 
-                        dataKey="index" 
-                        fontSize={14} 
-                        tickLine={false} 
-                        axisLine={{ stroke: chartColors.grid }}
+                    <XAxis
+                        dataKey="index"
+                        type="number"
+                        domain={['dataMin', 'dataMax']}
+                        fontSize={13}
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={12}
                         stroke={chartColors.text}
-                        tickFormatter={(idx) => {
-                            const item = LOAD_CHART_DATA[idx];
+                        tickFormatter={(v) => {
+                            const idx = typeof v === 'number' ? v : Number(v);
+                            const item = LOAD_CHART_DATA.find((d) => d.index === idx);
                             if (!item) return '';
-                            if (idx % 24 === 0) return item.shortTime; 
+                            if (idx % 24 === 0) return item.shortTime;
                             return '';
                         }}
                         interval={12}
-                        fontWeight={500}
                     />
-                    <YAxis 
-                        fontSize={14} 
-                        tickLine={false} 
-                        axisLine={false} 
+                    <YAxis
+                        fontSize={13}
+                        tickLine={false}
+                        axisLine={false}
                         stroke={chartColors.text}
-                        label={{ value: t.unitKw, position: 'top', offset: 10, fontSize: 12, fill: chartColors.text }}
+                        label={{
+                            value: t.unitKw,
+                            position: 'insideLeft',
+                            angle: -90,
+                            dy: 10,
+                            fontSize: 13,
+                            fill: chartColors.text,
+                            fontWeight: 700,
+                        }}
                         domain={[-400, 1000]}
                         ticks={[-400, 0, 400, 800]}
-                        fontWeight={500}
                     />
-                    <Tooltip 
+                    <Tooltip
                         {...tooltipStyle}
                         labelStyle={{ color: chartColors.text, marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '12px' }}
                         formatter={(value: number) => [value, 'kW']}
                         labelFormatter={(label) => {
-                            const item = LOAD_CHART_DATA.find(d => d.index === label);
+                            const item = LOAD_CHART_DATA.find((d) => d.index === Number(label));
                             return item ? item.time : '';
                         }}
                     />
-                    <Legend content={<CustomLegend onClick={toggleSeries} />} verticalAlign="top" height={60}/>
+                    <Legend content={<CustomLegend onClick={toggleSeries} />} verticalAlign="top" height={44} />
                     <ReferenceLine y={0} stroke={chartColors.grid} />
-                    
+
                     <Line isAnimationActive={false} hide={hiddenSeries.includes('essPower')} name={t.legend.ess} type="monotone" dataKey="essPower" stroke={chartColors.lines.essPower} strokeWidth={2} dot={false} />
                     <Line isAnimationActive={false} hide={hiddenSeries.includes('pvPower')} name={t.legend.pv} type="monotone" dataKey="pvPower" stroke={chartColors.lines.pvPower} strokeWidth={2} dot={false} />
                     <Line isAnimationActive={false} hide={hiddenSeries.includes('evsePower')} name={t.legend.evse} type="monotone" dataKey="evsePower" stroke={chartColors.lines.evsePower} strokeWidth={2} dot={false} />
                     <Line isAnimationActive={false} hide={hiddenSeries.includes('dgPower')} name={t.legend.dg} type="stepAfter" dataKey="dgPower" stroke={chartColors.lines.dgPower} strokeWidth={2} dot={false} />
                     <Line isAnimationActive={false} hide={hiddenSeries.includes('loadPower')} name={t.legend.load} type="monotone" dataKey="loadPower" stroke={chartColors.lines.loadPower} strokeWidth={2} dot={false} />
-                    <Line isAnimationActive={false} hide={hiddenSeries.includes('gridPoint')} name={t.legend.gridPoint} type="monotone" dataKey="gridPoint" stroke={chartColors.lines.gridPoint} strokeWidth={2} dot={false} activeDot={{r: 6}} />
+                    <Line isAnimationActive={false} hide={hiddenSeries.includes('gridPoint')} name={t.legend.gridPoint} type="monotone" dataKey="gridPoint" stroke={chartColors.lines.gridPoint} strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
                     <Line isAnimationActive={false} hide={hiddenSeries.includes('dynamicDemand')} name={t.legend.demand} type="stepAfter" dataKey="dynamicDemand" stroke={chartColors.lines.demand} strokeWidth={2} strokeDasharray="5 5" dot={false} activeDot={false} />
                     <Line isAnimationActive={false} hide={hiddenSeries.includes('reverseRef')} name={t.legend.reverseRef} type="stepAfter" dataKey="reverseRef" stroke={chartColors.lines.reverseRef} strokeWidth={2} strokeDasharray="5 5" dot={false} activeDot={false} />
-                </ComposedChart>
-            </ResponsiveContainer>
-        </div>
 
-        {/* Filter / Preview Chart — 暗色下与卡片底接近的低对比拖拽条 */}
-        <div className="h-[36px] w-full">
-             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={LOAD_CHART_DATA} syncId="loadSync" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                        <linearGradient id="colorPreview" x1="0" y1="0" x2="0" y2="1">
-                            {isDark ? (
-                                <>
-                                    <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.22}/>
-                                    <stop offset="95%" stopColor="#94a3b8" stopOpacity={0}/>
-                                </>
-                            ) : (
-                                <>
-                                    <stop offset="5%" stopColor="#64748b" stopOpacity={0.28}/>
-                                    <stop offset="95%" stopColor="#64748b" stopOpacity={0}/>
-                                </>
-                            )}
-                        </linearGradient>
-                    </defs>
-                    <XAxis dataKey="index" hide />
-                    <YAxis domain={[-400, 1000]} hide />
-                    <Area
-                        type="monotone"
-                        dataKey="loadPower"
-                        stroke={isDark ? 'rgba(148, 163, 184, 0.45)' : 'rgba(100, 116, 139, 0.55)'}
-                        strokeWidth={1}
-                        fill="url(#colorPreview)"
-                        isAnimationActive={false}
-                    />
-                    <Brush 
-                        dataKey="index" 
-                        height={36} 
-                        y={0}
+                    <Brush
+                        dataKey="index"
+                        height={32}
                         travellerWidth={10}
                         stroke={isDark ? 'rgba(255, 255, 255, 0.28)' : 'rgba(100, 116, 139, 0.45)'}
                         fill={isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.06)'}
@@ -507,117 +491,118 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                         tickFormatter={() => ''}
                     />
                 </ComposedChart>
-             </ResponsiveContainer>
+            </ResponsiveContainer>
         </div>
     </div>
   );
 
+  const powerTabXAxisProps = {
+    dataKey: 'index' as const,
+    type: 'number' as const,
+    domain: [0, 96] as [number, number],
+    fontSize: 13,
+    tickLine: false,
+    axisLine: false,
+    tickMargin: 12,
+    stroke: chartColors.text,
+    tickFormatter: (idx: number) => {
+      const h = idx / 4;
+      if (Number.isInteger(h) && h % 2 !== 0) {
+        return `${h.toString().padStart(2, '0')}:00`;
+      }
+      if (h === 24) return '24:00';
+      return '';
+    },
+    ticks: [4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 96],
+    interval: 0,
+    fontWeight: 600,
+  };
+
   const renderPowerTracking = () => (
-    <div className="w-full h-full flex flex-col gap-6">
-        {/* SOC Chart (Top) */}
-        <div className="flex-1 min-h-0 relative">
-            <div className="absolute top-0 left-0 w-full flex justify-center z-10 pointer-events-none">
-                <div className="flex items-center gap-2 bg-white/50 dark:bg-apple-surface-dark/50 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm mt-2 border border-slate-100 dark:border-apple-border-dark">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#facc15]"></div>
-                    <span className="text-sm font-bold text-[#facc15]">{t.legend.soc}</span>
-                </div>
+    <>
+        <div className="ems-card flex flex-col p-5">
+            <h3 className="mb-4 shrink-0 text-lg font-bold text-slate-900 dark:text-white">
+              {t.charts.socTrend}
+            </h3>
+            <div className="h-[256px] w-full min-h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={POWER_CHART_DATA} syncId="powerTracking" margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
+                        <defs>
+                            <linearGradient id="colorSoc" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#facc15" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#facc15" stopOpacity={0.05} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                        <XAxis {...powerTabXAxisProps} />
+                        <YAxis
+                            fontSize={13}
+                            tickLine={false}
+                            axisLine={false}
+                            stroke={chartColors.text}
+                            domain={[0, 100]}
+                            ticks={[0, 25, 50, 75, 100]}
+                            fontWeight={600}
+                            label={{ value: t.unitSoc, position: 'insideLeft', angle: -90, dx: -4, dy: 10, fontSize: 12, fill: chartColors.text, fontWeight: 700 }}
+                        />
+                        <Tooltip
+                            {...tooltipStyle}
+                            itemStyle={{ fontWeight: 600 }}
+                            formatter={(value: number) => [value, '%']}
+                            labelFormatter={(label) => {
+                                const idx = Number(label);
+                                const item = POWER_CHART_DATA.find((d) => d.index === idx);
+                                return item ? item.time : '';
+                            }}
+                        />
+                        <Area type="monotone" dataKey="soc" name={t.legend.soc} stroke="#facc15" strokeWidth={2.5} fill="url(#colorSoc)" isAnimationActive={false} />
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
-            <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={POWER_CHART_DATA} syncId="powerTracking" margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                        <linearGradient id="colorSoc" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#facc15" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#facc15" stopOpacity={0.05}/>
-                        </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} strokeOpacity={0.5} />
-                    <XAxis dataKey="index" type="number" domain={[0, 96]} hide />
-                    <YAxis 
-                        fontSize={14} 
-                        tickLine={false} 
-                        axisLine={false} 
-                        stroke={chartColors.text}
-                        domain={[0, 120]}
-                        ticks={[25, 50, 75, 100]}
-                        fontWeight={500}
-                    />
-                    <Tooltip 
-                        {...tooltipStyle}
-                        itemStyle={{ fontWeight: 600 }}
-                        formatter={(value: number) => [value, '%']}
-                        labelFormatter={(label) => {
-                             const idx = Number(label);
-                             const item = POWER_CHART_DATA.find(d => d.index === idx);
-                             return item ? item.time : '';
-                        }}
-                    />
-                    <Area type="monotone" dataKey="soc" stroke="#facc15" strokeWidth={3} fill="url(#colorSoc)" animationDuration={1000} />
-                </AreaChart>
-            </ResponsiveContainer>
         </div>
 
-        {/* Power Chart (Bottom) */}
-        <div className="flex-1 min-h-0 relative">
-            <div className="absolute top-0 left-0 w-full flex justify-center z-10 pointer-events-none">
-                <div className="flex items-center gap-2 bg-white/50 dark:bg-apple-surface-dark/50 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm mt-2 border border-slate-100 dark:border-apple-border-dark">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#819226]"></div>
-                    <span className="text-sm font-bold text-[#819226]">{t.legend.power}</span>
-                </div>
+        <div className="ems-card flex flex-col p-5">
+            <h3 className="mb-4 shrink-0 text-lg font-bold text-slate-900 dark:text-white">
+              {t.charts.powerTrend}
+            </h3>
+            <div className="h-[256px] w-full min-h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={POWER_CHART_DATA} syncId="powerTracking" margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
+                        <defs>
+                            <linearGradient id="colorPower" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#819226" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#819226" stopOpacity={0.05} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                        <XAxis {...powerTabXAxisProps} />
+                        <YAxis
+                            fontSize={13}
+                            tickLine={false}
+                            axisLine={false}
+                            stroke={chartColors.text}
+                            domain={[-150, 150]}
+                            ticks={[-100, 0, 100]}
+                            fontWeight={600}
+                            label={{ value: t.unitKw, position: 'insideLeft', angle: -90, dx: -4, dy: 10, fontSize: 12, fill: chartColors.text, fontWeight: 700 }}
+                        />
+                        <Tooltip
+                            {...tooltipStyle}
+                            itemStyle={{ fontWeight: 600 }}
+                            formatter={(value: number) => [value, 'kW']}
+                            labelFormatter={(label) => {
+                                const idx = Number(label);
+                                const item = POWER_CHART_DATA.find((d) => d.index === idx);
+                                return item ? item.time : '';
+                            }}
+                        />
+                        <ReferenceLine y={0} stroke={chartColors.grid} strokeDasharray="3 3" />
+                        <Area type="monotone" dataKey="power" name={t.legend.power} stroke="#819226" strokeWidth={2.5} fill="url(#colorPower)" isAnimationActive={false} />
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
-            <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={POWER_CHART_DATA} syncId="powerTracking" margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                        <linearGradient id="colorPower" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#819226" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#819226" stopOpacity={0.05}/>
-                        </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} strokeOpacity={0.5} />
-                    <XAxis 
-                        dataKey="index" 
-                        type="number" 
-                        domain={[0, 96]}
-                        fontSize={14} 
-                        tickLine={false} 
-                        axisLine={{ stroke: chartColors.grid }}
-                        stroke={chartColors.text}
-                        tickFormatter={(idx) => {
-                             const h = idx / 4;
-                             if (Number.isInteger(h) && h % 2 !== 0) { 
-                                 return `${h.toString().padStart(2, '0')}:00`;
-                             }
-                             if (h === 24) return '24:00';
-                             return '';
-                        }}
-                        ticks={[4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 96]} 
-                        interval={0}
-                        fontWeight={500}
-                    />
-                    <YAxis 
-                        fontSize={14} 
-                        tickLine={false} 
-                        axisLine={false} 
-                        stroke={chartColors.text}
-                        domain={[-150, 150]}
-                        ticks={[-100, 0, 100]}
-                        fontWeight={500}
-                    />
-                    <Tooltip 
-                        {...tooltipStyle}
-                        itemStyle={{ fontWeight: 600 }}
-                        formatter={(value: number) => [value, 'kW']}
-                        labelFormatter={(label) => {
-                             const idx = Number(label);
-                             const item = POWER_CHART_DATA.find(d => d.index === idx);
-                             return item ? item.time : '';
-                        }}
-                    />
-                    <ReferenceLine y={0} stroke={chartColors.grid} strokeDasharray="3 3"/>
-                    <Area type="monotone" dataKey="power" stroke="#819226" strokeWidth={3} fill="url(#colorPower)" animationDuration={1000}/>
-                </AreaChart>
-            </ResponsiveContainer>
         </div>
-    </div>
+    </>
   );
 
   /** 电池分析底部时间刷：与图表/卡片底色接近，低对比 */
@@ -633,16 +618,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   );
 
   const renderBatteryAnalysis = () => (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar p-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
               {/* 1. Cluster Voltage */}
               <SimpleChartContainer title={t.charts.clusterVol} className="!h-[360px]">
                   <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 22 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                          <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} stroke={chartColors.text} interval={12}/>
-                          <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} domain={['auto', 'auto']} unit="V"/>
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', fontWeight: 600 }} itemStyle={{color: '#3b82f6'}} />
+                          <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} interval={12} fontWeight={600} />
+                          <YAxis fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} domain={['auto', 'auto']} unit="V" fontWeight={600} />
+                          <Tooltip {...tooltipStyle} itemStyle={{ color: '#3b82f6' }} />
                           <Line type="monotone" dataKey="voltage" stroke="#3b82f6" strokeWidth={2} dot={false} name="Voltage" isAnimationActive={false}/>
                           {batteryTimeBrush()}
                       </LineChart>
@@ -660,9 +644,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                               </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                          <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} stroke={chartColors.text} interval={12}/>
-                          <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} unit="A"/>
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', fontWeight: 600 }} itemStyle={{color: '#f97316'}} />
+                          <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} interval={12} fontWeight={600} />
+                          <YAxis fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} unit="A" fontWeight={600} />
+                          <Tooltip {...tooltipStyle} itemStyle={{ color: '#f97316' }} />
                           <Area type="monotone" dataKey="current" stroke="#f97316" fill="url(#colorCur)" strokeWidth={2} name="Current" isAnimationActive={false}/>
                           {batteryTimeBrush()}
                       </AreaChart>
@@ -680,9 +664,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                               </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                          <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} stroke={chartColors.text} interval={12}/>
-                          <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} domain={[0, 100]} unit="%"/>
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', fontWeight: 600 }} itemStyle={{color: '#10b981'}} />
+                          <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} interval={12} fontWeight={600} />
+                          <YAxis fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} domain={[0, 100]} unit="%" fontWeight={600} />
+                          <Tooltip {...tooltipStyle} itemStyle={{ color: '#10b981' }} />
                           <Area type="monotone" dataKey="soc" stroke="#10b981" fill="url(#colorSocBat)" strokeWidth={2} name="SOC" isAnimationActive={false}/>
                           {batteryTimeBrush()}
                       </AreaChart>
@@ -694,9 +678,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                   <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={BATTERY_CHART_DATA} margin={{ top: 5, right: 5, left: 0, bottom: 22 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                          <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} stroke={chartColors.text} interval={12}/>
-                          <YAxis fontSize={12} tickLine={false} axisLine={false} stroke={chartColors.text} domain={[90, 100]} unit="%"/>
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '14px', fontWeight: 600 }} itemStyle={{color: '#14b8a6'}} />
+                          <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} interval={12} fontWeight={600} />
+                          <YAxis fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} domain={[90, 100]} unit="%" fontWeight={600} />
+                          <Tooltip {...tooltipStyle} itemStyle={{ color: '#14b8a6' }} />
                           <Line type="step" dataKey="soh" stroke="#14b8a6" strokeWidth={2} dot={false} name="SOH" isAnimationActive={false}/>
                           {batteryTimeBrush()}
                       </LineChart>
@@ -708,20 +692,18 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                   <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={BATTERY_CHART_DATA} margin={{ top: 28, right: 8, left: 0, bottom: 22 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                          <XAxis dataKey="time" fontSize={11} tickLine={false} axisLine={false} tickMargin={8} stroke={chartColors.text} interval={16}/>
+                          <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} interval={16} fontWeight={600} />
                           <YAxis
-                              fontSize={11}
+                              fontSize={13}
                               tickLine={false}
                               axisLine={false}
                               stroke={chartColors.text}
                               domain={['dataMin - 0.02', 'dataMax + 0.02']}
                               tickFormatter={(v) => `${v}V`}
+                              fontWeight={600}
                           />
-                          <Tooltip
-                              contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '13px', fontWeight: 600 }}
-                              formatter={(value: number, name: string) => [`${value} V`, name]}
-                          />
-                          <Legend verticalAlign="top" align="right" height={24} iconType="line" wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
+                          <Tooltip {...tooltipStyle} formatter={(value: number, name: string) => [`${value} V`, name]} />
+                          <Legend verticalAlign="top" align="right" height={24} iconType="line" wrapperStyle={{ fontSize: '13px', fontWeight: 700 }} />
                           <Line type="monotone" dataKey="cellVolMax" name={t.charts.cellVolMax} stroke="#6d28d9" strokeWidth={2} dot={false} isAnimationActive={false}/>
                           <Line type="monotone" dataKey="cellVolMin" name={t.charts.cellVolMin} stroke="#c084fc" strokeWidth={2} dot={false} isAnimationActive={false}/>
                           {batteryTimeBrush()}
@@ -734,36 +716,32 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                   <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={BATTERY_CHART_DATA} margin={{ top: 28, right: 8, left: 0, bottom: 22 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                          <XAxis dataKey="time" fontSize={11} tickLine={false} axisLine={false} tickMargin={8} stroke={chartColors.text} interval={16}/>
+                          <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} interval={16} fontWeight={600} />
                           <YAxis
-                              fontSize={11}
+                              fontSize={13}
                               tickLine={false}
                               axisLine={false}
                               stroke={chartColors.text}
                               domain={['dataMin - 1', 'dataMax + 1']}
                               tickFormatter={(v) => `${v}°C`}
+                              fontWeight={600}
                           />
-                          <Tooltip
-                              contentStyle={{ borderRadius: '12px', border: `1px solid ${chartColors.tooltipBorder}`, backgroundColor: chartColors.tooltipBg, fontSize: '13px', fontWeight: 600 }}
-                              formatter={(value: number, name: string) => [`${value} °C`, name]}
-                          />
-                          <Legend verticalAlign="top" align="right" height={24} iconType="line" wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
+                          <Tooltip {...tooltipStyle} formatter={(value: number, name: string) => [`${value} °C`, name]} />
+                          <Legend verticalAlign="top" align="right" height={24} iconType="line" wrapperStyle={{ fontSize: '13px', fontWeight: 700 }} />
                           <Line type="monotone" dataKey="cellTempMax" name={t.charts.cellTempMax} stroke="#ea580c" strokeWidth={2} dot={false} isAnimationActive={false}/>
                           <Line type="monotone" dataKey="cellTempMin" name={t.charts.cellTempMin} stroke="#fb923c" strokeWidth={2} dot={false} isAnimationActive={false}/>
                           {batteryTimeBrush()}
                       </LineChart>
                   </ResponsiveContainer>
               </SimpleChartContainer>
-          </div>
       </div>
   );
 
   return (
-    <div className="h-[calc(100vh-72px)] ems-page-shell flex flex-col gap-4">
-        
-        {/* Header / Toolbar — 与电价列表同款 */}
-        <div className="ems-card flex shrink-0 flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="custom-scrollbar-hide flex w-full min-w-0 flex-1 items-center overflow-x-auto">
+    <div className="ems-page-shell">
+        {/* 顶栏：与实时数据页同款 */}
+        <div className="ems-card mb-4 flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+            <div className="custom-scrollbar-hide flex w-full min-w-0 items-center overflow-x-auto md:w-auto md:flex-1">
                 <div className="ems-segmented shrink-0">
                     {[
                         { id: 'load', label: t.tabs.load, icon: Activity },
@@ -785,7 +763,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                 </div>
             </div>
 
-            <div className="flex w-full flex-wrap items-center justify-start gap-3 lg:w-auto lg:shrink-0 lg:justify-end">
+            <div className="flex w-full flex-wrap items-center justify-end gap-3 md:w-auto md:shrink-0">
                 {activeTab === 'battery' && (
                     <div className="flex shrink-0 items-center gap-2">
                         <div className="relative">
@@ -863,25 +841,33 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
             </div>
         </div>
 
-        {/* Main Chart Card — load（Power Analysis）略缩高度，其余 Tab 仍铺满 */}
-        <div
-            className={`flex-1 bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm flex flex-col min-h-0 ${
-                activeTab === 'load' ? 'max-h-[calc(100%-40px)]' : ''
-            }`}
-        >
-            <div className="p-4 border-b border-slate-100 dark:border-apple-border-dark flex justify-between items-center shrink-0">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white pl-2 border-l-4 border-brand-500">
-                    {activeTab === 'load' && t.titleLoad}
-                    {activeTab === 'power' && t.titlePower}
-                    {activeTab === 'battery' && `${t.titleBattery} - ${selectedStack} · ${selectedCluster}`}
-                </h3>
-            </div>
-
-            <div className="flex-1 w-full min-h-0 p-6 relative">
-                {activeTab === 'load' && renderLoadTracking()}
-                {activeTab === 'power' && renderPowerTracking()}
-                {activeTab === 'battery' && renderBatteryAnalysis()}
-            </div>
+        <div className="min-h-0 space-y-4">
+            {activeTab === 'load' && (
+                <div className="ems-card relative flex min-h-[560px] flex-col p-5">
+                    <div className="mb-4 flex shrink-0 items-center justify-between">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t.titleLoad}</h3>
+                    </div>
+                    <div className="relative min-h-0 w-full flex-1">{renderLoadTracking()}</div>
+                </div>
+            )}
+            {activeTab === 'power' && (
+                <div className="animate-in fade-in space-y-4 duration-300">
+                    <div className="mb-1 flex shrink-0 items-center px-1">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t.titlePower}</h3>
+                    </div>
+                    {renderPowerTracking()}
+                </div>
+            )}
+            {activeTab === 'battery' && (
+                <div className="animate-in fade-in duration-300">
+                    <div className="mb-4 flex items-center px-1">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                            {`${t.titleBattery} · ${selectedStack} · ${selectedCluster}`}
+                        </h3>
+                    </div>
+                    {renderBatteryAnalysis()}
+                </div>
+            )}
         </div>
     </div>
   );

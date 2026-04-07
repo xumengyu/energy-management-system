@@ -3,10 +3,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Language, Theme } from '../types';
 import { 
     Zap, Sun, Battery, Network, Cloud, Car, Droplets, Gauge,
-    CheckCircle2, AlertTriangle, XCircle, Info,
+    CheckCircle2, AlertTriangle, XCircle,
     Plus, Minus, RefreshCw, Save, Maximize, Minimize,
     Server, Laptop, Globe, Share2,
-    ArrowUp, ArrowDown, Thermometer
+    ArrowUp, ArrowDown, Thermometer, X, PanelRight
 } from 'lucide-react';
 import { translations } from '../translations';
 
@@ -43,6 +43,11 @@ const STATION_DATA_EN = {
         status: { mode: 'PQ', state: 'Discharge', health: 'Normal' }
     },
     dcMeter: { name: 'DC Meter', dc: { p: '52.0 kW', i: '68.4 A', v: '760.4 V' } },
+    /** PCS #2–#6 共用的并网支路表（母线 → 本表 → 汇流排 → 五路 PCS） */
+    essPairAcMeter: {
+        name: 'ESS #2/#3 Branch Meter',
+        ac: { p: '248.2 kW', i: '412/410/415 A', v: '229/228/229 V' },
+    },
     battery: {
         name: '#1', soc: '78.5%', soh: '99.1%',
         vmax: '3.45 V', vmin: '3.12 V', tmax: '32°C', tmin: '24°C',
@@ -82,7 +87,43 @@ const STATION_DATA_EN = {
             name: '#3', soc: '92.1%', soh: '98.8%', status: 0,
             vmax: '3.55 V', vmin: '3.32 V', tmax: '34°C', tmin: '26°C'
         }
-    }
+    },
+    ess4: {
+        pcs: {
+            name: 'PCS #4',
+            ac: { p: '48.5 kW', i: '72/71/73 A', v: '228/229/228 V' },
+            dc: { p: '49.8 kW', i: '65.8 A', v: '757.5 V' },
+            status: { mode: 'PQ', state: 'Charge', health: 'Normal' },
+        },
+        bat: {
+            name: '#4', soc: '62.0%', soh: '99.2%', status: 0,
+            vmax: '3.40 V', vmin: '3.20 V', tmax: '31°C', tmin: '23°C',
+        },
+    },
+    ess5: {
+        pcs: {
+            name: 'PCS #5',
+            ac: { p: '52.0 kW', i: '76/75/77 A', v: '229/228/230 V' },
+            dc: { p: '53.4 kW', i: '70.2 A', v: '758.8 V' },
+            status: { mode: 'PQ', state: 'Discharge', health: 'Normal' },
+        },
+        bat: {
+            name: '#5', soc: '55.8%', soh: '99.0%', status: 0,
+            vmax: '3.42 V', vmin: '3.15 V', tmax: '29°C', tmin: '21°C',
+        },
+    },
+    ess6: {
+        pcs: {
+            name: 'PCS #6',
+            ac: { p: '47.2 kW', i: '70/69/71 A', v: '228/228/229 V' },
+            dc: { p: '48.5 kW', i: '64.1 A', v: '756.2 V' },
+            status: { mode: 'VSG', state: 'Standby', health: 'Normal' },
+        },
+        bat: {
+            name: '#6', soc: '71.3%', soh: '98.9%', status: 1,
+            vmax: '3.48 V', vmin: '3.22 V', tmax: '33°C', tmin: '25°C',
+        },
+    },
 };
 
 // --- Specific Data for Station #2 (ZH) ---
@@ -110,6 +151,11 @@ const STATION_DATA_ZH = {
         status: { mode: 'PQ', state: 'Discharge', health: 'Normal' }
     },
     dcMeter: { name: '直流总表', dc: { p: '52.0 kW', i: '68.4 A', v: '760.4 V' } },
+    /** PCS #2–#6 经本支路表汇总并网 */
+    essPairAcMeter: {
+        name: '储能 #2/#3 支路表',
+        ac: { p: '248.2 kW', i: '412/410/415 A', v: '229/228/229 V' },
+    },
     battery: {
         name: '#1', soc: '78.5%', soh: '99.1%',
         vmax: '3.45 V', vmin: '3.12 V', tmax: '32°C', tmin: '24°C',
@@ -149,31 +195,485 @@ const STATION_DATA_ZH = {
             name: '#3', soc: '92.1%', soh: '98.8%', status: 0,
             vmax: '3.55 V', vmin: '3.32 V', tmax: '34°C', tmin: '26°C'
         }
-    }
+    },
+    ess4: {
+        pcs: {
+            name: 'PCS 储能变流器 #4',
+            ac: { p: '48.5 kW', i: '72/71/73 A', v: '228/229/228 V' },
+            dc: { p: '49.8 kW', i: '65.8 A', v: '757.5 V' },
+            status: { mode: 'PQ', state: 'Charge', health: 'Normal' },
+        },
+        bat: {
+            name: '#4', soc: '62.0%', soh: '99.2%', status: 0,
+            vmax: '3.40 V', vmin: '3.20 V', tmax: '31°C', tmin: '23°C',
+        },
+    },
+    ess5: {
+        pcs: {
+            name: 'PCS 储能变流器 #5',
+            ac: { p: '52.0 kW', i: '76/75/77 A', v: '229/228/230 V' },
+            dc: { p: '53.4 kW', i: '70.2 A', v: '758.8 V' },
+            status: { mode: 'PQ', state: 'Discharge', health: 'Normal' },
+        },
+        bat: {
+            name: '#5', soc: '55.8%', soh: '99.0%', status: 0,
+            vmax: '3.42 V', vmin: '3.15 V', tmax: '29°C', tmin: '21°C',
+        },
+    },
+    ess6: {
+        pcs: {
+            name: 'PCS 储能变流器 #6',
+            ac: { p: '47.2 kW', i: '70/69/71 A', v: '228/228/229 V' },
+            dc: { p: '48.5 kW', i: '64.1 A', v: '756.2 V' },
+            status: { mode: 'VSG', state: 'Standby', health: 'Normal' },
+        },
+        bat: {
+            name: '#6', soc: '71.3%', soh: '98.9%', status: 1,
+            vmax: '3.48 V', vmin: '3.22 V', tmax: '33°C', tmin: '25°C',
+        },
+    },
 };
 
-// --- Architecture diagram theme (matches reference: dark lime “command center” / light olive-green cards) ---
+// --- Architecture diagram theme：暗色下主色统一为项目 brand（与全局按钮/强调色一致）---
 
 const getArchTheme = (isDark: boolean) => ({
     isDark,
-    canvas: isDark ? 'bg-black border-zinc-800/90' : 'bg-slate-100/90 border-slate-200',
-    gridDot: isDark ? 'rgba(63,63,70,0.45)' : 'rgba(148,163,184,0.35)',
+    /** 与页面 dark:bg-apple-bg-dark 同色，避免单独 #000 画布；内联 var 兜底防未打包 class */
+    canvas: isDark
+        ? 'bg-apple-bg-dark border-transparent shadow-none'
+        : 'bg-slate-100/90 border-slate-200 shadow-sm',
+    gridDot: isDark ? 'rgba(148,163,184,0.14)' : 'rgba(148,163,184,0.35)',
     strokeAC: isDark ? '#fb923c' : '#ea580c',
-    strokeDC: isDark ? '#a3e635' : '#16a34a',
-    strokeBusH: isDark ? '#a3e635' : '#ea580c',
-    strokeComm: isDark ? '#a3e635' : '#819226',
+    strokeDC: isDark ? 'var(--color-brand-400)' : '#16a34a',
+    strokeBusH: isDark ? 'var(--color-brand-400)' : '#ea580c',
+    strokeComm: isDark ? 'var(--color-brand-500)' : '#819226',
     ringTrack: isDark ? '#3f3f46' : '#e2e8f0',
     ringLow: '#fb923c',
-    ringHigh: isDark ? '#a3e635' : '#16a34a',
+    ringHigh: isDark ? 'var(--color-brand-400)' : '#16a34a',
     cardShell: isDark
         ? 'bg-zinc-900/95 border-zinc-700/90'
         : 'bg-white border-slate-200 shadow-[0_4px_12px_rgba(0,0,0,0.06)]',
-    cardHeader: isDark ? 'bg-lime-400 text-black' : 'bg-emerald-100 text-emerald-900',
+    cardHeader: isDark ? 'bg-brand-600 text-white' : 'bg-emerald-100 text-emerald-900',
     textMain: isDark ? 'text-white' : 'text-slate-900',
     textSub: isDark ? 'text-zinc-400' : 'text-slate-500',
-    pillSolid: isDark ? 'bg-lime-400 text-black border-lime-300' : 'bg-emerald-600 text-white border-emerald-500',
-    pcsOutline: isDark ? 'border-lime-400 bg-black/40 text-lime-400' : 'border-emerald-600 bg-white text-emerald-700',
+    pillSolid: isDark ? 'bg-brand-600 text-white border-brand-400' : 'bg-emerald-600 text-white border-emerald-500',
+    pcsOutline: isDark ? 'border-brand-400 bg-black/40 text-brand-400' : 'border-emerald-600 bg-white text-emerald-700',
 });
+
+type ArchDetailId =
+    | 'grid'
+    | 'acMeter'
+    | 'essPairMeter'
+    | 'dg'
+    | 'acPv'
+    | 'evse'
+    | 'pcs1'
+    | 'pcs2'
+    | 'pcs3'
+    | 'pcs4'
+    | 'pcs5'
+    | 'pcs6'
+    | 'car'
+    | 'bess1'
+    | 'bess2'
+    | 'bess3'
+    | 'bess4'
+    | 'bess5'
+    | 'bess6'
+    | 'dcPv'
+    | 'ov-cloud'
+    | 'ov-edge'
+    | 'ov-grid'
+    | 'ov-rooftop-pv'
+    | 'ov-diesel'
+    | 'ov-bess-1'
+    | 'ov-bess-2'
+    | 'ov-bess-3'
+    | 'ov-evse'
+    | 'ov-building';
+
+const ArchDetailButton = ({
+    label,
+    onOpen,
+    isDark,
+    size = 'default',
+}: {
+    label: string;
+    onOpen: () => void;
+    isDark: boolean;
+    /** compact：拓扑小块（如 PCC 表计）用更小 padding/字号 */
+    size?: 'default' | 'compact';
+}) => (
+    <button
+        type="button"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+        }}
+        className={`shrink-0 font-bold transition-colors ${
+            size === 'compact' ? 'rounded px-1.5 py-px text-[9px]' : 'rounded-md px-2 py-0.5 text-[10px]'
+        } ${
+            isDark
+                ? 'bg-brand-500/25 text-brand-300 hover:bg-brand-500/40'
+                : 'bg-brand-600/10 text-brand-700 hover:bg-brand-600/15'
+        }`}
+    >
+        {label}
+    </button>
+);
+
+const DrawerRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <div className="flex items-start justify-between gap-3 border-b border-slate-100 py-2.5 text-sm dark:border-white/10">
+        <span className="shrink-0 text-slate-500 dark:text-slate-400">{label}</span>
+        <span className="break-all text-right font-mono font-semibold text-slate-900 dark:text-slate-100">{value}</span>
+    </div>
+);
+
+function archDetailTitle(id: ArchDetailId, stationData: any, lang: Language): string {
+    const L = (en: string, zh: string) => (lang === 'zh' ? zh : en);
+    switch (id) {
+        case 'grid':
+            return stationData.grid.name;
+        case 'acMeter':
+            return stationData.acMeter.name;
+        case 'essPairMeter':
+            return stationData.essPairAcMeter.name;
+        case 'dg':
+            return stationData.dg.name;
+        case 'acPv':
+            return stationData.acPv.name;
+        case 'evse':
+            return stationData.evse.name;
+        case 'pcs1':
+            return stationData.pcs.name;
+        case 'pcs2':
+            return stationData.ess2.pcs.name;
+        case 'pcs3':
+            return stationData.ess3.pcs.name;
+        case 'pcs4':
+            return stationData.ess4.pcs.name;
+        case 'pcs5':
+            return stationData.ess5.pcs.name;
+        case 'pcs6':
+            return stationData.ess6.pcs.name;
+        case 'car':
+            return stationData.car.name;
+        case 'bess1':
+            return L(`BESS ${stationData.battery.name}`, `${stationData.battery.name} 电池簇`);
+        case 'bess2':
+            return L(`BESS ${stationData.ess2.bat.name}`, `${stationData.ess2.bat.name} 电池簇`);
+        case 'bess3':
+            return L(`BESS ${stationData.ess3.bat.name}`, `${stationData.ess3.bat.name} 电池簇`);
+        case 'bess4':
+            return L(`BESS ${stationData.ess4.bat.name}`, `${stationData.ess4.bat.name} 电池簇`);
+        case 'bess5':
+            return L(`BESS ${stationData.ess5.bat.name}`, `${stationData.ess5.bat.name} 电池簇`);
+        case 'bess6':
+            return L(`BESS ${stationData.ess6.bat.name}`, `${stationData.ess6.bat.name} 电池簇`);
+        case 'dcPv':
+            return stationData.dcPv.name;
+        case 'ov-cloud':
+            return 'EcoWatt Cloud EMS';
+        case 'ov-edge':
+            return L('EMS Edge Gateway #2', 'EMS 边缘网关 #2');
+        case 'ov-grid':
+            return L('Grid interface', '电网侧');
+        case 'ov-rooftop-pv':
+            return L('Rooftop PV System', '屋顶光伏系统');
+        case 'ov-diesel':
+            return L('Diesel Generator', '柴油发电机');
+        case 'ov-bess-1':
+            return 'BESS #1';
+        case 'ov-bess-2':
+            return 'BESS #2';
+        case 'ov-bess-3':
+            return 'BESS #3';
+        case 'ov-evse':
+            return L('EV Charging Station', '充电站');
+        case 'ov-building':
+            return L('Building Load', '建筑负荷');
+        default:
+            return '';
+    }
+}
+
+function ArchDetailPanelContent({ id, stationData, lang }: { id: ArchDetailId; stationData: any; lang: Language }) {
+    const L = (en: string, zh: string) => (lang === 'zh' ? zh : en);
+    switch (id) {
+        case 'grid':
+            return (
+                <>
+                    <DrawerRow label={L('Name', '名称')} value={stationData.grid.name} />
+                    <DrawerRow label={L('Voltage', '电压')} value={stationData.grid.voltage} />
+                </>
+            );
+        case 'acMeter':
+            return (
+                <>
+                    <DrawerRow label="P" value={stationData.acMeter.ac.p} />
+                    <DrawerRow label="U" value={stationData.acMeter.ac.v} />
+                    <DrawerRow label="I" value={stationData.acMeter.ac.i} />
+                </>
+            );
+        case 'essPairMeter':
+            return (
+                <>
+                    <DrawerRow label="P" value={stationData.essPairAcMeter.ac.p} />
+                    <DrawerRow label="U" value={stationData.essPairAcMeter.ac.v} />
+                    <DrawerRow label="I" value={stationData.essPairAcMeter.ac.i} />
+                </>
+            );
+        case 'dg':
+            return (
+                <>
+                    <DrawerRow label={L('Frequency', '频率')} value={stationData.dg.freq} />
+                    <DrawerRow label={L('Fuel level', '油位')} value={stationData.dg.level} />
+                    <DrawerRow label={L('Coolant temp.', '冷却温度')} value={stationData.dg.temp} />
+                    <DrawerRow label={L('AC power', '交流功率')} value={stationData.dg.ac.p} />
+                    <DrawerRow label={L('AC current', '交流电流')} value={stationData.dg.ac.i} />
+                    <DrawerRow label={L('AC voltage', '交流电压')} value={stationData.dg.ac.v} />
+                </>
+            );
+        case 'acPv':
+            return (
+                <>
+                    <DrawerRow label={L('Rated', '额定')} value={stationData.acPv.rated} />
+                    <DrawerRow label={L('AC power', '交流功率')} value={stationData.acPv.ac.p} />
+                    <DrawerRow label={L('AC current', '交流电流')} value={stationData.acPv.ac.i} />
+                    <DrawerRow label={L('AC voltage', '交流电压')} value={stationData.acPv.ac.v} />
+                </>
+            );
+        case 'evse':
+            return (
+                <>
+                    <DrawerRow label={L('AC power', '交流功率')} value={stationData.evse.ac.p} />
+                    <DrawerRow label={L('AC current', '交流电流')} value={stationData.evse.ac.i} />
+                    <DrawerRow label={L('AC voltage', '交流电压')} value={stationData.evse.ac.v} />
+                    <DrawerRow label={L('Internal in', '内部输入')} value={stationData.evse.internal.input} />
+                    <DrawerRow label={L('Internal out', '内部输出')} value={stationData.evse.internal.output} />
+                </>
+            );
+        case 'pcs1':
+        case 'pcs2':
+        case 'pcs3':
+        case 'pcs4':
+        case 'pcs5':
+        case 'pcs6': {
+            const d =
+                id === 'pcs1'
+                    ? stationData.pcs
+                    : id === 'pcs2'
+                      ? stationData.ess2.pcs
+                      : id === 'pcs3'
+                        ? stationData.ess3.pcs
+                        : id === 'pcs4'
+                          ? stationData.ess4.pcs
+                          : id === 'pcs5'
+                            ? stationData.ess5.pcs
+                            : stationData.ess6.pcs;
+            return (
+                <>
+                    <DrawerRow label={L('AC power', '交流功率')} value={d.ac.p} />
+                    <DrawerRow label={L('AC current', '交流电流')} value={d.ac.i} />
+                    <DrawerRow label={L('AC voltage', '交流电压')} value={d.ac.v} />
+                    <DrawerRow label={L('DC power', '直流功率')} value={d.dc.p} />
+                    <DrawerRow label={L('DC current', '直流电流')} value={d.dc.i} />
+                    <DrawerRow label={L('DC voltage', '直流电压')} value={d.dc.v} />
+                    <DrawerRow label={L('Mode', '模式')} value={d.status.mode} />
+                    <DrawerRow label={L('State', '状态')} value={d.status.state} />
+                    <DrawerRow label={L('Health', '健康')} value={d.status.health} />
+                </>
+            );
+        }
+        case 'car':
+            return (
+                <>
+                    <DrawerRow label={L('SOC', 'SOC')} value={stationData.car.soc} />
+                    <DrawerRow label={L('Demand', '需求功率')} value={stationData.car.demand} />
+                </>
+            );
+        case 'bess1':
+        case 'bess2':
+        case 'bess3':
+        case 'bess4':
+        case 'bess5':
+        case 'bess6': {
+            const b =
+                id === 'bess1'
+                    ? stationData.battery
+                    : id === 'bess2'
+                      ? stationData.ess2.bat
+                      : id === 'bess3'
+                        ? stationData.ess3.bat
+                        : id === 'bess4'
+                          ? stationData.ess4.bat
+                          : id === 'bess5'
+                            ? stationData.ess5.bat
+                            : stationData.ess6.bat;
+            return (
+                <>
+                    <DrawerRow label="SOC" value={b.soc} />
+                    <DrawerRow label="SOH" value={b.soh} />
+                    <DrawerRow label={L('U max', '最高单体电压')} value={b.vmax} />
+                    <DrawerRow label={L('U min', '最低单体电压')} value={b.vmin} />
+                    <DrawerRow label={L('T max', '最高温度')} value={b.tmax} />
+                    <DrawerRow label={L('T min', '最低温度')} value={b.tmin} />
+                    <DrawerRow label={L('Status code', '状态码')} value={String(b.status)} />
+                </>
+            );
+        }
+        case 'dcPv':
+            return (
+                <>
+                    <DrawerRow label={L('HV power', '汇流功率')} value={stationData.dcPv.hv.p} />
+                    <DrawerRow label={L('HV current', '汇流电流')} value={stationData.dcPv.hv.i} />
+                    <DrawerRow label={L('HV voltage', '汇流电压')} value={stationData.dcPv.hv.v} />
+                    {stationData.dcPv.panels.map((p: { id: string; p: string; i: string; v: string }) => (
+                        <DrawerRow key={p.id} label={L(`String ${p.id}`, `组串 ${p.id}`)} value={`${p.p} · ${p.v} / ${p.i}`} />
+                    ))}
+                </>
+            );
+        case 'ov-cloud':
+            return (
+                <>
+                    <DrawerRow label={L('Product', '产品')} value="EcoWatt Cloud EMS" />
+                    <DrawerRow label={L('Version', '版本')} value="v4.2.0 (Global Cluster)" />
+                    <DrawerRow label={L('Role', '角色')} value={L('Central orchestration', '中央编排')} />
+                </>
+            );
+        case 'ov-edge':
+            return (
+                <>
+                    <DrawerRow label={L('Device', '设备')} value="EMS Edge Gateway #2" />
+                    <DrawerRow label={L('Status', '状态')} value="Operational" />
+                    <DrawerRow label={L('Link', '链路')} value={L('WAN + site LAN', '广域网 + 站级局域网')} />
+                </>
+            );
+        case 'ov-grid':
+            return (
+                <>
+                    <DrawerRow label={L('Feeder', '接入')} value="10kV Grid Connection" />
+                    <DrawerRow label={L('Import power', '受电功率')} value="450 kW" />
+                </>
+            );
+        case 'ov-rooftop-pv':
+            return (
+                <>
+                    <DrawerRow label={L('Subsystem', '子系统')} value="Rooftop PV System" />
+                    <DrawerRow label={L('Output power', '输出功率')} value="85.2 kW" />
+                </>
+            );
+        case 'ov-diesel':
+            return (
+                <>
+                    <DrawerRow label={L('Subsystem', '子系统')} value="Diesel Generator" />
+                    <DrawerRow label={L('State', '状态')} value="Standby" />
+                </>
+            );
+        case 'ov-bess-1':
+        case 'ov-bess-2':
+        case 'ov-bess-3': {
+            const n = id === 'ov-bess-1' ? 1 : id === 'ov-bess-2' ? 2 : 3;
+            const soc = n === 1 ? '78%' : n === 2 ? '45%' : '92%';
+            return (
+                <>
+                    <DrawerRow label={L('Unit', '单元')} value={`BESS #${n}`} />
+                    <DrawerRow label="SOC" value={soc} />
+                    <DrawerRow label={L('Comm state', '通讯')} value="Online" />
+                </>
+            );
+        }
+        case 'ov-evse':
+            return (
+                <>
+                    <DrawerRow label={L('Subsystem', '子系统')} value="EV Charging Station" />
+                    <DrawerRow label={L('Demand', '需求功率')} value="120 kW" />
+                </>
+            );
+        case 'ov-building':
+            return (
+                <>
+                    <DrawerRow label={L('Subsystem', '子系统')} value="Building Load" />
+                    <DrawerRow label={L('Usage', '用电功率')} value="325 kW" />
+                </>
+            );
+        default:
+            return null;
+    }
+}
+
+const ArchitectureDetailDrawer = ({
+    detailId,
+    onClose,
+    stationData,
+    lang,
+    isDark,
+    panelTitle,
+}: {
+    detailId: ArchDetailId | null;
+    onClose: () => void;
+    stationData: any;
+    lang: Language;
+    isDark: boolean;
+    panelTitle: string;
+}) => {
+    if (!detailId) return null;
+    const title = archDetailTitle(detailId, stationData, lang);
+    return (
+        <div
+            className="fixed inset-0 z-[120] flex animate-in fade-in duration-200 justify-end bg-slate-900/45 backdrop-blur-[2px] dark:bg-black/50"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="arch-detail-drawer-title"
+        >
+            <button
+                type="button"
+                className="absolute inset-0 cursor-default"
+                aria-label="Close"
+                onClick={onClose}
+            />
+            <aside
+                className="animate-in slide-in-from-right relative z-10 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl duration-300 dark:border-apple-border-dark dark:bg-apple-surface-dark"
+                onMouseDown={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-4 dark:border-apple-border-dark">
+                    <div className="min-w-0 flex items-start gap-3">
+                        <div
+                            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                isDark ? 'bg-brand-500/20 text-brand-400' : 'bg-brand-50 text-brand-600'
+                            }`}
+                        >
+                            <PanelRight size={20} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                {panelTitle}
+                            </p>
+                            <h2
+                                id="arch-detail-drawer-title"
+                                className="mt-1 text-lg font-black leading-tight text-slate-900 dark:text-white"
+                            >
+                                {title}
+                            </h2>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-slate-200"
+                        aria-label="Close"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="custom-scrollbar-hide flex-1 overflow-y-auto px-4 pb-8 pt-2">
+                    <ArchDetailPanelContent id={detailId} stationData={stationData} lang={lang} />
+                </div>
+            </aside>
+        </div>
+    );
+};
 
 // --- Helper Components ---
 
@@ -184,10 +684,16 @@ const StatusBadge = ({ level, text }: { level: number | string, text?: string })
     let label = text || 'Normal';
 
     if (level === 1 || level === 'Hint') {
+        if (!text) return null;
         bg = 'bg-blue-100 dark:bg-blue-900/30';
         textCol = 'text-blue-700 dark:text-blue-400';
-        icon = <Info size={12} />;
-        if (!text) label = 'Hint L1';
+        return (
+            <span
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider border border-transparent ${bg} ${textCol}`}
+            >
+                {text}
+            </span>
+        );
     } else if (level === 2 || level === 'Warn') {
         bg = 'bg-amber-100 dark:bg-amber-900/30';
         textCol = 'text-amber-700 dark:text-amber-400';
@@ -201,8 +707,9 @@ const StatusBadge = ({ level, text }: { level: number | string, text?: string })
     }
 
     return (
-        <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider border border-transparent ${bg} ${textCol}`}>
-            {icon} {label}
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider border border-transparent ${bg} ${textCol}`}>
+            {icon}
+            {label ? <span>{label}</span> : null}
         </span>
     );
 };
@@ -224,10 +731,10 @@ const FloatingData = ({
     isDark: boolean;
 }) => {
     const labelAC = isDark ? 'text-orange-400' : 'text-orange-600';
-    const labelDC = isDark ? 'text-lime-400' : 'text-green-600';
+    const labelDC = isDark ? 'text-brand-400' : 'text-green-600';
     const label = type === 'ac' ? labelAC : labelDC;
     const dotAC = isDark ? 'bg-orange-400 border-black' : 'bg-orange-500 border-white';
-    const dotDC = isDark ? 'bg-lime-400 border-black' : 'bg-green-500 border-white';
+    const dotDC = isDark ? 'bg-brand-400 border-black' : 'bg-green-500 border-white';
     return (
         <div className="absolute flex flex-col gap-0.5 z-0 text-sm whitespace-nowrap pointer-events-none" style={style}>
             <div
@@ -261,6 +768,9 @@ const NodeCard = ({
     style = {},
     variant = 'default',
     archIsDark,
+    detailId,
+    onOpenDetail,
+    detailButtonLabel,
 }: any) => {
     const variants: Record<CardVariant, string> = {
         default: 'bg-white border-slate-200',
@@ -287,41 +797,119 @@ const NodeCard = ({
             style={style}
         >
             <div
-                className={`flex items-center justify-between mb-2 pb-2 border-b ${
+                className={`mb-2 flex items-center gap-2 border-b pb-2 ${
                     archIsDark === true ? 'border-zinc-700' : archIsDark === false ? 'border-slate-100' : 'border-black/5 dark:border-apple-border-dark'
                 }`}
             >
-                <div className="flex items-center gap-2">
-                    <div
-                        className={`p-1.5 rounded-lg shadow-sm ${
-                            archIsDark === true
-                                ? 'bg-zinc-800 text-lime-400'
-                                : archIsDark === false
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-white/60 dark:bg-apple-surface-secondary-dark text-slate-600 dark:text-slate-400'
-                        }`}
-                    >
-                        <Icon size={16} />
-                    </div>
-                    <span
-                        className={`text-sm font-bold ${
-                            archIsDark === true ? 'text-white' : archIsDark === false ? 'text-slate-900' : 'text-slate-800 dark:text-slate-200'
-                        }`}
-                    >
-                        {title}
-                    </span>
+                <div
+                    className={`p-1.5 rounded-lg shadow-sm ${
+                        archIsDark === true
+                            ? 'bg-zinc-800 text-brand-400'
+                            : archIsDark === false
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-white/60 dark:bg-apple-surface-secondary-dark text-slate-600 dark:text-slate-400'
+                    }`}
+                >
+                    <Icon size={16} />
                 </div>
+                <span
+                    className={`min-w-0 text-sm font-bold ${
+                        archIsDark === true ? 'text-white' : archIsDark === false ? 'text-slate-900' : 'text-slate-800 dark:text-slate-200'
+                    }`}
+                >
+                    {title}
+                </span>
             </div>
             <div className="space-y-1.5">{children}</div>
+            {detailId && onOpenDetail && detailButtonLabel && (
+                <div
+                    className={`mt-2 flex justify-center border-t pt-2 ${
+                        archIsDark === true ? 'border-zinc-700' : archIsDark === false ? 'border-slate-100' : 'border-black/5 dark:border-apple-border-dark'
+                    }`}
+                >
+                    <ArchDetailButton
+                        label={detailButtonLabel}
+                        onOpen={() => onOpenDetail(detailId)}
+                        isDark={archIsDark === true}
+                    />
+                </div>
+            )}
         </div>
     );
 };
 
-const PcsCard = ({ data, style, isDark }: { data: any; style: React.CSSProperties; isDark: boolean }) => {
+/** 关口表 PCC：卡片内仅名称 + 详细数据；P/U/I 用 FloatingData 置于卡片外右侧 */
+const PccMeterCard = ({
+    title,
+    archIsDark,
+    className = '',
+    style = {},
+    detailId,
+    onOpenDetail,
+    detailButtonLabel,
+}: {
+    title: string;
+    archIsDark: boolean;
+    className?: string;
+    style?: React.CSSProperties;
+    detailId: ArchDetailId;
+    onOpenDetail: (id: ArchDetailId) => void;
+    detailButtonLabel: string;
+}) => {
+    const isDark = archIsDark === true;
+    const archShell =
+        archIsDark === true
+            ? 'bg-zinc-900/95 border-zinc-700/90 shadow-none'
+            : 'bg-white border-slate-200 shadow-[0_4px_12px_rgba(0,0,0,0.06)]';
+
+    return (
+        <div
+            className={`${archShell} relative z-10 flex w-[100px] shrink-0 flex-col items-center justify-between gap-1.5 rounded-xl border p-2 ${className}`}
+            style={style}
+        >
+            <div className="flex flex-col items-center gap-1">
+                <div
+                    className={`rounded-md p-1.5 shadow-sm ${
+                        isDark ? 'bg-zinc-800 text-brand-400' : 'bg-emerald-50 text-emerald-700'
+                    }`}
+                >
+                    <Gauge size={15} strokeWidth={2.25} />
+                </div>
+                <span
+                    className={`line-clamp-2 text-center text-[11px] font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}
+                >
+                    {title}
+                </span>
+            </div>
+            <ArchDetailButton
+                label={detailButtonLabel}
+                onOpen={() => onOpenDetail(detailId)}
+                isDark={isDark}
+                size="compact"
+            />
+        </div>
+    );
+};
+
+const PcsCard = ({
+    data,
+    style,
+    isDark,
+    detailId,
+    onOpenDetail,
+    detailButtonLabel,
+}: {
+    data: any;
+    style: React.CSSProperties;
+    isDark: boolean;
+    detailId?: ArchDetailId;
+    onOpenDetail?: (id: ArchDetailId) => void;
+    detailButtonLabel?: string;
+}) => {
     const th = getArchTheme(isDark);
     const box = th.pcsOutline;
     return (
-        <div className="absolute z-10 w-24 flex flex-col items-center justify-center overflow-visible" style={style}>
+        <div className="absolute z-10 flex w-[6.75rem] flex-col items-center justify-center overflow-visible" style={style}>
             <FloatingData
                 p={data.ac.p}
                 u={data.ac.v}
@@ -331,17 +919,17 @@ const PcsCard = ({ data, style, isDark }: { data: any; style: React.CSSPropertie
                 style={{ top: '-65px', left: '33%', marginLeft: '12px' }}
             />
             <div
-                className={`w-[4.75rem] h-[4.75rem] rounded-2xl border-2 shadow-lg relative z-10 flex flex-col items-center justify-center gap-0.5 ${box}`}
+                className={`w-20 shrink-0 rounded-2xl border-2 shadow-lg relative z-10 flex flex-col items-center justify-center gap-1 py-1.5 ${box}`}
             >
-                <span className={`text-[11px] font-black tracking-tight ${isDark ? 'text-lime-400' : 'text-emerald-700'}`}>PCS</span>
-                <svg viewBox="0 0 100 100" className="w-9 h-9 opacity-90" fill="none" stroke="currentColor" strokeWidth="2">
+                <span className={`text-[11px] font-black tracking-tight ${isDark ? 'text-brand-400' : 'text-emerald-700'}`}>PCS</span>
+                <svg viewBox="0 0 100 100" className="h-8 w-8 opacity-90" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect
                         x="5"
                         y="15"
                         width="90"
                         height="70"
                         rx="8"
-                        className={isDark ? 'stroke-lime-500/60 fill-lime-500/5' : 'stroke-emerald-500/50 fill-emerald-50'}
+                        className={isDark ? 'stroke-brand-500/60 fill-brand-500/10' : 'stroke-emerald-500/50 fill-emerald-50'}
                         strokeWidth="2.5"
                     />
                     <path
@@ -357,7 +945,7 @@ const PcsCard = ({ data, style, isDark }: { data: any; style: React.CSSPropertie
                         y1="65"
                         x2="70"
                         y2="65"
-                        className={isDark ? 'stroke-lime-400' : 'stroke-green-600'}
+                        className={isDark ? 'stroke-brand-400' : 'stroke-green-600'}
                         strokeWidth="3.5"
                         strokeLinecap="round"
                     />
@@ -366,7 +954,7 @@ const PcsCard = ({ data, style, isDark }: { data: any; style: React.CSSPropertie
                         y1="75"
                         x2="70"
                         y2="75"
-                        className={isDark ? 'stroke-lime-400' : 'stroke-green-600'}
+                        className={isDark ? 'stroke-brand-400' : 'stroke-green-600'}
                         strokeWidth="3.5"
                         strokeDasharray="4 4"
                         strokeLinecap="round"
@@ -393,7 +981,7 @@ const PcsCard = ({ data, style, isDark }: { data: any; style: React.CSSPropertie
                                         : 'bg-sky-50 text-sky-700 border-sky-200'
                                     : data.status.state === 'Charge'
                                       ? isDark
-                                          ? 'bg-lime-950/50 text-lime-300 border-lime-700'
+                                          ? 'bg-brand-950/50 text-brand-300 border-brand-700'
                                           : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                       : isDark
                                         ? 'bg-zinc-800 text-zinc-400 border-zinc-600'
@@ -407,6 +995,14 @@ const PcsCard = ({ data, style, isDark }: { data: any; style: React.CSSPropertie
                         <StatusBadge level={data.status.health === 'Normal' ? 0 : 2} text={data.status.health} />
                     </div>
                 </div>
+                {detailId && onOpenDetail && detailButtonLabel && (
+                    <ArchDetailButton
+                        label={detailButtonLabel}
+                        onOpen={() => onOpenDetail(detailId)}
+                        isDark={isDark}
+                        size="compact"
+                    />
+                )}
             </div>
             <FloatingData
                 p={data.dc?.p || '-'}
@@ -461,6 +1057,9 @@ const ArchBessCard = ({
     isDark,
     style,
     className = '',
+    detailId,
+    onOpenDetail,
+    detailButtonLabel,
 }: {
     title: string;
     soc: string;
@@ -473,68 +1072,84 @@ const ArchBessCard = ({
     isDark: boolean;
     style?: React.CSSProperties;
     className?: string;
+    detailId?: ArchDetailId;
+    onOpenDetail?: (id: ArchDetailId) => void;
+    detailButtonLabel?: string;
 }) => {
     const th = getArchTheme(isDark);
     const rowBg = isDark ? 'bg-zinc-800/90' : 'bg-slate-100';
-    const iconBox = isDark ? 'bg-zinc-800 border-zinc-600 text-lime-400' : 'bg-white border-slate-200 text-emerald-700';
+    const iconBox = isDark ? 'bg-zinc-800 border-zinc-600 text-brand-400' : 'bg-white border-slate-200 text-emerald-700';
 
     return (
-        <div
-            className={`absolute z-10 w-[168px] overflow-hidden rounded-2xl border ${th.cardShell} ${className}`}
-            style={style}
-        >
-            <div className={`px-2 py-2 text-center text-xs font-black ${th.cardHeader}`}>{title}</div>
-            <div className="space-y-2.5 p-2.5">
-                {status !== 0 && (
-                    <div className="flex justify-center">
-                        <StatusBadge level={status} />
+        <div className={`absolute z-10 flex w-[180px] flex-col items-stretch ${className}`} style={style}>
+            <div className={`w-full overflow-hidden rounded-2xl border ${th.cardShell}`}>
+                <div className={`px-2 py-2 text-center text-xs font-black ${th.cardHeader}`}>{title}</div>
+                <div className="space-y-2.5 p-2.5">
+                    {status !== 0 && (
+                        <div className="flex justify-center">
+                            <StatusBadge level={status} />
+                        </div>
+                    )}
+                    <SocDonut soc={soc} isDark={isDark} />
+                    <div className={`flex items-center justify-between rounded-xl px-2.5 py-2 text-xs ${rowBg}`}>
+                        <span className={`font-bold ${th.textSub}`}>SOH</span>
+                        <span className={`font-mono font-black ${th.textMain}`}>{soh}</span>
+                    </div>
+                    <div className={`flex gap-2 rounded-xl p-2 ${rowBg}`}>
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black ${iconBox}`}>V</div>
+                        <div className="min-w-0 flex-1 space-y-1 text-[11px]">
+                            <div className={`flex items-center justify-between gap-1 ${th.textMain}`}>
+                                <span className={th.textSub}>Umax</span>
+                                <span className="flex items-center gap-0.5 font-mono font-bold">
+                                    {vmax}
+                                    <ArrowUp className="shrink-0 text-red-500" size={12} strokeWidth={2.5} />
+                                </span>
+                            </div>
+                            <div className={`flex items-center justify-between gap-1 ${th.textMain}`}>
+                                <span className={th.textSub}>Umin</span>
+                                <span className="flex items-center gap-0.5 font-mono font-bold">
+                                    {vmin}
+                                    <ArrowDown className="shrink-0 text-emerald-500" size={12} strokeWidth={2.5} />
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className={`flex gap-2 rounded-xl p-2 ${rowBg}`}>
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${iconBox}`}>
+                            <Thermometer size={14} strokeWidth={2.5} />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-1 text-[11px]">
+                            <div className={`flex items-center justify-between gap-1 ${th.textMain}`}>
+                                <span className={th.textSub}>Tmax</span>
+                                <span className="flex items-center gap-0.5 font-mono font-bold">
+                                    {tmax}
+                                    <ArrowUp className="shrink-0 text-red-500" size={12} strokeWidth={2.5} />
+                                </span>
+                            </div>
+                            <div className={`flex items-center justify-between gap-1 ${th.textMain}`}>
+                                <span className={th.textSub}>Tmin</span>
+                                <span className="flex items-center gap-0.5 font-mono font-bold">
+                                    {tmin}
+                                    <ArrowDown className="shrink-0 text-emerald-500" size={12} strokeWidth={2.5} />
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {detailId && onOpenDetail && detailButtonLabel && (
+                    <div
+                        className={`flex justify-center border-t px-2.5 py-2 ${
+                            isDark ? 'border-zinc-600/80' : 'border-slate-200'
+                        }`}
+                    >
+                        <ArchDetailButton
+                            label={detailButtonLabel}
+                            onOpen={() => onOpenDetail(detailId)}
+                            isDark={isDark}
+                            size="compact"
+                        />
                     </div>
                 )}
-                <SocDonut soc={soc} isDark={isDark} />
-                <div className={`flex items-center justify-between rounded-xl px-2.5 py-2 text-xs ${rowBg}`}>
-                    <span className={`font-bold ${th.textSub}`}>SOH</span>
-                    <span className={`font-mono font-black ${th.textMain}`}>{soh}</span>
-                </div>
-                <div className={`flex gap-2 rounded-xl p-2 ${rowBg}`}>
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black ${iconBox}`}>V</div>
-                    <div className="min-w-0 flex-1 space-y-1 text-[11px]">
-                        <div className={`flex items-center justify-between gap-1 ${th.textMain}`}>
-                            <span className={th.textSub}>Umax</span>
-                            <span className="flex items-center gap-0.5 font-mono font-bold">
-                                {vmax}
-                                <ArrowUp className="shrink-0 text-red-500" size={12} strokeWidth={2.5} />
-                            </span>
-                        </div>
-                        <div className={`flex items-center justify-between gap-1 ${th.textMain}`}>
-                            <span className={th.textSub}>Umin</span>
-                            <span className="flex items-center gap-0.5 font-mono font-bold">
-                                {vmin}
-                                <ArrowDown className="shrink-0 text-emerald-500" size={12} strokeWidth={2.5} />
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div className={`flex gap-2 rounded-xl p-2 ${rowBg}`}>
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${iconBox}`}>
-                        <Thermometer size={14} strokeWidth={2.5} />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1 text-[11px]">
-                        <div className={`flex items-center justify-between gap-1 ${th.textMain}`}>
-                            <span className={th.textSub}>Tmax</span>
-                            <span className="flex items-center gap-0.5 font-mono font-bold">
-                                {tmax}
-                                <ArrowUp className="shrink-0 text-red-500" size={12} strokeWidth={2.5} />
-                            </span>
-                        </div>
-                        <div className={`flex items-center justify-between gap-1 ${th.textMain}`}>
-                            <span className={th.textSub}>Tmin</span>
-                            <span className="flex items-center gap-0.5 font-mono font-bold">
-                                {tmin}
-                                <ArrowDown className="shrink-0 text-emerald-500" size={12} strokeWidth={2.5} />
-                            </span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     );
@@ -552,6 +1167,15 @@ const DataRow = ({ label, value, subValue, highlight = false }: any) => (
     </div>
 );
 
+/** 拓扑画布逻辑尺寸（与 SVG / 绝对定位一致） */
+/** #2–#6 BESS 宽 180px，列距需 >180 才不互叠 */
+/** PCS#2–6 右移后母线需覆盖至最右落点 */
+const ARCH_DIAGRAM_WIDTH = 2320;
+/** 紧凑纵向 + 右移分列后底部留白 */
+const ARCH_DIAGRAM_HEIGHT = 1360;
+/** 默认 100% 缩放；画布增高后仍可通过平移查看全貌 */
+const ARCH_DIAGRAM_DEFAULT_SCALE = 1;
+
 // --- Architecture Diagram Component ---
 
 const StationDiagram = ({
@@ -559,14 +1183,18 @@ const StationDiagram = ({
     view,
     lang,
     isDark,
+    onOpenDetail,
+    detailButtonLabel,
 }: {
     stationData: any;
     view: ArchView;
     lang: Language;
     isDark: boolean;
+    onOpenDetail: (id: ArchDetailId) => void;
+    detailButtonLabel: string;
 }) => {
-    const WIDTH = 1700;
-    const HEIGHT = 900;
+    const WIDTH = ARCH_DIAGRAM_WIDTH;
+    const HEIGHT = ARCH_DIAGRAM_HEIGHT;
     const CENTER_X = WIDTH / 2;
     const th = getArchTheme(isDark);
 
@@ -586,15 +1214,18 @@ const StationDiagram = ({
         const X_ESS = CENTER_X + 250;
         const X_CONSUMPTION = CENTER_X + 600;
 
+        const diagramSurfaceStyle: React.CSSProperties = {
+            width: WIDTH,
+            height: HEIGHT,
+            ...(isDark ? { backgroundColor: 'var(--color-apple-bg-dark)' } : {}),
+        };
+
         return (
-            <div
-                className={`relative rounded-xl overflow-hidden shadow-2xl border ${th.canvas}`}
-                style={{ width: WIDTH, height: HEIGHT }}
-            >
+            <div className={`relative overflow-hidden rounded-xl border ${th.canvas}`} style={diagramSurfaceStyle}>
                 <div
-                    className="absolute inset-0 pointer-events-none z-0"
+                    className="pointer-events-none absolute inset-0 z-0"
                     style={{
-                        opacity: isDark ? 0.35 : 0.5,
+                        opacity: isDark ? 0.22 : 0.5,
                         backgroundImage: `radial-gradient(${th.gridDot} 1px, transparent 1px)`,
                         backgroundSize: '22px 22px',
                     }}
@@ -649,36 +1280,37 @@ const StationDiagram = ({
                 {/* Level 1: Cloud */}
                 <div
                     style={{ position: 'absolute', top: Y_CLOUD, left: X_CLOUD, transform: 'translateX(-50%)' }}
-                    className="flex flex-col items-center"
+                    className="flex flex-col items-center gap-2"
                 >
                     <div
                         className={`flex items-center gap-4 rounded-2xl border-2 p-4 shadow-xl ${
-                            isDark ? 'border-lime-300 bg-lime-400 text-black' : 'border-emerald-500 bg-emerald-600 text-white'
+                            isDark ? 'border-brand-400 bg-brand-600 text-white' : 'border-emerald-500 bg-emerald-600 text-white'
                         }`}
                     >
-                        <Cloud size={40} className={isDark ? 'text-black' : 'text-white'} />
+                        <Cloud size={40} className="text-white" />
                         <div>
                             <div className="text-lg font-black">EcoWatt Cloud EMS</div>
-                            <div className={`font-mono text-xs ${isDark ? 'text-black/70' : 'text-white/80'}`}>v4.2.0 (Global Cluster)</div>
+                            <div className={`font-mono text-xs ${isDark ? 'text-white/80' : 'text-white/80'}`}>v4.2.0 (Global Cluster)</div>
                         </div>
                     </div>
+                    <ArchDetailButton label={detailButtonLabel} onOpen={() => onOpenDetail('ov-cloud')} isDark={isDark} />
                 </div>
 
                 {/* Level 2: Edge Gateway */}
                 <div
                     style={{ position: 'absolute', top: Y_EDGE, left: X_EDGE, transform: 'translateX(-50%)' }}
-                    className="flex flex-col items-center"
+                    className="flex flex-col items-center gap-2"
                 >
                     <div
                         className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-5 shadow-lg ${
                             isDark
-                                ? 'border-lime-400/50 bg-zinc-900/95 text-white'
+                                ? 'border-brand-400/50 bg-zinc-900/95 text-white'
                                 : 'border-emerald-200 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.06)]'
                         }`}
                     >
                         <div
                             className={`rounded-full p-3 ${
-                                isDark ? 'bg-lime-400/15 text-lime-400' : 'bg-emerald-50 text-emerald-700'
+                                isDark ? 'bg-brand-400/15 text-brand-400' : 'bg-emerald-50 text-emerald-700'
                             }`}
                         >
                             <Server size={32} />
@@ -687,13 +1319,14 @@ const StationDiagram = ({
                             <div className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>EMS Edge Gateway #2</div>
                             <div
                                 className={`mt-1 text-[10px] font-black uppercase tracking-widest ${
-                                    isDark ? 'text-lime-400' : 'text-emerald-600'
+                                    isDark ? 'text-brand-400' : 'text-emerald-600'
                                 }`}
                             >
                                 Status: Operational
                             </div>
                         </div>
                     </div>
+                    <ArchDetailButton label={detailButtonLabel} onOpen={() => onOpenDetail('ov-edge')} isDark={isDark} />
                 </div>
 
                 {/* Level 3: Device Functional Clusters */}
@@ -705,15 +1338,18 @@ const StationDiagram = ({
                                 isDark ? 'border-zinc-700' : 'border-slate-100'
                             }`}
                         >
-                             <Globe size={16} className={isDark ? 'text-lime-400' : 'text-blue-600'} />
+                             <Globe size={16} className={isDark ? 'text-brand-400' : 'text-blue-600'} />
                              <span className={`text-xs font-black uppercase tracking-wider ${th.textSub}`}>{lang==='zh'?'电网侧':'Grid Interface'}</span>
                         </div>
                         <div className={`rounded-xl border p-3 ${isDark ? 'border-zinc-700 bg-zinc-950/50' : 'border-slate-100 bg-slate-50/80'}`}>
                             <div className="mb-2 flex items-center gap-2">
-                                <Zap size={14} className={isDark ? 'text-lime-400' : 'text-blue-600'} />
+                                <Zap size={14} className={isDark ? 'text-brand-400' : 'text-blue-600'} />
                                 <span className={`text-xs font-bold ${th.textMain}`}>10kV Grid Connection</span>
                             </div>
                             <DataRow label="Import" value="450 kW" highlight />
+                            <div className="mt-2 flex justify-center">
+                                <ArchDetailButton label={detailButtonLabel} onOpen={() => onOpenDetail('ov-grid')} isDark={isDark} />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -733,10 +1369,16 @@ const StationDiagram = ({
                             <div className={`rounded-xl border p-3 ${isDark ? 'border-zinc-700 bg-zinc-950/50' : 'border-slate-100 bg-slate-50/80'}`}>
                                 <div className={`mb-1 text-xs font-bold ${th.textMain}`}>Rooftop PV System</div>
                                 <DataRow label="Power" value="85.2 kW" highlight />
+                                <div className="mt-2 flex justify-center">
+                                    <ArchDetailButton label={detailButtonLabel} onOpen={() => onOpenDetail('ov-rooftop-pv')} isDark={isDark} />
+                                </div>
                             </div>
                             <div className={`rounded-xl border p-3 ${isDark ? 'border-zinc-700 bg-zinc-950/50' : 'border-slate-100 bg-slate-50/80'}`}>
                                 <div className={`mb-1 text-xs font-bold ${th.textMain}`}>Diesel Generator</div>
                                 <DataRow label="Status" value="Standby" />
+                                <div className="mt-2 flex justify-center">
+                                    <ArchDetailButton label={detailButtonLabel} onOpen={() => onOpenDetail('ov-diesel')} isDark={isDark} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -750,24 +1392,34 @@ const StationDiagram = ({
                                 isDark ? 'border-zinc-700' : 'border-slate-100'
                             }`}
                         >
-                             <Battery size={16} className={isDark ? 'text-lime-400' : 'text-purple-600'} />
+                             <Battery size={16} className={isDark ? 'text-brand-400' : 'text-purple-600'} />
                              <span className={`text-xs font-black uppercase tracking-wider ${th.textSub}`}>{lang==='zh'?'储能核心':'BESS'}</span>
                         </div>
                         <div className="space-y-2">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className={`overflow-hidden rounded-xl border ${isDark ? 'border-zinc-700 bg-zinc-950/50' : 'border-slate-100 bg-white'}`}>
+                            {[1, 2, 3].map((i) => (
+                                <div
+                                    key={i}
+                                    className={`overflow-hidden rounded-xl border ${isDark ? 'border-zinc-700 bg-zinc-950/50' : 'border-slate-100 bg-white'}`}
+                                >
                                     <div className={`px-2 py-1.5 text-center text-[10px] font-black ${th.cardHeader}`}>
                                         BESS #{i}
                                     </div>
                                     <div className="p-2.5">
                                         <div className="mb-1.5 flex items-center justify-between">
                                             <span className={`text-[10px] font-bold ${th.textSub}`}>SOC</span>
-                                            <span className={`rounded px-1 text-[9px] font-bold ${isDark ? 'bg-lime-400/20 text-lime-400' : 'bg-emerald-100 text-emerald-800'}`}>Online</span>
+                                            <span className={`rounded px-1 text-[9px] font-bold ${isDark ? 'bg-brand-400/20 text-brand-400' : 'bg-emerald-100 text-emerald-800'}`}>Online</span>
                                         </div>
                                         <div className={`h-1.5 w-full overflow-hidden rounded-full ${isDark ? 'bg-zinc-800' : 'bg-slate-200'}`}>
                                             <div
-                                                className={`h-full ${isDark ? 'bg-lime-400' : 'bg-emerald-500'}`}
-                                                style={{ width: i===1?'78%':(i===2?'45%':'92%') }}
+                                                className={`h-full ${isDark ? 'bg-brand-400' : 'bg-emerald-500'}`}
+                                                style={{ width: i === 1 ? '78%' : i === 2 ? '45%' : '92%' }}
+                                            />
+                                        </div>
+                                        <div className="mt-2 flex justify-center">
+                                            <ArchDetailButton
+                                                label={detailButtonLabel}
+                                                onOpen={() => onOpenDetail(i === 1 ? 'ov-bess-1' : i === 2 ? 'ov-bess-2' : 'ov-bess-3')}
+                                                isDark={isDark}
                                             />
                                         </div>
                                     </div>
@@ -792,10 +1444,16 @@ const StationDiagram = ({
                             <div className={`rounded-xl border p-3 ${isDark ? 'border-zinc-700 bg-zinc-950/50' : 'border-slate-100 bg-slate-50/80'}`}>
                                 <div className={`mb-1 text-xs font-bold ${th.textMain}`}>EV Charging Station</div>
                                 <DataRow label="Demand" value="120 kW" highlight />
+                                <div className="mt-2 flex justify-center">
+                                    <ArchDetailButton label={detailButtonLabel} onOpen={() => onOpenDetail('ov-evse')} isDark={isDark} />
+                                </div>
                             </div>
                             <div className={`rounded-xl border p-3 ${isDark ? 'border-zinc-700 bg-zinc-950/50' : 'border-slate-100 bg-slate-50/80'}`}>
                                 <div className={`mb-1 text-xs font-bold ${th.textMain}`}>Building Load</div>
                                 <DataRow label="Usage" value="325 kW" highlight />
+                                <div className="mt-2 flex justify-center">
+                                    <ArchDetailButton label={detailButtonLabel} onOpen={() => onOpenDetail('ov-building')} isDark={isDark} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -806,17 +1464,31 @@ const StationDiagram = ({
 
     // --- POWER ARCHITECTURE DESIGN (Original SLD Style) ---
     // (Existing physical SLD code preserved here)
-    const Y_BUSBAR = 190;
-    /** 主干竖线在 PCC 表计处断开，避免与卡片重叠（与顶部 flex：Grid → 短线 → NodeCard 的近似像素对齐） */
+    /** 母线及以下整体下移，与顶部 PCC 区域拉开间距 */
+    const POWER_LOWER_Y_SHIFT = 56;
+    const Y_BUSBAR = 190 + POWER_LOWER_Y_SHIFT;
+    /** 并网主干：自顶部接入点连续垂直到母线，穿过 PCC 区域（线在白底/SVG z-0，PCC 卡片 z-30 叠在正中） */
     const Y_TRUNK_FROM_GRID = 48;
-    const Y_TRUNK_STOP_BEFORE_PCC = 73;
-    const Y_TRUNK_RESUME_AFTER_PCC = 218;
-    const Y_MAIN_ROW = 262; 
-    const Y_DC_START = Y_MAIN_ROW + 80; 
+    const Y_MAIN_ROW = 262 + POWER_LOWER_Y_SHIFT;
+    const Y_DC_START = Y_MAIN_ROW + 80;
     const Y_EVSE_DC_START = Y_MAIN_ROW + 100;
-    const Y_SPLIT_PCS1 = 480; 
-    const Y_SUB_ROW = 560;    
-    const Y_SUB_ROW_CLOSE = 430; 
+    const Y_SPLIT_PCS1 = 480 + POWER_LOWER_Y_SHIFT;
+    /** 底部 BESS#1 / 车棚 PV 行轻微下移即可；主要用右移 #2–6 错开叠画，避免加长垂线 */
+    const Y_SUB_ROW_EXTRA = 48;
+    const Y_SUB_ROW = 560 + POWER_LOWER_Y_SHIFT + Y_SUB_ROW_EXTRA;
+    const Y_SUB_ROW_CLOSE = 430 + POWER_LOWER_Y_SHIFT;
+    /** #2–6 PCS 与 #1 同框高（短汇流垂线），不靠整体下移拉开 */
+    /** PCS #2–#6 + BESS #2–#6 相对主行整体下移（与 #1 等其它设备脱钩） */
+    const Y_ESS23_BLOCK_SHIFT = 170;
+    /** BESS#2–6 与 PCS 间略增垂向间隙（增量小，不明显加长竖线） */
+    const Y_ESS26_BESS_EXTRA = 28;
+    const Y_MAIN_ESS23 = Y_MAIN_ROW + Y_ESS23_BLOCK_SHIFT;
+    const Y_DC_START_ESS23 = Y_MAIN_ESS23 + 80;
+    const Y_SUB_ROW_CLOSE_ESS23 = Y_SUB_ROW_CLOSE + Y_ESS23_BLOCK_SHIFT + Y_ESS26_BESS_EXTRA;
+    /** 车辆在主设备行下方、BESS#1 行上方，缩短与桩体的视觉链长 */
+    const Y_CAR_ROW = Y_MAIN_ROW + 258;
+    /** EVSE 直流竖线终点（原 400，随下方整体上移） */
+    const Y_EVSE_DC_STUB_END = 400 + POWER_LOWER_Y_SHIFT; 
 
     const X_DG = 289;
     const X_ACPV = 476;
@@ -824,12 +1496,42 @@ const StationDiagram = ({
     const X_PCS1 = 944; 
     const X_BATTERY1 = 850; 
     const X_DCPV = 1038;
-    const X_PCS2 = 1225;
-    const X_PCS3 = 1412;
+    /** PCS #2–#6：列间距（大于卡宽 180，留白更大） */
+    const X_ESS26_COL_STEP = 210;
+    /** PCS #2–#6 + 支路表水平基准（整组左右平移只改此值） */
+    const X_PCS2 = 1252;
+    const X_PCS3 = X_PCS2 + X_ESS26_COL_STEP;
+    const X_PCS4 = X_PCS2 + X_ESS26_COL_STEP * 2;
+    const X_PCS5 = X_PCS2 + X_ESS26_COL_STEP * 3;
+    const X_PCS6 = X_PCS2 + X_ESS26_COL_STEP * 4;
 
     const OFFSET_PCS = -14; 
     const OFFSET_STD = -26;
     const BATTERY_OFFSET_X = 12;
+
+    /** 支路表：母线 → ESS #2/#3 支路表 → 汇流排 → 五路 PCS */
+    const X_PCS2_TAP = X_PCS2 + OFFSET_PCS;
+    const X_PCS3_TAP = X_PCS3 + OFFSET_PCS;
+    const X_PCS4_TAP = X_PCS4 + OFFSET_PCS;
+    const X_PCS5_TAP = X_PCS5 + OFFSET_PCS;
+    const X_PCS6_TAP = X_PCS6 + OFFSET_PCS;
+    const X_ESS_PAIR_MID = (X_PCS2_TAP + X_PCS6_TAP) / 2;
+    /** 支路表与母线垂线同列（五路 PCS 仍关于汇流排几何居中至五路 PCS） */
+    const X_ESS_PAIR_METER_SHIFT = 56;
+    const X_ESS_PAIR_METER_LEFT = X_ESS_PAIR_MID + X_ESS_PAIR_METER_SHIFT;
+    /**
+     * 汇流排必须在支路表下方（Y 更大），且略低于 PCS 顶，否则水平线会与表计重叠。
+     * 顺序：母线 → 表 → 表下 20px 垂段 → 汇流排 → 五路竖线 → PCS。
+     */
+    const Y_ESS_PAIR_AC_STUB = 94;
+    const Y_ESS_PAIR_TEE = Y_MAIN_ESS23 - Y_ESS_PAIR_AC_STUB;
+    const Y_ESS_PAIR_METER_TRUNK_PAD = 44;
+    /** 支路表下沿至汇流排垂线长度（固定） */
+    const Y_ESS_PAIR_METER_BELOW_STUB = 20;
+    const Y_ESS_PAIR_TRUNK_BELOW_METER = Y_ESS_PAIR_TEE - Y_ESS_PAIR_METER_BELOW_STUB;
+    const Y_ESS_PAIR_METER = Y_ESS_PAIR_TRUNK_BELOW_METER - Y_ESS_PAIR_METER_TRUNK_PAD;
+    /** 母线垂线在表计处断开，避免粗线被卡片完全遮住 */
+    const Y_ESS_PAIR_TRUNK_ABOVE_METER = Math.max(Y_BUSBAR + 4, Y_ESS_PAIR_METER - Y_ESS_PAIR_METER_TRUNK_PAD);
 
     const trunkStroke = isDark ? th.strokeDC : th.strokeAC;
     const busStroke = th.strokeBusH;
@@ -839,18 +1541,24 @@ const StationDiagram = ({
     const bessTitle = (name: string) =>
         lang === 'zh' ? `${String(name).replace('#', '')}#BESS` : `BESS ${name}`;
 
+    const diagramSurfaceStyle: React.CSSProperties = {
+        width: WIDTH,
+        height: HEIGHT,
+        ...(isDark ? { backgroundColor: 'var(--color-apple-bg-dark)' } : {}),
+    };
+
     return (
-        <div className={`relative overflow-hidden rounded-xl border shadow-2xl ${th.canvas}`} style={{ width: WIDTH, height: HEIGHT }}>
+        <div className={`relative overflow-visible rounded-xl border ${th.canvas}`} style={diagramSurfaceStyle}>
             <div
-                className="pointer-events-none absolute inset-0 z-0"
+                className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-xl"
                 style={{
-                    opacity: isDark ? 0.4 : 0.45,
+                    opacity: isDark ? 0.22 : 0.45,
                     backgroundImage: `radial-gradient(${th.gridDot} 1px, transparent 1px)`,
                     backgroundSize: '24px 24px',
                 }}
             />
 
-            <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full" style={{ overflow: 'visible' }}>
+            <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible rounded-xl">
                 <defs>
                     <marker id="arrowhead-power" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
                         <polygon
@@ -860,19 +1568,13 @@ const StationDiagram = ({
                     </marker>
                 </defs>
                 <path
-                    d={`M${CENTER_X} ${Y_TRUNK_FROM_GRID} V ${Y_TRUNK_STOP_BEFORE_PCC}`}
+                    d={`M${CENTER_X} ${Y_TRUNK_FROM_GRID} V ${Y_BUSBAR}`}
                     stroke={trunkStroke}
                     strokeWidth={2}
                     fill="none"
                 />
-                <path
-                    d={`M${CENTER_X} ${Y_TRUNK_RESUME_AFTER_PCC} V ${Y_BUSBAR}`}
-                    stroke={trunkStroke}
-                    strokeWidth={2}
-                    fill="none"
-                />
-                <path d={`M220 ${Y_BUSBAR} H 1480`} stroke={busStroke} strokeWidth={2} fill="none" />
-                <rect x="210" y={Y_BUSBAR - 2} width="1280" height="4" rx="2" fill={busStroke} />
+                <path d={`M220 ${Y_BUSBAR} H 2260`} stroke={busStroke} strokeWidth={2} fill="none" />
+                <rect x="210" y={Y_BUSBAR - 2} width="2040" height="4" rx="2" fill={busStroke} />
                 <path
                     d={`M${X_DG + OFFSET_STD} ${Y_BUSBAR} V ${Y_MAIN_ROW}`}
                     stroke={acTap}
@@ -889,10 +1591,14 @@ const StationDiagram = ({
                 />
                 <path d={`M${X_EVSE + OFFSET_STD} ${Y_BUSBAR} V ${Y_MAIN_ROW}`} stroke={acTap} strokeWidth={2} fill="none" />
                 <path d={`M${X_PCS1 + OFFSET_PCS} ${Y_BUSBAR} V ${Y_MAIN_ROW}`} stroke={acTap} strokeWidth={2} fill="none" />
-                <path d={`M${X_PCS2 + OFFSET_PCS} ${Y_BUSBAR} V ${Y_MAIN_ROW}`} stroke={acTap} strokeWidth={2} fill="none" />
-                <path d={`M${X_PCS3 + OFFSET_PCS} ${Y_BUSBAR} V ${Y_MAIN_ROW}`} stroke={acTap} strokeWidth={2} fill="none" />
                 <path
-                    d={`M${X_EVSE + OFFSET_STD} ${Y_EVSE_DC_START} V 400`}
+                    d={`M${X_ESS_PAIR_METER_LEFT} ${Y_BUSBAR} V ${Y_ESS_PAIR_TRUNK_ABOVE_METER} M${X_ESS_PAIR_METER_LEFT} ${Y_ESS_PAIR_TRUNK_BELOW_METER} V ${Y_ESS_PAIR_TEE} M${X_PCS2_TAP} ${Y_ESS_PAIR_TEE} H ${X_PCS6_TAP} M${X_PCS2_TAP} ${Y_ESS_PAIR_TEE} V ${Y_MAIN_ESS23} M${X_PCS3_TAP} ${Y_ESS_PAIR_TEE} V ${Y_MAIN_ESS23} M${X_PCS4_TAP} ${Y_ESS_PAIR_TEE} V ${Y_MAIN_ESS23} M${X_PCS5_TAP} ${Y_ESS_PAIR_TEE} V ${Y_MAIN_ESS23} M${X_PCS6_TAP} ${Y_ESS_PAIR_TEE} V ${Y_MAIN_ESS23}`}
+                    stroke={acTap}
+                    strokeWidth={2}
+                    fill="none"
+                />
+                <path
+                    d={`M${X_EVSE + OFFSET_STD} ${Y_EVSE_DC_START} V ${Y_EVSE_DC_STUB_END}`}
                     stroke={dcRun}
                     strokeWidth={2}
                     strokeDasharray="4 2"
@@ -911,38 +1617,103 @@ const StationDiagram = ({
                     strokeWidth={2}
                     fill="none"
                 />
-                <path d={`M${X_PCS2 + OFFSET_PCS} ${Y_DC_START} V ${Y_SUB_ROW_CLOSE}`} stroke={dcRun} strokeWidth={2} fill="none" />
-                <path d={`M${X_PCS3 + OFFSET_PCS} ${Y_DC_START} V ${Y_SUB_ROW_CLOSE}`} stroke={dcRun} strokeWidth={2} fill="none" />
+                <path
+                    d={`M${X_PCS2 + OFFSET_PCS} ${Y_DC_START_ESS23} V ${Y_SUB_ROW_CLOSE_ESS23}`}
+                    stroke={dcRun}
+                    strokeWidth={2}
+                    fill="none"
+                />
+                <path
+                    d={`M${X_PCS3 + OFFSET_PCS} ${Y_DC_START_ESS23} V ${Y_SUB_ROW_CLOSE_ESS23}`}
+                    stroke={dcRun}
+                    strokeWidth={2}
+                    fill="none"
+                />
+                <path
+                    d={`M${X_PCS4 + OFFSET_PCS} ${Y_DC_START_ESS23} V ${Y_SUB_ROW_CLOSE_ESS23}`}
+                    stroke={dcRun}
+                    strokeWidth={2}
+                    fill="none"
+                />
+                <path
+                    d={`M${X_PCS5 + OFFSET_PCS} ${Y_DC_START_ESS23} V ${Y_SUB_ROW_CLOSE_ESS23}`}
+                    stroke={dcRun}
+                    strokeWidth={2}
+                    fill="none"
+                />
+                <path
+                    d={`M${X_PCS6 + OFFSET_PCS} ${Y_DC_START_ESS23} V ${Y_SUB_ROW_CLOSE_ESS23}`}
+                    stroke={dcRun}
+                    strokeWidth={2}
+                    fill="none"
+                />
             </svg>
 
             <div className="absolute left-[50%] top-0 z-30 flex -translate-x-1/2 flex-col items-center gap-1.5">
                 <div
                     className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 shadow-lg ${th.pillSolid}`}
                 >
-                    <Cloud size={18} className={isDark ? 'text-black' : 'text-white'} />
-                    <span className={`text-sm font-black ${isDark ? 'text-black' : 'text-white'}`}>{stationData.grid.name}</span>
+                    <Cloud size={18} className="text-white" />
+                    <span className="text-sm font-black text-white">{stationData.grid.name}</span>
                     <span
                         className={`rounded-md px-1.5 py-0.5 font-mono text-xs font-bold ${
-                            isDark ? 'bg-black/15 text-black' : 'bg-white/20 text-white'
+                            isDark ? 'bg-white/15 text-white' : 'bg-white/20 text-white'
                         }`}
                     >
                         {stationData.grid.voltage}
                     </span>
                 </div>
-                {/* 与 SVG 上段主干衔接的短线；表计放在独立层，避免 SVG 竖线贯穿 */}
-                <div className="h-3 w-px shrink-0 rounded-full" style={{ background: trunkStroke }} />
-                <div className="relative z-30 w-[160px]">
-                    <NodeCard
+                <div className="relative z-30 inline-flex shrink-0 items-center overflow-visible">
+                    <PccMeterCard
                         title={stationData.acMeter.name}
-                        icon={Gauge}
                         archIsDark={isDark}
-                        className={`w-full shadow-lg ${isDark ? 'ring-2 ring-lime-400/35' : 'ring-2 ring-emerald-500/25'}`}
-                        style={{ position: 'relative' }}
-                    >
-                        <DataRow label="Power" value={stationData.acMeter.ac.p} highlight />
-                        <DataRow label="Current" value={stationData.acMeter.ac.i} />
-                        <DataRow label="Voltage" value={stationData.acMeter.ac.v} />
-                    </NodeCard>
+                        className={`shadow-lg ${isDark ? 'ring-2 ring-brand-400/40' : 'ring-2 ring-emerald-500/25'}`}
+                        detailId="acMeter"
+                        onOpenDetail={onOpenDetail}
+                        detailButtonLabel={detailButtonLabel}
+                    />
+                    <FloatingData
+                        p={stationData.acMeter.ac.p}
+                        u={stationData.acMeter.ac.v}
+                        i={stationData.acMeter.ac.i}
+                        type="ac"
+                        isDark={isDark}
+                        style={{
+                            top: '50%',
+                            left: '100%',
+                            marginLeft: '14px',
+                            transform: 'translateY(-50%)',
+                        }}
+                    />
+                </div>
+            </div>
+
+            <div
+                className="absolute z-30 -translate-x-1/2 -translate-y-1/2"
+                style={{ left: X_ESS_PAIR_METER_LEFT, top: Y_ESS_PAIR_METER }}
+            >
+                <div className="relative inline-flex shrink-0 items-center overflow-visible">
+                    <PccMeterCard
+                        title={stationData.essPairAcMeter.name}
+                        archIsDark={isDark}
+                        className={`shadow-lg ${isDark ? 'ring-2 ring-orange-400/35' : 'ring-2 ring-orange-500/25'}`}
+                        detailId="essPairMeter"
+                        onOpenDetail={onOpenDetail}
+                        detailButtonLabel={detailButtonLabel}
+                    />
+                    <FloatingData
+                        p={stationData.essPairAcMeter.ac.p}
+                        u={stationData.essPairAcMeter.ac.v}
+                        i={stationData.essPairAcMeter.ac.i}
+                        type="ac"
+                        isDark={isDark}
+                        style={{
+                            top: '50%',
+                            left: '100%',
+                            marginLeft: '14px',
+                            transform: 'translateY(-50%)',
+                        }}
+                    />
                 </div>
             </div>
 
@@ -959,9 +1730,12 @@ const StationDiagram = ({
                     title={stationData.dg.name}
                     icon={Droplets}
                     archIsDark={isDark}
-                    className="w-[154px]"
+                    className="w-[168px]"
                     style={{ position: 'relative' }}
                     variant="slate"
+                    detailId="dg"
+                    onOpenDetail={onOpenDetail}
+                    detailButtonLabel={detailButtonLabel}
                 >
                     <div className="mb-2 flex gap-2">
                         <span
@@ -991,9 +1765,12 @@ const StationDiagram = ({
                     title={stationData.acPv.name}
                     icon={Sun}
                     archIsDark={isDark}
-                    className="w-[154px]"
+                    className="w-[168px]"
                     style={{ position: 'relative' }}
                     variant="slate"
+                    detailId="acPv"
+                    onOpenDetail={onOpenDetail}
+                    detailButtonLabel={detailButtonLabel}
                 >
                     <div className="mb-2 flex flex-col gap-1.5">
                         <StatusBadge level="Normal" text="Generating" />
@@ -1015,9 +1792,12 @@ const StationDiagram = ({
                     title={stationData.evse.name}
                     icon={Zap}
                     archIsDark={isDark}
-                    className="w-[154px]"
+                    className="w-[168px]"
                     style={{ position: 'relative' }}
                     variant="slate"
+                    detailId="evse"
+                    onOpenDetail={onOpenDetail}
+                    detailButtonLabel={detailButtonLabel}
                 >
                     <div className="mb-2 flex flex-col gap-1.5">
                         <StatusBadge level="Normal" text="Charging" />
@@ -1031,20 +1811,68 @@ const StationDiagram = ({
                 </NodeCard>
             </div>
 
-            <PcsCard data={stationData.pcs} isDark={isDark} style={{ top: Y_MAIN_ROW, left: X_PCS1, transform: 'translateX(-50%)' }} />
-            <PcsCard data={stationData.ess2.pcs} isDark={isDark} style={{ top: Y_MAIN_ROW, left: X_PCS2, transform: 'translateX(-50%)' }} />
-            <PcsCard data={stationData.ess3.pcs} isDark={isDark} style={{ top: Y_MAIN_ROW, left: X_PCS3, transform: 'translateX(-50%)' }} />
+            <PcsCard
+                data={stationData.pcs}
+                isDark={isDark}
+                style={{ top: Y_MAIN_ROW, left: X_PCS1, transform: 'translateX(-50%)' }}
+                detailId="pcs1"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
+            <PcsCard
+                data={stationData.ess2.pcs}
+                isDark={isDark}
+                style={{ top: Y_MAIN_ESS23, left: X_PCS2, transform: 'translateX(-50%)' }}
+                detailId="pcs2"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
+            <PcsCard
+                data={stationData.ess3.pcs}
+                isDark={isDark}
+                style={{ top: Y_MAIN_ESS23, left: X_PCS3, transform: 'translateX(-50%)' }}
+                detailId="pcs3"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
+            <PcsCard
+                data={stationData.ess4.pcs}
+                isDark={isDark}
+                style={{ top: Y_MAIN_ESS23, left: X_PCS4, transform: 'translateX(-50%)' }}
+                detailId="pcs4"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
+            <PcsCard
+                data={stationData.ess5.pcs}
+                isDark={isDark}
+                style={{ top: Y_MAIN_ESS23, left: X_PCS5, transform: 'translateX(-50%)' }}
+                detailId="pcs5"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
+            <PcsCard
+                data={stationData.ess6.pcs}
+                isDark={isDark}
+                style={{ top: Y_MAIN_ESS23, left: X_PCS6, transform: 'translateX(-50%)' }}
+                detailId="pcs6"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
             <NodeCard
                 title={stationData.car.name}
                 icon={Car}
                 archIsDark={isDark}
-                className="w-[154px]"
-                style={{ top: 400, left: X_EVSE, transform: 'translateX(-50%)' }}
+                className="w-[168px]"
+                style={{ top: Y_CAR_ROW, left: X_EVSE, transform: 'translateX(-50%)' }}
                 variant="slate"
+                detailId="car"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
             >
                 <div className={`mb-2 h-1.5 w-full overflow-hidden rounded-full ${isDark ? 'bg-zinc-800' : 'bg-slate-100'}`}>
                     <div
-                        className={`h-full ${isDark ? 'bg-lime-400' : 'bg-emerald-500'}`}
+                        className={`h-full ${isDark ? 'bg-brand-400' : 'bg-emerald-500'}`}
                         style={{ width: '34%' }}
                     />
                 </div>
@@ -1063,6 +1891,9 @@ const StationDiagram = ({
                 status={stationData.battery.status}
                 isDark={isDark}
                 style={{ top: Y_SUB_ROW, left: X_BATTERY1, transform: 'translateX(-50%)', zIndex: 10 }}
+                detailId="bess1"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
             />
 
             <div style={{ position: 'absolute', top: Y_SUB_ROW, left: X_DCPV, transform: 'translateX(-50%)', zIndex: 10 }}>
@@ -1078,9 +1909,12 @@ const StationDiagram = ({
                     title={stationData.dcPv.name}
                     icon={Sun}
                     archIsDark={isDark}
-                    className="w-[154px]"
+                    className="w-[168px]"
                     style={{ position: 'relative' }}
                     variant="slate"
+                    detailId="dcPv"
+                    onOpenDetail={onOpenDetail}
+                    detailButtonLabel={detailButtonLabel}
                 >
                     <div className="mt-1 grid grid-cols-2 gap-1.5">
                         {stationData.dcPv.panels.map((p: any) => (
@@ -1110,11 +1944,14 @@ const StationDiagram = ({
                 status={stationData.ess2.bat.status}
                 isDark={isDark}
                 style={{
-                    top: Y_SUB_ROW_CLOSE,
+                    top: Y_SUB_ROW_CLOSE_ESS23,
                     left: X_PCS2 + BATTERY_OFFSET_X,
                     transform: 'translateX(-50%)',
                     zIndex: 10,
                 }}
+                detailId="bess2"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
             />
 
             <ArchBessCard
@@ -1128,11 +1965,75 @@ const StationDiagram = ({
                 status={stationData.ess3.bat.status}
                 isDark={isDark}
                 style={{
-                    top: Y_SUB_ROW_CLOSE,
+                    top: Y_SUB_ROW_CLOSE_ESS23,
                     left: X_PCS3 + BATTERY_OFFSET_X,
                     transform: 'translateX(-50%)',
                     zIndex: 10,
                 }}
+                detailId="bess3"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
+
+            <ArchBessCard
+                title={bessTitle(stationData.ess4.bat.name)}
+                soc={stationData.ess4.bat.soc}
+                soh={stationData.ess4.bat.soh}
+                vmax={stationData.ess4.bat.vmax}
+                vmin={stationData.ess4.bat.vmin}
+                tmax={stationData.ess4.bat.tmax}
+                tmin={stationData.ess4.bat.tmin}
+                status={stationData.ess4.bat.status}
+                isDark={isDark}
+                style={{
+                    top: Y_SUB_ROW_CLOSE_ESS23,
+                    left: X_PCS4 + BATTERY_OFFSET_X,
+                    transform: 'translateX(-50%)',
+                    zIndex: 10,
+                }}
+                detailId="bess4"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
+            <ArchBessCard
+                title={bessTitle(stationData.ess5.bat.name)}
+                soc={stationData.ess5.bat.soc}
+                soh={stationData.ess5.bat.soh}
+                vmax={stationData.ess5.bat.vmax}
+                vmin={stationData.ess5.bat.vmin}
+                tmax={stationData.ess5.bat.tmax}
+                tmin={stationData.ess5.bat.tmin}
+                status={stationData.ess5.bat.status}
+                isDark={isDark}
+                style={{
+                    top: Y_SUB_ROW_CLOSE_ESS23,
+                    left: X_PCS5 + BATTERY_OFFSET_X,
+                    transform: 'translateX(-50%)',
+                    zIndex: 10,
+                }}
+                detailId="bess5"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
+            />
+            <ArchBessCard
+                title={bessTitle(stationData.ess6.bat.name)}
+                soc={stationData.ess6.bat.soc}
+                soh={stationData.ess6.bat.soh}
+                vmax={stationData.ess6.bat.vmax}
+                vmin={stationData.ess6.bat.vmin}
+                tmax={stationData.ess6.bat.tmax}
+                tmin={stationData.ess6.bat.tmin}
+                status={stationData.ess6.bat.status}
+                isDark={isDark}
+                style={{
+                    top: Y_SUB_ROW_CLOSE_ESS23,
+                    left: X_PCS6 + BATTERY_OFFSET_X,
+                    transform: 'translateX(-50%)',
+                    zIndex: 10,
+                }}
+                detailId="bess6"
+                onOpenDetail={onOpenDetail}
+                detailButtonLabel={detailButtonLabel}
             />
         </div>
     );
@@ -1145,11 +2046,21 @@ const StationArchitecture: React.FC<StationArchitectureProps> = ({ lang, theme, 
   const showDiagram = selectedStation.includes('#2') || selectedStation.includes('Munich') || selectedStation.includes('慕尼黑');
   const stationData = lang === 'zh' ? STATION_DATA_ZH : STATION_DATA_EN;
 
+  const [archDetailId, setArchDetailId] = useState<ArchDetailId | null>(null);
+
   // View State
   const [activeView, setActiveView] = useState<ArchView>('power');
 
+  useEffect(() => {
+      if (!showDiagram) setArchDetailId(null);
+  }, [showDiagram]);
+
+  useEffect(() => {
+      setArchDetailId(null);
+  }, [activeView]);
+
   // Zoom & Pan State
-  const [scale, setScale] = useState(0.85);
+  const [scale, setScale] = useState(ARCH_DIAGRAM_DEFAULT_SCALE);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
@@ -1175,28 +2086,32 @@ const StationArchitecture: React.FC<StationArchitectureProps> = ({ lang, theme, 
 
           const containerWidth = containerRef.current.clientWidth;
           const containerHeight = containerRef.current.clientHeight;
-          const targetWidth = 1700;
-          const targetHeight = 900;
+          const targetWidth = ARCH_DIAGRAM_WIDTH;
+          const targetHeight = ARCH_DIAGRAM_HEIGHT;
 
-          const x = (containerWidth - targetWidth) / 2;
-          const y = (containerHeight - targetHeight) / 2 > 0 ? (containerHeight - targetHeight) / 2 : 20;
-          
-          setPosition({ x, y });
-          
+          let nextScale = ARCH_DIAGRAM_DEFAULT_SCALE;
           if (containerWidth < targetWidth) {
-              const fitScale = (containerWidth - 40) / targetWidth;
-              setScale(Math.max(0.4, fitScale));
+              nextScale = Math.max(0.4, (containerWidth - 40) / targetWidth);
           }
+          setScale(nextScale);
+          const scaledW = targetWidth * nextScale;
+          const scaledH = targetHeight * nextScale;
+          const x = (containerWidth - scaledW) / 2;
+          const y = (containerHeight - scaledH) / 2 > 0 ? (containerHeight - scaledH) / 2 : 20;
+          setPosition({ x, y });
       }
   }, [showDiagram, activeView]);
 
   useEffect(() => {
       const handleEsc = (e: KeyboardEvent) => {
-          if (e.key === 'Escape' && isFullScreen) setIsFullScreen(false);
+          if (e.key === 'Escape') {
+              if (archDetailId) setArchDetailId(null);
+              else if (isFullScreen) setIsFullScreen(false);
+          }
       };
       window.addEventListener('keydown', handleEsc);
       return () => window.removeEventListener('keydown', handleEsc);
-  }, [isFullScreen]);
+  }, [isFullScreen, archDetailId]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
       if (!showDiagram) return;
@@ -1222,8 +2137,16 @@ const StationArchitecture: React.FC<StationArchitectureProps> = ({ lang, theme, 
       if (containerRef.current) {
           const w = containerRef.current.clientWidth;
           const h = containerRef.current.clientHeight;
-          setPosition({ x: (w - 1700) / 2, y: (h - 900) / 2 > 0 ? (h - 900) / 2 : 20 });
-          setScale(w < 1700 ? (w - 40)/1700 : 1);
+          const tw = ARCH_DIAGRAM_WIDTH;
+          const th = ARCH_DIAGRAM_HEIGHT;
+          let nextScale = ARCH_DIAGRAM_DEFAULT_SCALE;
+          if (w < tw) {
+              nextScale = Math.max(0.4, (w - 40) / tw);
+          }
+          setScale(nextScale);
+          const scaledW = tw * nextScale;
+          const scaledH = th * nextScale;
+          setPosition({ x: (w - scaledW) / 2, y: (h - scaledH) / 2 > 0 ? (h - scaledH) / 2 : 20 });
           localStorage.removeItem(`station_arch_view_${activeView}`);
           setSavedView(false);
       }
@@ -1282,7 +2205,7 @@ const StationArchitecture: React.FC<StationArchitectureProps> = ({ lang, theme, 
                         <>
                             <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-500"></span> AC</div>
                             <div className="w-px h-3 bg-slate-200 dark:bg-white/10"></div>
-                            <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-green-600 dark:bg-lime-400"></span> DC</div>
+                            <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-green-600 dark:bg-brand-400"></span> DC</div>
                         </>
                     ) : (
                         <>
@@ -1320,6 +2243,8 @@ const StationArchitecture: React.FC<StationArchitectureProps> = ({ lang, theme, 
                         view={activeView}
                         lang={lang}
                         isDark={theme === 'dark'}
+                        onOpenDetail={setArchDetailId}
+                        detailButtonLabel={t.detailData}
                     />
                 </div>
 
@@ -1390,6 +2315,17 @@ const StationArchitecture: React.FC<StationArchitectureProps> = ({ lang, theme, 
               </div>
           )}
       </div>
+
+      {showDiagram && (
+          <ArchitectureDetailDrawer
+              detailId={archDetailId}
+              onClose={() => setArchDetailId(null)}
+              stationData={stationData}
+              lang={lang}
+              isDark={theme === 'dark'}
+              panelTitle={t.detailPanelTitle}
+          />
+      )}
     </div>
   );
 };
