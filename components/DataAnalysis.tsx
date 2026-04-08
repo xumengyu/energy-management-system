@@ -142,7 +142,7 @@ const BATTERY_CLUSTERS_ZH = [
 const BATTERY_STACKS_EN = ['Stack #1', 'Stack #2', 'Stack #3'];
 const BATTERY_STACKS_ZH = ['电池堆 #1', '电池堆 #2', '电池堆 #3'];
 
-// Helper for small charts in Battery Analysis
+// Helper for small charts in Battery Cluster Analysis
 const SimpleChartContainer = ({
     title,
     children,
@@ -605,7 +605,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
     </>
   );
 
-  /** 电池分析底部时间刷：与图表/卡片底色接近，低对比 */
+  /** 电池簇分析底部时间刷：与图表/卡片底色接近，低对比 */
   const batteryTimeBrush = () => (
       <Brush
           dataKey="time"

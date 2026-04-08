@@ -120,7 +120,7 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                 {/* 工具条：与电价列表同款分段 + 搜索 */}
                 <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-4 dark:border-apple-border-dark md:flex-row md:items-center md:justify-between">
                     <div className="ems-segmented w-fit">
-                        <button
+                        <button 
                             type="button"
                             onClick={() => setModalPriceTab('user')}
                             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
@@ -132,7 +132,7 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                             <User size={16} />
                             {tPList.tabUser}
                         </button>
-                        <button
+                        <button 
                             type="button"
                             onClick={() => setModalPriceTab('api')}
                             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
@@ -176,7 +176,7 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                                 <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                                     {filteredRows.map((item) => {
                                         const isSelected = selectedPriceSchemeId === item.id;
-                                        return (
+                                return (
                                             <tr
                                                 key={item.id}
                                                 role="button"
@@ -195,7 +195,7 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                                                 } ${isSelected ? 'bg-blue-50/50 ring-1 ring-inset ring-blue-400/30 dark:bg-blue-900/20' : ''}`}
                                             >
                                                 <td className="px-6 py-4">
-                                                    <div>
+                                                <div>
                                                         <div
                                                             className={`font-bold text-slate-800 transition-colors dark:text-slate-200 ${
                                                                 activeTab === 'user'
@@ -204,15 +204,15 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                                                             }`}
                                                         >
                                                             {item.name}
-                                                        </div>
+                                                </div>
                                                         <div className="font-mono text-xs text-slate-400">{item.id}</div>
-                                                    </div>
+                                            </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
                                                         <MapPin size={14} className="text-slate-400" />
                                                         {item.region}
-                                                    </div>
+                                        </div>
                                                 </td>
                                                 {activeTab === 'user' && (
                                                     <>
@@ -222,7 +222,7 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                                                             <div className="flex items-center gap-1.5">
                                                                 <Calendar size={14} />
                                                                 {item.validFrom} <span className="text-slate-300">→</span> {item.validTo}
-                                                            </div>
+                                            </div>
                                                         </td>
                                                     </>
                                                 )}
@@ -239,8 +239,8 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                                                 )}
                                                 <td className="px-6 py-4">{getStatusBadge(item.status)}</td>
                                             </tr>
-                                        );
-                                    })}
+                                );
+                            })}
                                 </tbody>
                             </table>
                         </div>
@@ -248,16 +248,16 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                             <div className="flex flex-col items-center justify-center p-12 text-center">
                                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 dark:bg-apple-surface-secondary-dark">
                                     <Search className="text-slate-300 dark:text-slate-500" size={32} />
-                                </div>
+                                                </div>
                                 <p className="font-medium text-slate-500 dark:text-slate-400">
                                     {lang === 'zh' ? '暂无匹配的电价方案' : 'No matching price schemes found.'}
                                 </p>
                                 <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                                     {lang === 'zh' ? '请尝试调整搜索或切换标签。' : 'Try adjusting your search or tab.'}
                                 </p>
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
+                        </div>
                 </div>
 
                 <div className="flex flex-col items-center justify-between gap-6 border-t border-apple-border-light bg-apple-bg-light/50 p-6 dark:border-apple-border-dark dark:bg-apple-bg-dark/50 sm:flex-row">
@@ -268,14 +268,14 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                         </span>
                     </div>
                     <div className="flex w-full gap-4 sm:w-auto">
-                        <button
+                        <button 
                             type="button"
                             onClick={onClose}
                             className="h-10 flex-1 rounded-full border border-apple-border-light px-8 font-bold text-apple-text-secondary-light transition-all hover:bg-apple-surface-secondary-light dark:border-apple-border-dark dark:text-apple-text-secondary-dark dark:hover:bg-apple-surface-secondary-dark sm:flex-none"
                         >
                             {lang === 'zh' ? '取消' : 'Cancel'}
                         </button>
-                        <button
+                        <button 
                             type="button"
                             onClick={onClose}
                             className="h-10 flex-1 rounded-full bg-brand-600 px-10 text-sm font-bold text-white shadow-lg shadow-brand-500/20 transition-all hover:bg-brand-500 sm:flex-none"

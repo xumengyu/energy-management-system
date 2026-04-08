@@ -76,16 +76,16 @@ const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNav
         ]
     },
     {
-        title: t.categoryRevenue,
-        items: [{ id: '/revenue', label: t.revenue, icon: DollarSign }],
-    },
-    {
         title: t.categoryControl,
         items: [
+            { id: '/strategy/manual', label: t.manualControl, icon: ToggleRight },
             { id: '/strategy/md', label: t.mdStrategy, icon: Activity },
             { id: '/strategy/protection', label: t.protectionStrategy, icon: ShieldCheck },
-            { id: '/strategy/manual', label: t.manualControl, icon: ToggleRight },
         ]
+    },
+    {
+        title: t.categoryRevenue,
+        items: [{ id: '/revenue', label: t.revenue, icon: DollarSign }],
     }
   ];
 

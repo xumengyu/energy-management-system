@@ -391,13 +391,13 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                 <div className="ems-card p-5 h-full xl:flex xl:flex-col">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                         <span className="p-1.5 bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl"><Sun size={16}/></span>
-                        {lang === 'zh' ? '光伏监控' : 'PV Monitor'}
-                    </h3>
+                    {lang === 'zh' ? '光伏监控' : 'PV Monitor'}
+                </h3>
                     <div className="p-5 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark text-center mb-3">
                         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">{lang === 'zh' ? '实时总功率' : 'Total Real-time Power'}</p>
                         <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">854 <span className="text-base font-bold text-slate-400">kW</span></p>
-                    </div>
-                    <div className="space-y-2.5">
+                </div>
+                <div className="space-y-2.5">
                          <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
                             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{lang === 'zh' ? '日发电量' : 'Daily Yield'}</span>
                             <span className="text-xl font-extrabold text-slate-900 dark:text-white">5.8 MWh</span>
@@ -405,12 +405,12 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                          <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
                             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{lang === 'zh' ? '总发电量' : 'Total Yield'}</span>
                             <span className="text-xl font-extrabold text-slate-900 dark:text-white">12.4 GWh</span>
-                         </div>
+                     </div>
                          <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
                             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{lang === 'zh' ? '发电时长' : 'Yield Hours'}</span>
                             <span className="text-xl font-extrabold text-slate-900 dark:text-white">1,245 h</span>
-                         </div>
-                    </div>
+                     </div>
+                     </div>
                 </div>
             </div>
 
@@ -418,25 +418,25 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                 <div className="ems-card flex flex-1 flex-col min-h-0 p-5">
                     <h3 className="shrink-0 text-lg font-bold text-slate-900 dark:text-white mb-3">{t?.pvRealtimePower}</h3>
                     <div className="min-h-[240px] flex-1 w-full min-w-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorPvPower" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorPvPower" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                                 <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} fontWeight={600} interval={3}/>
                                 <YAxis yAxisId="left" fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} label={{ value: 'kW', position: 'insideLeft', angle: -90, dy: 10, fontSize: 13, fill: chartColors.text, fontWeight: 700 }} fontWeight={600}/>
                                 <YAxis yAxisId="right" orientation="right" fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} label={{ value: 'W/m²', position: 'insideRight', angle: 90, dy: 10, fontSize: 13, fill: chartColors.text, fontWeight: 700 }} fontWeight={600}/>
-                                <Tooltip {...tooltipStyle} />
+                            <Tooltip {...tooltipStyle} />
                                 <Legend verticalAlign="top" height={44} content={<CustomLegend onClick={toggleSeries}/>} />
                                 <Area hide={hiddenSeries.includes('pvPower')} yAxisId="left" name={lang === 'zh' ? '光伏总实时功率' : 'Total PV (real-time)'} type="monotone" dataKey="pvPower" stroke="#eab308" strokeWidth={2} fill="url(#colorPvPower)" animationDuration={500} />
                                 <Line hide={hiddenSeries.includes('pvForecastPower')} yAxisId="left" name={t.pvForecastPower} type="monotone" dataKey="pvForecastPower" stroke="#0ea5e9" strokeWidth={2} dot={false} strokeDasharray="6 4" animationDuration={500}/>
-                                <Line hide={hiddenSeries.includes('irradiance')} yAxisId="right" name={lang === 'zh' ? '辐照度' : 'Irradiance'} type="monotone" dataKey="irradiance" stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 5" animationDuration={500}/>
-                            </ComposedChart>
-                        </ResponsiveContainer>
+                            <Line hide={hiddenSeries.includes('irradiance')} yAxisId="right" name={lang === 'zh' ? '辐照度' : 'Irradiance'} type="monotone" dataKey="irradiance" stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 5" animationDuration={500}/>
+                        </ComposedChart>
+                    </ResponsiveContainer>
                     </div>
                 </div>
             </div>
@@ -488,18 +488,18 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                 <div className="ems-card flex h-full w-full min-h-0 flex-col p-5">
                     <h3 className="mb-4 shrink-0 text-lg font-bold text-slate-900 dark:text-white">{t?.pvDailyCurve}</h3>
                     <div className="min-h-0 w-full flex-1">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                                 <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} fontWeight={600} interval={3}/>
                                 <YAxis fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} label={{ value: 'kW', position: 'insideLeft', angle: -90, dy: 10, fontSize: 13, fill: chartColors.text, fontWeight: 700 }} fontWeight={600}/>
-                                <Tooltip {...tooltipStyle} />
+                            <Tooltip {...tooltipStyle} />
                                 <Legend verticalAlign="top" height={40} content={<CustomLegend onClick={toggleSeries}/>} />
-                                <Line hide={hiddenSeries.includes('inv1Power')} type="monotone" dataKey="inv1Power" name={t?.legend?.inv1} stroke="#eab308" strokeWidth={2} dot={false} animationDuration={500} />
-                                <Line hide={hiddenSeries.includes('inv2Power')} type="monotone" dataKey="inv2Power" name={t?.legend?.inv2} stroke="#f97316" strokeWidth={2} dot={false} animationDuration={500} />
-                                <Line hide={hiddenSeries.includes('inv3Power')} type="monotone" dataKey="inv3Power" name={t?.legend?.inv3} stroke="#84cc16" strokeWidth={2} dot={false} animationDuration={500} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                            <Line hide={hiddenSeries.includes('inv1Power')} type="monotone" dataKey="inv1Power" name={t?.legend?.inv1} stroke="#eab308" strokeWidth={2} dot={false} animationDuration={500} />
+                            <Line hide={hiddenSeries.includes('inv2Power')} type="monotone" dataKey="inv2Power" name={t?.legend?.inv2} stroke="#f97316" strokeWidth={2} dot={false} animationDuration={500} />
+                            <Line hide={hiddenSeries.includes('inv3Power')} type="monotone" dataKey="inv3Power" name={t?.legend?.inv3} stroke="#84cc16" strokeWidth={2} dot={false} animationDuration={500} />
+                        </LineChart>
+                    </ResponsiveContainer>
                     </div>
                 </div>
             </div>
@@ -515,52 +515,52 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                 <div className="ems-card flex h-full w-full flex-col p-5">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2 shrink-0">
                         <span className="p-1.5 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl"><Cable size={16}/></span>
-                        {lang === 'zh' ? '充电站监控' : 'Charging Hub'}
-                    </h3>
+                    {lang === 'zh' ? '充电站监控' : 'Charging Hub'}
+                </h3>
                     <div className="flex flex-col items-center justify-center p-5 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark mb-3 shrink-0">
                         <div className="relative w-32 h-32 flex items-center justify-center">
-                            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                                <path className="text-slate-200 dark:text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-                                <path className="text-blue-500 drop-shadow-md" strokeDasharray="65, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                            </svg>
-                            <div className="absolute flex flex-col items-center">
+                        <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                            <path className="text-slate-200 dark:text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+                            <path className="text-blue-500 drop-shadow-md" strokeDasharray="65, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                        </svg>
+                        <div className="absolute flex flex-col items-center">
                                 <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">65%</span>
                                 <span className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-0.5">{lang === 'zh' ? '利用率' : 'Utilization'}</span>
                             </div>
                         </div>
-                    </div>
+                     </div>
                     <div className="grid grid-cols-2 gap-4 shrink-0">
                         <div className="text-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
                             <div className="text-sm text-slate-400 font-bold uppercase tracking-widest mb-1">Active</div>
                             <div className="text-xl font-extrabold text-slate-900 dark:text-white">8/12</div>
-                        </div>
+                 </div>
                         <div className="text-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
                             <div className="text-sm text-slate-400 font-bold uppercase tracking-widest mb-1">Today</div>
                             <div className="text-xl font-extrabold text-slate-900 dark:text-white">1.2<span className="text-sm ml-1 text-slate-500">MWh</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                     </div>
+                     </div>
+                 </div>
+             </div>
 
             <div className="xl:col-span-3 flex h-full min-h-[240px]">
                 <div className="ems-card flex h-full w-full min-h-0 flex-col p-5">
                     <h3 className="shrink-0 text-lg font-bold text-slate-900 dark:text-white mb-4">{lang === 'zh' ? '充电负荷曲线' : 'Charging Load Profile'}</h3>
-                    <div className="flex-1 w-full min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorEvse" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                <div className="flex-1 w-full min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                             <defs>
+                                <linearGradient id="colorEvse" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                                 <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} fontWeight={600} interval={3}/>
                                 <YAxis fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} label={{ value: 'kW', position: 'insideLeft', angle: -90, dy: 10, fontSize: 13, fill: chartColors.text, fontWeight: 700 }} fontWeight={600} />
-                                <Tooltip {...tooltipStyle} />
-                                <Area name="Charging Power" type="step" dataKey="evsePower" stroke="#3b82f6" strokeWidth={2} fill="url(#colorEvse)" animationDuration={500}/>
-                            </AreaChart>
-                        </ResponsiveContainer>
+                            <Tooltip {...tooltipStyle} />
+                            <Area name="Charging Power" type="step" dataKey="evsePower" stroke="#3b82f6" strokeWidth={2} fill="url(#colorEvse)" animationDuration={500}/>
+                        </AreaChart>
+                    </ResponsiveContainer>
                     </div>
                 </div>
             </div>
@@ -595,24 +595,24 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                         })}
                     </div>
                 </div>
-            </div>
+             </div>
 
             <div className="xl:col-span-3 flex h-full min-h-[280px]">
                 <div className="ems-card flex h-full w-full min-h-0 flex-col p-5">
                     <h3 className="shrink-0 text-lg font-bold text-slate-900 dark:text-white mb-4">{lang === 'zh' ? '活跃会话数' : 'Active Sessions'}</h3>
-                    <div className="flex-1 w-full min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                <div className="flex-1 w-full min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                                 <XAxis dataKey="time" fontSize={13} tickLine={false} axisLine={false} tickMargin={12} stroke={chartColors.text} fontWeight={600} interval={3}/>
                                 <YAxis fontSize={13} tickLine={false} axisLine={false} stroke={chartColors.text} fontWeight={600} />
-                                <Tooltip {...tooltipStyle} cursor={{fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', radius: 4}} />
+                            <Tooltip {...tooltipStyle} cursor={{fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', radius: 4}} />
                                 <Bar name="Active Cars" dataKey="activeSessions" fill="#84cc16" radius={[4, 4, 0, 0]} barSize={24} animationDuration={500} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        </BarChart>
+                    </ResponsiveContainer>
                     </div>
                 </div>
-            </div>
+             </div>
         </div>
     </div>
   );
