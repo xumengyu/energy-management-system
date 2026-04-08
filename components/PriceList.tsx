@@ -1,31 +1,11 @@
 
 import React, { useState } from 'react';
 import { 
-    Search, Plus, Filter, MoreHorizontal, Edit, Trash2, Eye, MapPin, Zap, Calendar, CheckCircle2, Clock, AlertTriangle, User, Globe, RefreshCw
+    Search, Plus, Filter, MoreHorizontal, Edit, MapPin, Zap, Calendar, CheckCircle2, Clock, AlertTriangle, User, Globe
 } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
-
-// Mock Data for Price Schemes with 'source' field
-const SCHEMES_ZH = [
-    { id: 'SCH-001', name: 'EPEX 德国日前市场自动策略', region: 'DE-LU (德国)', voltage: '10kV', userType: '大工业', validFrom: '2025-01-01', validTo: '2025-12-31', status: 'Active', source: 'API', provider: 'EPEX SPOT', frequency: '日前 (Day-Ahead)' },
-    { id: 'SCH-002', name: '慕尼黑科技园峰谷电价', region: 'DE-BY (巴伐利亚)', voltage: '20kV', userType: '一般工商业', validFrom: '2025-03-01', validTo: '长期', status: 'Active', source: 'User', provider: '-', frequency: '-' },
-    { id: 'SCH-003', name: '巴黎夏季尖峰电价', region: 'FR-IDF (法兰西岛)', voltage: '10kV', userType: '商业', validFrom: '2025-07-01', validTo: '2025-09-30', status: 'Expired', source: 'User', provider: '-', frequency: '-' },
-    { id: 'SCH-004', name: '2025年伦敦冬季保供电价', region: 'GB-LON (伦敦)', voltage: '11kV', userType: '大工业', validFrom: '2025-01-20', validTo: '2025-02-10', status: 'Draft', source: 'User', provider: '-', frequency: '-' },
-    { id: 'SCH-005', name: '维也纳分时电价 V3', region: 'AT-WI (维也纳)', voltage: '10kV', userType: '大工业', validFrom: '2025-06-01', validTo: '长期', status: 'Active', source: 'User', provider: '-', frequency: '-' },
-    { id: 'SCH-006', name: '北欧电力现货 (Nord Pool)', region: 'EU-NO (挪威)', voltage: 'N/A', userType: '批发市场', validFrom: '-', validTo: '-', status: 'Connected', source: 'API', provider: 'Nord Pool AS', frequency: '日前 (Day-Ahead)' },
-    { id: 'SCH-007', name: '瑞士实时电价 API', region: 'CH-ZH (苏黎世)', voltage: '16kV', userType: '大工业', validFrom: '2025-01-01', validTo: '2025-12-31', status: 'Error', source: 'API', provider: 'Swissgrid', frequency: '实时 (15min)' },
-];
-
-const SCHEMES_EN = [
-    { id: 'SCH-001', name: 'EPEX Spot DE Auto Strategy', region: 'DE-LU (Germany)', voltage: '10kV', userType: 'Large Ind.', validFrom: '2025-01-01', validTo: '2025-12-31', status: 'Active', source: 'API', provider: 'EPEX SPOT', frequency: 'Day-Ahead' },
-    { id: 'SCH-002', name: 'Munich Tech Hub TOU', region: 'DE-BY (Bavaria)', voltage: '20kV', userType: 'Gen. Ind.', validFrom: '2025-03-01', validTo: 'Indefinite', status: 'Active', source: 'User', provider: '-', frequency: '-' },
-    { id: 'SCH-003', name: 'Paris Summer Peak', region: 'FR-IDF (Ile-de-France)', voltage: '10kV', userType: 'Commercial', validFrom: '2025-07-01', validTo: '2025-09-30', status: 'Expired', source: 'User', provider: '-', frequency: '-' },
-    { id: 'SCH-004', name: '2025 London Winter Peak', region: 'GB-LON (London)', voltage: '11kV', userType: 'Large Ind.', validFrom: '2025-01-20', validTo: '2025-02-10', status: 'Draft', source: 'User', provider: '-', frequency: '-' },
-    { id: 'SCH-005', name: 'Vienna TOU V3', region: 'AT-WI (Vienna)', voltage: '10kV', userType: 'Large Ind.', validFrom: '2025-06-01', validTo: 'Indefinite', status: 'Active', source: 'User', provider: '-', frequency: '-' },
-    { id: 'SCH-006', name: 'Nord Pool Spot', region: 'EU-NO (Norway)', voltage: 'N/A', userType: 'Wholesale', validFrom: '-', validTo: '-', status: 'Connected', source: 'API', provider: 'Nord Pool AS', frequency: 'Day-Ahead' },
-    { id: 'SCH-007', name: 'Zurich Real-time API', region: 'CH-ZH (Zurich)', voltage: '16kV', userType: 'Large Ind.', validFrom: '2025-01-01', validTo: '2025-12-31', status: 'Error', source: 'API', provider: 'Swissgrid', frequency: 'Real-time (15min)' },
-];
+import { PRICE_SCHEMES_EN, PRICE_SCHEMES_ZH } from '../data/priceSchemes';
 
 interface PriceListProps {
     lang: Language;
@@ -37,7 +17,7 @@ const PriceList: React.FC<PriceListProps> = ({ lang, theme }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'user' | 'api'>('user');
     
-    const schemes = lang === 'zh' ? SCHEMES_ZH : SCHEMES_EN;
+    const schemes = lang === 'zh' ? PRICE_SCHEMES_ZH : PRICE_SCHEMES_EN;
 
     // Filter by Tab (User vs API) AND Search Term
     const filteredSchemes = schemes.filter(item => {
@@ -135,7 +115,6 @@ const PriceList: React.FC<PriceListProps> = ({ lang, theme }) => {
                                 {activeTab === 'api' && <th className="px-6 py-4">{t.colFrequency}</th>}
 
                                 <th className="px-6 py-4">{t.colStatus}</th>
-                                <th className="px-6 py-4 text-right">{t.colAction}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/10">
@@ -187,24 +166,6 @@ const PriceList: React.FC<PriceListProps> = ({ lang, theme }) => {
 
                                     <td className="px-6 py-4">
                                         {getStatusBadge(item.status)}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                                            {activeTab === 'api' && (
-                                                <button className="p-2 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark rounded-lg text-slate-500 hover:text-emerald-600 transition-colors" title={t.actions.sync}>
-                                                    <RefreshCw size={16} />
-                                                </button>
-                                            )}
-                                            <button className="p-2 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark rounded-lg text-slate-500 hover:text-blue-600 transition-colors" title={t.actions.view}>
-                                                <Eye size={16} />
-                                            </button>
-                                            <button className="p-2 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark rounded-lg text-slate-500 hover:text-brand-600 transition-colors" title={t.actions.edit}>
-                                                <Edit size={16} />
-                                            </button>
-                                            <button className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-500 hover:text-red-600 transition-colors" title={t.actions.delete}>
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
                                     </td>
                                 </tr>
                             ))}

@@ -18,6 +18,7 @@ import type { StationListItem } from './StationList';
 import { translations } from '../translations';
 import DeployModal from './DeployModal';
 import PriceSelectionModal from './PriceSelectionModal';
+import { PRICE_SCHEMES_EN, PRICE_SCHEMES_ZH } from '../data/priceSchemes';
 import CoefficientsEditModal from './CoefficientsEditModal';
 import ChangeTemplateModal from './ChangeTemplateModal';
 import StrategyEditor from './StrategyEditor';
@@ -278,15 +279,13 @@ const StrategyManager: React.FC<StrategyManagerProps> = ({
         { id: 'u2', name: lang === 'zh' ? '应急备电 (台风)' : 'Emergency Backup (Storm)', updated: lang === 'zh' ? '1周前' : '1 week ago' },
     ];
 
-    const userSchemes = [
-        { id: 'SCH-002', name: lang === 'zh' ? '慕尼黑科技园峰谷电价' : 'Munich Tech Hub TOU', region: 'DE-BY', type: 'Gen. Ind.', voltage: '20kV' },
-        { id: 'SCH-005', name: lang === 'zh' ? '维也纳分时电价 V3' : 'Vienna TOU V3', region: 'AT-WI', type: 'Large Ind.', voltage: '10kV' },
-    ];
-
-    const systemSchemes = [
-        { id: 'SCH-001', name: lang === 'zh' ? 'EPEX 德国日前市场自动策略' : 'EPEX Spot DE Auto Strategy', region: 'DE-LU', provider: 'EPEX SPOT', frequency: 'Day-Ahead' },
-        { id: 'SCH-006', name: lang === 'zh' ? '北欧电力现货 (Nord Pool)' : 'Nord Pool Spot', region: 'EU-NO', provider: 'Nord Pool AS', frequency: 'Day-Ahead' },
-    ];
+    const { userSchemes, systemSchemes } = React.useMemo(() => {
+        const list = lang === 'zh' ? PRICE_SCHEMES_ZH : PRICE_SCHEMES_EN;
+        return {
+            userSchemes: list.filter((s) => s.source === 'User'),
+            systemSchemes: list.filter((s) => s.source === 'API'),
+        };
+    }, [lang]);
 
     const chartColors = {
       grid: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
