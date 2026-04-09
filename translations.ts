@@ -9,6 +9,7 @@ const en = {
     },
     sidebar: {
       title: 'EMS Cloud Platform',
+      categoryOverview: 'Overview',
       categoryManagement: 'Management',
       categoryAlarms: 'Alarms',
       categoryPriceTrading: 'Price & Trading',
@@ -971,6 +972,7 @@ const zh = {
     },
     sidebar: {
       title: 'EMS 云平台',
+      categoryOverview: '总览',
       categoryManagement: '管理',
       categoryAlarms: '告警',
       categoryPriceTrading: '调度',

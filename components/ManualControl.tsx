@@ -300,7 +300,7 @@ const PcsControlDrawer = ({
                         aria-label="Close"
                     >
                         <X size={20} />
-                    </button>
+                        </button>
                 </div>
 
                 <div className="custom-scrollbar flex-1 overflow-y-auto px-5 pb-10 pt-4">
@@ -443,15 +443,15 @@ const DieselGenControlDrawer = ({
                             </h2>
                         </div>
                     </div>
-                    <button
+                        <button 
                         type="button"
                         onClick={onClose}
                         className="shrink-0 rounded-full p-2 text-apple-text-tertiary-light transition-all hover:rotate-90 hover:bg-apple-surface-secondary-light dark:text-apple-text-tertiary-dark dark:hover:bg-apple-surface-secondary-dark"
                         aria-label="Close"
                     >
                         <X size={20} />
-                    </button>
-                </div>
+                        </button>
+                    </div>
 
                 <div className="custom-scrollbar flex-1 overflow-y-auto px-5 pb-10 pt-4">
                     <div className="space-y-8">
@@ -466,7 +466,7 @@ const DieselGenControlDrawer = ({
                                             <p className="mt-2 text-2xl font-black tracking-tight text-brand-600 dark:text-brand-400 md:text-3xl">
                                                 {t.dgStatusOff}
                                             </p>
-                                        </div>
+                </div>
                                         <div className="border-t border-apple-border-light pt-4 dark:border-apple-border-dark">
                                             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                                                 <ManualDispatchButton
@@ -517,7 +517,7 @@ const DieselGenControlDrawer = ({
                                             <p className="mt-2 text-2xl font-black tracking-tight text-slate-500 dark:text-slate-400 md:text-3xl">
                                                 {t.gridStatusUnknown}
                                             </p>
-                                        </div>
+                </div>
                                         <div className="border-t border-apple-border-light pt-4 dark:border-apple-border-dark">
                                             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                                                 <ManualDispatchButton
@@ -540,7 +540,7 @@ const DieselGenControlDrawer = ({
                                                 >
                                                     {t.disconnectGrid}
                                                 </ManualDispatchButton>
-                                            </div>
+            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -586,7 +586,7 @@ const BmsControlDrawer = ({
                     <div className="flex min-w-0 items-start gap-3">
                         <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-500/20">
                             <CircuitBoard size={22} strokeWidth={2} aria-hidden />
-                        </div>
+                                    </div>
                         <div className="min-w-0">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-apple-text-tertiary-light dark:text-apple-text-tertiary-dark">
                                 {t.unitLabel.replace('{unit}', unitTitle)}
@@ -597,8 +597,8 @@ const BmsControlDrawer = ({
                             >
                                 {t.title}
                             </h2>
-                        </div>
-                    </div>
+                                    </div>
+                                </div>
                     <button
                         type="button"
                         onClick={onClose}
@@ -666,7 +666,7 @@ const BmsControlDrawer = ({
                                         <RotateCcw size={18} strokeWidth={2.25} aria-hidden />
                                         {t.batteryFaultReset}
                                     </ManualDispatchButton>
-                                </div>
+                                    </div>
                                 <div className="ems-card p-5">
                                     <div className="flex flex-col gap-2 sm:flex-row">
                                         <ManualDispatchButton
@@ -800,7 +800,7 @@ const AcControlDrawer = ({
                     >
                         <X size={20} />
                     </button>
-                </div>
+                                    </div>
 
                 <div className="custom-scrollbar flex-1 overflow-y-auto px-4 pb-6 pt-3">
                     <div className="space-y-4">
@@ -1005,15 +1005,15 @@ const DehumidifierControlDrawer = ({
                             </h2>
                         </div>
                     </div>
-                    <button
+                                                <button 
                         type="button"
                         onClick={onClose}
                         className="shrink-0 rounded-full p-2 text-apple-text-tertiary-light transition-all hover:rotate-90 hover:bg-apple-surface-secondary-light dark:text-apple-text-tertiary-dark dark:hover:bg-apple-surface-secondary-dark"
                         aria-label="Close"
                     >
                         <X size={20} />
-                    </button>
-                </div>
+                                                </button>
+                                            </div>
 
                 <div className="custom-scrollbar flex-1 overflow-y-auto px-4 pb-6 pt-3">
                     <div className="space-y-4">
@@ -1030,7 +1030,7 @@ const DehumidifierControlDrawer = ({
                                     <RotateCcw size={18} strokeWidth={2.25} aria-hidden />
                                     {t.faultReset}
                                 </ManualDispatchButton>
-                            </div>
+                                        </div>
                         </AcDrawerSection>
 
                         <AcDrawerSection title={t.sectionTemp}>
@@ -1175,15 +1175,15 @@ const IoControlDrawer = ({
                             </h2>
                         </div>
                     </div>
-                    <button
+                                        <button 
                         type="button"
                         onClick={onClose}
                         className="shrink-0 rounded-full p-2 text-apple-text-tertiary-light transition-all hover:rotate-90 hover:bg-apple-surface-secondary-light dark:text-apple-text-tertiary-dark dark:hover:bg-apple-surface-secondary-dark"
                         aria-label="Close"
                     >
                         <X size={20} />
-                    </button>
-                </div>
+                                        </button>
+                                    </div>
 
                 <div className="custom-scrollbar flex-1 overflow-y-auto px-5 pb-10 pt-4">
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
@@ -1445,7 +1445,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                         {CATEGORY_ORDER.map((id) => {
                             const active = activeCategory === id;
                             return (
-                                <button
+                                            <button 
                                     key={id}
                                     type="button"
                                     onClick={() => setActiveCategory(id)}
@@ -1456,7 +1456,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                                     }`}
                                 >
                                     {tabLabel(id)}
-                                </button>
+                                            </button>
                             );
                         })}
                     </div>
@@ -1510,7 +1510,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                             </div>
                         );
                     })}
-                </div>
+                        </div>
             ) : activeCategory === 'dido' ? (
                 <div className="grid w-full max-w-4xl grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
                     {(['io1', 'io2'] as const).map((slot) => {
@@ -1525,7 +1525,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-500/25 bg-brand-500/10 text-brand-600 transition-transform duration-300 group-hover/card:scale-[1.02] dark:border-brand-500/35 dark:bg-brand-500/15 dark:text-brand-400">
                                             <Binary size={22} strokeWidth={2.25} aria-hidden />
-                                        </div>
+                </div>
                                         <div className="min-w-0 flex-1 py-0.5">
                                             <h3 className="truncate text-lg font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50">
                                                 {title}
@@ -1541,7 +1541,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                                     >
                                         {actionLabel('ioControl')}
                                     </button>
-                                </div>
+            </div>
                             </div>
                         );
                     })}

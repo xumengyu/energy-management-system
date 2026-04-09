@@ -54,7 +54,7 @@ const STATION_DATA_EN = {
         status: 0 // 0: Normal, 1: Hint, 2: Warn, 3: Fault
     },
     dcPv: {
-        name: 'Carport PV (DC)',
+        name: 'Carport PV',
         hv: { p: '25.4 kW', i: '35.2 A', v: '720.5 V' },
         panels: [
             { id: 'PV1', p: '6.2kW', i: '8.8A', v: '704V' },
@@ -162,7 +162,7 @@ const STATION_DATA_ZH = {
         status: 0 // 0: Normal, 1: Hint, 2: Warn, 3: Fault
     },
     dcPv: {
-        name: '车棚光伏 (DC耦合)',
+        name: '车棚光伏',
         hv: { p: '25.4 kW', i: '35.2 A', v: '720.5 V' },
         panels: [
             { id: 'PV1', p: '6.2kW', i: '8.8A', v: '704V' },
@@ -243,9 +243,9 @@ const getArchTheme = (isDark: boolean) => ({
         ? 'bg-apple-bg-dark border-transparent shadow-none'
         : 'bg-slate-100/90 border-slate-200 shadow-sm',
     gridDot: isDark ? 'rgba(148,163,184,0.14)' : 'rgba(148,163,184,0.35)',
-    strokeAC: isDark ? '#fb923c' : '#ea580c',
+    strokeAC: isDark ? 'var(--color-brand-400)' : 'var(--color-brand-600)',
     strokeDC: isDark ? 'var(--color-brand-400)' : 'var(--color-brand-600)',
-    strokeBusH: isDark ? 'var(--color-brand-400)' : '#ea580c',
+    strokeBusH: isDark ? 'var(--color-brand-400)' : 'var(--color-brand-600)',
     strokeComm: isDark ? 'var(--color-brand-500)' : 'var(--color-brand-500)',
     ringTrack: isDark ? '#3f3f46' : '#e2e8f0',
     ringLow: '#fb923c',
@@ -323,10 +323,75 @@ const ArchDetailButton = ({
     </button>
 );
 
-const DrawerRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
-    <div className="flex items-start justify-between gap-3 border-b border-slate-100 py-2.5 text-sm dark:border-white/10">
-        <span className="shrink-0 text-slate-500 dark:text-slate-400">{label}</span>
-        <span className="break-all text-right font-mono font-semibold text-slate-900 dark:text-slate-100">{value}</span>
+const DrawerRow = ({ label, value }: { label: string; value: React.ReactNode }) => {
+    const isStatusLabel = label === 'State' || label === 'Status' || label === '状态';
+    const valueIsString = typeof value === 'string';
+
+    return (
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 py-2.5 text-sm dark:border-white/10">
+            <span className="shrink-0 text-slate-500 dark:text-slate-400">{label}</span>
+            {isStatusLabel && valueIsString ? (
+                <span className="rounded-md border border-brand-200 bg-brand-50 px-2 py-0.5 text-right text-xs font-bold text-brand-700 dark:border-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+                    {value}
+                </span>
+            ) : (
+                <span className="break-all text-right font-mono font-semibold text-slate-900 dark:text-slate-100">{value}</span>
+            )}
+        </div>
+    );
+};
+
+const PcsStatusChip = ({ value, isDark }: { value: string; isDark: boolean }) => {
+    const v = value.toLowerCase();
+    const good = ['normal', 'online', 'remote', 'grid-tied', '并网', '正常', '远程', '0'].some((k) => v.includes(k));
+    const warn = ['standby', 'island', '离网', '待机', 'open', '1', '2', '3', '4'].some((k) => v.includes(k));
+    const bad = ['fault', 'alarm', 'offline', '故障', '告警'].some((k) => v.includes(k));
+    const cls = bad
+        ? isDark
+            ? 'bg-red-500/15 text-red-300 ring-red-500/30'
+            : 'bg-red-50 text-red-700 ring-red-200'
+        : warn
+          ? isDark
+              ? 'bg-amber-500/15 text-amber-300 ring-amber-500/30'
+              : 'bg-amber-50 text-amber-700 ring-amber-200'
+          : good
+            ? isDark
+                ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30'
+                : 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+            : isDark
+              ? 'bg-zinc-500/15 text-zinc-300 ring-zinc-500/30'
+              : 'bg-slate-100 text-slate-700 ring-slate-200';
+    return <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${cls}`}>{value}</span>;
+};
+
+const PcsSectionTitle = ({ children, isDark }: { children: React.ReactNode; isDark: boolean }) => (
+    <h3 className={`mb-3 mt-1 text-xs font-black uppercase tracking-[0.18em] ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>{children}</h3>
+);
+
+const PcsStatusRow = ({ label, value, isDark }: { label: string; value: React.ReactNode; isDark: boolean }) => (
+    <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${isDark ? 'border-zinc-800 bg-zinc-950/80' : 'border-slate-200 bg-white'}`}>
+        <span className={`text-sm ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>{label}</span>
+        {value}
+    </div>
+);
+
+const PcsKpiCard = ({ label, value, unit, isDark }: { label: string; value: React.ReactNode; unit?: string; isDark: boolean }) => (
+    <div className={`rounded-2xl border px-4 py-3 ${isDark ? 'border-zinc-800 bg-zinc-950/80' : 'border-slate-200 bg-white'}`}>
+        <div className={`text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{label}</div>
+        <div className="mt-1.5 flex items-end gap-1">
+            <span className={`font-mono text-[22px] font-black ${isDark ? 'text-zinc-100' : 'text-slate-900'}`}>{value}</span>
+            {unit ? <span className={`pb-0.5 text-xs ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>{unit}</span> : null}
+        </div>
+    </div>
+);
+
+const PcsDataRow = ({ label, value, unit, isDark }: { label: string; value: React.ReactNode; unit?: string; isDark: boolean }) => (
+    <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${isDark ? 'border-zinc-800 bg-zinc-950/80' : 'border-slate-200 bg-white'}`}>
+        <span className={`text-sm ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>{label}</span>
+        <span className={`flex items-end gap-1 font-mono text-[22px] font-black ${isDark ? 'text-zinc-100' : 'text-slate-900'}`}>
+            {value}
+            {unit ? <span className={`pb-0.5 text-xs font-semibold ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>{unit}</span> : null}
+        </span>
     </div>
 );
 
@@ -398,7 +463,7 @@ function archDetailTitle(id: ArchDetailId, stationData: any, lang: Language): st
     }
 }
 
-function ArchDetailPanelContent({ id, stationData, lang }: { id: ArchDetailId; stationData: any; lang: Language }) {
+function ArchDetailPanelContent({ id, stationData, lang, isDark }: { id: ArchDetailId; stationData: any; lang: Language; isDark: boolean }) {
     const L = (en: string, zh: string) => (lang === 'zh' ? zh : en);
     switch (id) {
         case 'grid':
@@ -472,18 +537,93 @@ function ArchDetailPanelContent({ id, stationData, lang }: { id: ArchDetailId; s
                           : id === 'pcs5'
                             ? stationData.ess5.pcs
                             : stationData.ess6.pcs;
+            const acI = String(d.ac.i ?? '--');
+            const acV = String(d.ac.v ?? '--');
+            const iParts = acI.split('/');
+            const vParts = acV.split('/');
+            const ia = iParts[0]?.trim() || acI;
+            const ib = iParts[1]?.trim() || acI;
+            const ic = iParts[2]?.trim() || acI;
+            const va = vParts[0]?.trim() || acV;
+            const vb = vParts[1]?.trim() || acV;
+            const vc = vParts[2]?.trim() || acV;
             return (
-                <>
-                    <DrawerRow label={L('AC power', '交流功率')} value={d.ac.p} />
-                    <DrawerRow label={L('AC current', '交流电流')} value={d.ac.i} />
-                    <DrawerRow label={L('AC voltage', '交流电压')} value={d.ac.v} />
-                    <DrawerRow label={L('DC power', '直流功率')} value={d.dc.p} />
-                    <DrawerRow label={L('DC current', '直流电流')} value={d.dc.i} />
-                    <DrawerRow label={L('DC voltage', '直流电压')} value={d.dc.v} />
-                    <DrawerRow label={L('Mode', '模式')} value={d.status.mode} />
-                    <DrawerRow label={L('State', '状态')} value={d.status.state} />
-                    <DrawerRow label={L('Health', '健康')} value={d.status.health} />
-                </>
+                <div className="space-y-7 pb-2">
+                    <div>
+                        <PcsSectionTitle isDark={isDark}>{L('Status & Alarms', '状态与告警')}</PcsSectionTitle>
+                        <div className="space-y-2.5">
+                            <PcsStatusRow label={L('PCS operating status', 'PCS运行状态')} value={<PcsStatusChip value="4" isDark={isDark} />} isDark={isDark} />
+                            <PcsStatusRow label={L('Alarm status', '告警状态')} value={<PcsStatusChip value="0" isDark={isDark} />} isDark={isDark} />
+                            <PcsStatusRow label={L('Fault status', '故障状态')} value={<PcsStatusChip value="0" isDark={isDark} />} isDark={isDark} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <PcsSectionTitle isDark={isDark}>{L('AC Main Parameters', '交流主参数')}</PcsSectionTitle>
+                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                            <PcsKpiCard label={L('AC total active power', '交流_总有功功率')} value={d.ac.p} unit="kW" isDark={isDark} />
+                            <PcsKpiCard label={L('AC total reactive power', '交流_总无功功率')} value="0.2" unit="kVar" isDark={isDark} />
+                            <PcsKpiCard label={L('AC total power factor', '交流_总功率因数')} value="1" isDark={isDark} />
+                            <PcsKpiCard label={L('Grid frequency', '交流_电网总频率')} value={id === 'pcs1' ? stationData.dg.freq : '50.02'} unit="Hz" isDark={isDark} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <PcsSectionTitle isDark={isDark}>{L('DC Input', '直流输入')}</PcsSectionTitle>
+                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
+                            <PcsKpiCard label={L('DC power', '直流_功率')} value={d.dc.p} unit="kW" isDark={isDark} />
+                            <PcsKpiCard label={L('DC voltage', '直流_电压')} value={d.dc.v} unit="V" isDark={isDark} />
+                            <PcsKpiCard label={L('DC current', '直流_电流')} value={d.dc.i} unit="A" isDark={isDark} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <PcsSectionTitle isDark={isDark}>{L('Energy Statistics', '电量统计')}</PcsSectionTitle>
+                        <div className="space-y-2.5">
+                            <PcsDataRow label={L('AC today charge energy', '交流_日充电量')} value="533" unit="kWh" isDark={isDark} />
+                            <PcsDataRow label={L('AC today discharge energy', '交流_日放电量')} value="411" unit="kWh" isDark={isDark} />
+                            <PcsDataRow label={L('AC cumulative charge energy', '交流_总充电电量')} value="2718892032" unit="kWh" isDark={isDark} />
+                            <PcsDataRow label={L('AC cumulative discharge energy', '交流_总放电电量')} value="1738866688" unit="kWh" isDark={isDark} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <PcsSectionTitle isDark={isDark}>{L('Grid Line Voltage', '线电压')}</PcsSectionTitle>
+                        <div className="space-y-2.5">
+                            <PcsDataRow label={L('AB grid line voltage', 'AB相电网线电压')} value={va} unit="V" isDark={isDark} />
+                            <PcsDataRow label={L('BC grid line voltage', 'BC相电网线电压')} value={vb} unit="V" isDark={isDark} />
+                            <PcsDataRow label={L('CA grid line voltage', 'CA相电网线电压')} value={vc} unit="V" isDark={isDark} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <PcsSectionTitle isDark={isDark}>{L('Thermal Monitoring', '温度监测')}</PcsSectionTitle>
+                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                            <PcsKpiCard label={L('Cabinet temperature', '设备内部腔体温度')} value="35.3" unit="°C" isDark={isDark} />
+                            <PcsKpiCard label={L('A phase IGBT temperature', 'A相IGBT温度')} value="44.9" unit="°C" isDark={isDark} />
+                            <PcsKpiCard label={L('B phase IGBT temperature', 'B相IGBT温度')} value="46.6" unit="°C" isDark={isDark} />
+                            <PcsKpiCard label={L('C phase IGBT temperature', 'C相IGBT温度')} value="47" unit="°C" isDark={isDark} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <PcsSectionTitle isDark={isDark}>{L('Detailed AC Phases', '交流分相明细')}</PcsSectionTitle>
+                        <div className="space-y-2.5">
+                            <PcsDataRow label={L('AC_A active power', '交流_A相有功功率')} value="0" unit="kW" isDark={isDark} />
+                            <PcsDataRow label={L('AC_B active power', '交流_B相有功功率')} value="0" unit="kW" isDark={isDark} />
+                            <PcsDataRow label={L('AC_C active power', '交流_C相有功功率')} value="0" unit="kW" isDark={isDark} />
+                            <PcsDataRow label={L('AC_A reactive power', '交流_A相无功功率')} value="0" unit="kVar" isDark={isDark} />
+                            <PcsDataRow label={L('AC_B reactive power', '交流_B相无功功率')} value="0" unit="kVar" isDark={isDark} />
+                            <PcsDataRow label={L('AC_C reactive power', '交流_C相无功功率')} value="0" unit="kVar" isDark={isDark} />
+                            <PcsDataRow label={L('AC_A phase voltage', '交流_A相电压')} value={va} unit="V" isDark={isDark} />
+                            <PcsDataRow label={L('AC_B phase voltage', '交流_B相电压')} value={vb} unit="V" isDark={isDark} />
+                            <PcsDataRow label={L('AC_C phase voltage', '交流_C相电压')} value={vc} unit="V" isDark={isDark} />
+                            <PcsDataRow label={L('AC_A phase current', '交流_A相电流')} value={ia} unit="A" isDark={isDark} />
+                            <PcsDataRow label={L('AC_B phase current', '交流_B相电流')} value={ib} unit="A" isDark={isDark} />
+                            <PcsDataRow label={L('AC_C phase current', '交流_C相电流')} value={ic} unit="A" isDark={isDark} />
+                        </div>
+                    </div>
+                </div>
             );
         }
         case 'car':
@@ -621,6 +761,8 @@ const ArchitectureDetailDrawer = ({
     panelTitle: string;
 }) => {
     if (!detailId) return null;
+    const isPcsDetail = detailId.startsWith('pcs');
+    const L = (en: string, zh: string) => (lang === 'zh' ? zh : en);
     const title = archDetailTitle(detailId, stationData, lang);
     return (
         <div
@@ -636,41 +778,74 @@ const ArchitectureDetailDrawer = ({
                 onClick={onClose}
             />
             <aside
-                className="animate-in slide-in-from-right relative z-10 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl duration-300 dark:border-apple-border-dark dark:bg-apple-surface-dark"
+                className={`animate-in slide-in-from-right relative z-10 flex h-full w-full flex-col border-l shadow-2xl duration-300 ${
+                    isPcsDetail
+                        ? isDark
+                            ? 'max-w-2xl border-zinc-900 bg-[#07090d]'
+                            : 'max-w-2xl border-slate-200 bg-white'
+                        : 'max-w-md border-slate-200 bg-white dark:border-apple-border-dark dark:bg-apple-surface-dark'
+                }`}
                 onMouseDown={(e) => e.stopPropagation()}
             >
-                <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-4 dark:border-apple-border-dark">
+                <div
+                    className={`flex items-start justify-between gap-3 border-b ${
+                        isPcsDetail
+                            ? isDark
+                                ? 'border-zinc-900 px-5 py-5'
+                                : 'border-slate-200 px-5 py-5'
+                            : 'border-slate-100 px-4 py-4 dark:border-apple-border-dark'
+                    }`}
+                >
                     <div className="min-w-0 flex items-start gap-3">
                         <div
                             className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                                isDark ? 'bg-brand-500/20 text-brand-400' : 'bg-brand-50 text-brand-600'
+                                isPcsDetail
+                                    ? isDark
+                                        ? 'bg-emerald-500/15 text-emerald-400'
+                                        : 'bg-emerald-50 text-emerald-600'
+                                    : isDark
+                                      ? 'bg-brand-500/20 text-brand-400'
+                                      : 'bg-brand-50 text-brand-600'
                             }`}
                         >
                             <PanelRight size={20} />
                         </div>
                         <div className="min-w-0">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                {panelTitle}
-                            </p>
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${
+                                isPcsDetail ? (isDark ? 'text-zinc-500' : 'text-slate-400') : 'text-slate-400 dark:text-slate-500'
+                            }`}>{panelTitle}</p>
                             <h2
                                 id="arch-detail-drawer-title"
-                                className="mt-1 text-lg font-black leading-tight text-slate-900 dark:text-white"
+                                className={`mt-1 text-lg font-black leading-tight ${
+                                    isPcsDetail ? (isDark ? 'text-zinc-100' : 'text-slate-900') : 'text-slate-900 dark:text-white'
+                                }`}
                             >
                                 {title}
                             </h2>
+                            {isPcsDetail ? (
+                                <p className={`mt-1 text-sm ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>
+                                    {L('Detailed telemetry and operational parameters', '详细遥测与运行参数')}
+                                </p>
+                            ) : null}
                         </div>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-slate-200"
+                        className={`shrink-0 rounded-lg p-2 transition-colors ${
+                            isPcsDetail
+                                ? isDark
+                                    ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'
+                                    : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-slate-200'
+                        }`}
                         aria-label="Close"
                     >
                         <X size={20} />
                     </button>
                 </div>
-                <div className="custom-scrollbar-hide flex-1 overflow-y-auto px-4 pb-8 pt-2">
-                    <ArchDetailPanelContent id={detailId} stationData={stationData} lang={lang} />
+                <div className={`custom-scrollbar-hide flex-1 overflow-y-auto ${isPcsDetail ? 'px-5 pb-8 pt-4' : 'px-4 pb-6 pt-1.5'}`}>
+                    <ArchDetailPanelContent id={detailId} stationData={stationData} lang={lang} isDark={isDark} />
                 </div>
             </aside>
         </div>
@@ -716,44 +891,71 @@ const StatusBadge = ({ level, text }: { level: number | string, text?: string })
     );
 };
 
-// Floating Data Component for Lines (AC/DC) — P 主数值突出，U/I 次级灰字
+const SvgLineSwitch = ({
+    x,
+    y,
+    isClosed,
+    isDark,
+}: {
+    x: number;
+    y: number;
+    isClosed: boolean;
+    isDark: boolean;
+}) => {
+    const stroke = isClosed
+        ? isDark
+            ? '#6ee7b7'
+            : '#047857'
+        : isDark
+          ? '#fcd34d'
+          : '#b45309';
+    return (
+        <g transform={`translate(${x}, ${y})`}>
+            <line x1="-10" y1="0" x2="-3" y2="0" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="3" y1="0" x2="10" y2="0" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
+            <line
+                x1="0"
+                y1={isClosed ? -4 : -5}
+                x2={isClosed ? 0 : 2}
+                y2={isClosed ? 4 : 3}
+                stroke={stroke}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+            />
+            <circle cx="-3" cy="0" r="1.6" fill={stroke} />
+            <circle cx="3" cy="0" r="1.6" fill={stroke} />
+        </g>
+    );
+};
+// Floating Data Component for Lines — 统一展示 P/U/I
 const FloatingData = ({
     p,
     u,
     i,
-    type = 'ac',
     style,
     isDark,
 }: {
     p: string;
     u: string;
     i: string;
-    type?: 'ac' | 'dc';
     style?: React.CSSProperties;
     isDark: boolean;
 }) => {
-    const labelAC = isDark ? 'text-orange-400' : 'text-orange-600';
-    const labelDC = isDark ? 'text-brand-400' : 'text-green-600';
-    const label = type === 'ac' ? labelAC : labelDC;
-    const dotAC = isDark ? 'bg-orange-400 border-black' : 'bg-orange-500 border-white';
-    const dotDC = isDark ? 'bg-brand-400 border-black' : 'bg-green-500 border-white';
+    const label = isDark ? 'text-brand-400' : 'text-brand-600';
+    const dot = isDark ? 'bg-brand-400 border-black' : 'bg-brand-500 border-white';
     return (
-    <div className="absolute flex flex-col gap-0.5 z-0 text-sm whitespace-nowrap pointer-events-none" style={style}>
-            <div
-                className={`absolute -left-3 w-2 h-2 rounded-full border-2 ${
-                    type === 'ac' ? `${dotAC} top-[100%] -translate-y-2` : `${dotDC} top-[-4px]`
-                }`}
-            />
+        <div className="pointer-events-none absolute z-0 flex flex-col gap-0.5 whitespace-nowrap text-sm" style={style}>
+            <div className={`absolute -left-3 top-[100%] -translate-y-2 h-2 w-2 rounded-full border-2 ${dot}`} />
         <div className="flex items-center gap-2">
-                <span className={`${label} font-bold w-3`}>P</span>
-                <span className={`font-mono font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>{p}</span>
+                <span className={`${label} w-3 font-bold`}>P</span>
+                <span className={`font-mono text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{p}</span>
         </div>
         <div className="flex items-center gap-2">
-                <span className={`${label} font-bold w-3`}>U</span>
+                <span className={`${label} w-3 font-bold`}>U</span>
                 <span className={`font-mono text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{u}</span>
         </div>
         <div className="flex items-center gap-2">
-                <span className={`${label} font-bold w-3`}>I</span>
+                <span className={`${label} w-3 font-bold`}>I</span>
                 <span className={`font-mono text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{i}</span>
         </div>
     </div>
@@ -916,7 +1118,6 @@ const PcsCard = ({
                 p={data.ac.p}
                 u={data.ac.v}
                 i={data.ac.i}
-                type="ac"
                 isDark={isDark}
                 style={{ top: '-65px', left: '33%', marginLeft: '12px' }}
             />
@@ -1010,7 +1211,6 @@ const PcsCard = ({
                 p={data.dc?.p || '-'}
                 u={data.dc?.v || '-'}
                 i={data.dc?.i || '-'}
-                type="dc"
                 isDark={isDark}
                 style={{ bottom: '-85px', left: '33%', marginLeft: '12px' }}
             />
@@ -1157,17 +1357,28 @@ const ArchBessCard = ({
     );
 };
 
-const DataRow = ({ label, value, subValue, highlight = false }: any) => (
-    <div className="flex justify-between items-center text-xs">
+const DataRow = ({ label, value, subValue, highlight = false }: any) => {
+    const isStatusLabel = label === 'Status' || label === 'State' || label === '状态';
+    return (
+        <div className="flex items-center justify-between text-xs">
         <span className="text-slate-500 dark:text-slate-400">{label}</span>
         <div className="flex items-center gap-1">
-            <span className={`font-mono font-bold ${highlight ? 'text-brand-600 dark:text-brand-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                {isStatusLabel ? (
+                    <span className="rounded-md border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700 dark:border-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
                 {value}
             </span>
-            {subValue && <span className="text-slate-400 scale-90">{subValue}</span>}
+                ) : (
+                    <span
+                        className={`font-mono font-bold ${highlight ? 'text-brand-600 dark:text-brand-400' : 'text-slate-700 dark:text-slate-300'}`}
+                    >
+                        {value}
+                    </span>
+                )}
+                {subValue && <span className="scale-90 text-slate-400">{subValue}</span>}
         </div>
     </div>
 );
+};
 
 /** 拓扑画布逻辑尺寸（与 SVG / 绝对定位一致） */
 /** #2–#6 BESS 宽 180px，列距需 >180 才不互叠 */
@@ -1535,10 +1746,10 @@ const StationDiagram = ({
     /** 母线垂线在表计处断开，避免粗线被卡片完全遮住 */
     const Y_ESS_PAIR_TRUNK_ABOVE_METER = Math.max(Y_BUSBAR + 4, Y_ESS_PAIR_METER - Y_ESS_PAIR_METER_TRUNK_PAD);
 
-    const trunkStroke = isDark ? th.strokeDC : th.strokeAC;
+    const trunkStroke = th.strokeBusH;
     const busStroke = th.strokeBusH;
-    const acTap = th.strokeAC;
-    const dcRun = th.strokeDC;
+    const acTap = th.strokeBusH;
+    const dcRun = th.strokeBusH;
 
     const bessTitle = (name: string) =>
         lang === 'zh' ? `${String(name).replace('#', '')}#BESS` : `BESS ${name}`;
@@ -1548,7 +1759,6 @@ const StationDiagram = ({
         height: HEIGHT,
         ...(isDark ? { backgroundColor: 'var(--color-apple-bg-dark)' } : {}),
     };
-
     return (
         <div className={`relative overflow-visible rounded-xl border ${th.canvas}`} style={diagramSurfaceStyle}>
         <div 
@@ -1649,6 +1859,31 @@ const StationDiagram = ({
                     strokeWidth={2}
                     fill="none"
                 />
+                <SvgLineSwitch x={CENTER_X} y={Y_BUSBAR - 34} isClosed={true} isDark={isDark} />
+                <SvgLineSwitch
+                    x={X_DG + OFFSET_STD}
+                    y={Y_BUSBAR + (Y_MAIN_ROW - Y_BUSBAR) * 0.42}
+                    isClosed={false}
+                    isDark={isDark}
+                />
+                <SvgLineSwitch
+                    x={X_ACPV + OFFSET_STD}
+                    y={Y_BUSBAR + (Y_MAIN_ROW - Y_BUSBAR) * 0.42}
+                    isClosed={true}
+                    isDark={isDark}
+                />
+                <SvgLineSwitch
+                    x={X_PCS1 + OFFSET_PCS}
+                    y={Y_DC_START + (Y_SPLIT_PCS1 - Y_DC_START) * 0.45}
+                    isClosed={true}
+                    isDark={isDark}
+                />
+                <SvgLineSwitch
+                    x={X_EVSE + OFFSET_STD}
+                    y={Y_EVSE_DC_START + (Y_EVSE_DC_STUB_END - Y_EVSE_DC_START) * 0.4}
+                    isClosed={false}
+                    isDark={isDark}
+                />
             </svg>
 
             <div className="absolute left-[50%] top-0 z-30 flex -translate-x-1/2 flex-col items-center gap-1.5">
@@ -1678,7 +1913,6 @@ const StationDiagram = ({
                         p={stationData.acMeter.ac.p}
                         u={stationData.acMeter.ac.v}
                         i={stationData.acMeter.ac.i}
-                        type="ac"
                         isDark={isDark}
                         style={{
                             top: '50%',
@@ -1707,7 +1941,6 @@ const StationDiagram = ({
                         p={stationData.essPairAcMeter.ac.p}
                         u={stationData.essPairAcMeter.ac.v}
                         i={stationData.essPairAcMeter.ac.i}
-                        type="ac"
                         isDark={isDark}
                         style={{
                             top: '50%',
@@ -1724,7 +1957,6 @@ const StationDiagram = ({
                     p={stationData.dg.ac.p}
                     u={stationData.dg.ac.v}
                     i={stationData.dg.ac.i}
-                    type="ac"
                     isDark={isDark}
                     style={{ top: '-65px', left: '33%', marginLeft: '12px' }}
                 />
@@ -1759,7 +1991,6 @@ const StationDiagram = ({
                     p={stationData.acPv.ac.p}
                     u={stationData.acPv.ac.v}
                     i={stationData.acPv.ac.i}
-                    type="ac"
                     isDark={isDark}
                     style={{ top: '-65px', left: '33%', marginLeft: '12px' }}
                 />
@@ -1786,7 +2017,6 @@ const StationDiagram = ({
                     p={stationData.evse.ac.p}
                     u={stationData.evse.ac.v}
                     i={stationData.evse.ac.i}
-                    type="ac"
                     isDark={isDark}
                     style={{ top: '-65px', left: '33%', marginLeft: '12px' }}
                 />
@@ -1903,7 +2133,6 @@ const StationDiagram = ({
                     p={stationData.dcPv.hv.p}
                     u={stationData.dcPv.hv.v}
                     i={stationData.dcPv.hv.i}
-                    type="dc"
                     isDark={isDark}
                     style={{ top: '-85px', left: '33%', marginLeft: '12px' }}
                 />
@@ -2204,11 +2433,10 @@ const StationArchitecture: React.FC<StationArchitectureProps> = ({ lang, theme, 
             <div className="bg-white/90 dark:bg-apple-surface-dark/90 backdrop-blur shadow-sm border border-slate-200 dark:border-apple-border-dark rounded-xl p-2 pointer-events-auto transition-all hover:shadow-md ml-auto md:ml-0">
                 <div className="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400 px-2">
                     {activeView === 'power' ? (
-                        <>
-                            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-500"></span> AC</div>
-                            <div className="w-px h-3 bg-slate-200 dark:bg-white/10"></div>
-                            <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-green-600 dark:bg-brand-400"></span> DC</div>
-                        </>
+                        <div className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-brand-500"></span>
+                            {lang === 'zh' ? '功率流' : 'Power Flow'}
+                        </div>
                     ) : (
                         <>
                             <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-brand-500 border-t-2 border-dashed border-brand-500"></span> WAN</div>

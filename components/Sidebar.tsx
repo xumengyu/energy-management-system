@@ -46,16 +46,16 @@ const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNav
 
   const menuGroups: MenuCategory[] = [
     {
-        title: '',
+        title: t.categoryOverview,
         items: [
             { id: '/', label: t.assets, icon: LayoutDashboard },
+            { id: '/stations', label: t.stationList, icon: List },
+            { id: '/stations/map', label: t.stationMap, icon: Map },
         ]
     },
     {
         title: t.categoryManagement,
         items: [
-            { id: '/stations', label: t.stationList, icon: List },
-            { id: '/stations/map', label: t.stationMap, icon: Map },
             { id: '/stations/architecture', label: t.stationArchitecture, icon: Network },
             { id: '/stations/realtime', label: t.realtimeData, icon: Activity },
             { id: '/stations/analysis', label: t.dataAnalysis, icon: PieChart },
