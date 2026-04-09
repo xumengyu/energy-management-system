@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { GitBranch, Plus, Trash2, Gauge, Cpu, X, GripVertical, Pencil } from 'lucide-react';
+import { GitBranch, Plus, Trash2, Gauge, Cpu, X, GripVertical, Pencil, ChevronDown } from 'lucide-react';
 import { Language, Theme } from '../types';
 
 const DND_DEVICE_MIME = 'text/plain';
@@ -207,6 +207,10 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
     onBack();
   };
 
+  const [collapsedBranches, setCollapsedBranches] = useState<Record<string, boolean>>({});
+  const toggleBranchCollapse = (branchId: string) =>
+    setCollapsedBranches((prev) => ({ ...prev, [branchId]: !prev[branchId] }));
+
   const [isDraggingDevice, setIsDraggingDevice] = useState(false);
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
 
@@ -248,6 +252,9 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setActiveDropZone(branchId);
+    if (collapsedBranches[branchId]) {
+      setCollapsedBranches((prev) => ({ ...prev, [branchId]: false }));
+    }
   };
 
   const poolDropOverCapture = (e: React.DragEvent) => {
@@ -368,55 +375,72 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
                     </div>
 
                     <div className="mt-3 border-t border-slate-200 pt-3 dark:border-apple-border-dark">
-                      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        {t.branchAttached}
-                      </p>
-                      <div
-                        className={`min-h-[52px] space-y-2 rounded-lg border border-dashed p-2 transition-colors dark:border-white/15 ${
-                          branchHighlighted ? 'border-brand-400 bg-brand-50/40 dark:bg-brand-900/20' : 'border-slate-200 bg-white/40 dark:bg-apple-surface-dark/40'
-                        }`}
+                      <button
+                        type="button"
+                        onClick={() => toggleBranchCollapse(b.id)}
+                        className="mb-2 flex w-full items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-300"
                       >
-                        {attached.length === 0 ? (
-                          <p className="py-3 text-center text-xs text-slate-400 dark:text-slate-500">
-                            {t.branchDropHint}
-                          </p>
-                        ) : (
-                          <ul className="space-y-1.5">
-                            {attached.map((d) => (
-                              <li
-                                key={d.id}
-                                className="flex items-center gap-2 rounded-lg bg-white/90 px-2 py-1.5 dark:bg-apple-surface-dark/90"
-                              >
-                                <div
-                                  draggable
-                                  onDragStart={(e) => handleDeviceDragStart(e, d.id)}
-                                  onDragEnd={handleDeviceDragEnd}
-                                  className="flex min-w-0 flex-1 cursor-grab items-center gap-2 active:cursor-grabbing"
-                                >
-                                  <GripVertical
-                                    size={16}
-                                    className="shrink-0 text-slate-400"
-                                    aria-hidden
-                                  />
-                                  <span className="truncate text-xs font-bold text-slate-700 dark:text-slate-200">
-                                    {d.label}
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
-                                  title={t.removeFromBranch}
-                                  onClick={() =>
-                                    setAssignments((prev) => ({ ...prev, [d.id]: '' }))
-                                  }
-                                  className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-rose-400"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
+                        <ChevronDown
+                          size={14}
+                          className={`shrink-0 transition-transform duration-200 ${
+                            collapsedBranches[b.id] ? '-rotate-90' : ''
+                          }`}
+                        />
+                        {t.branchAttached}
+                        {attached.length > 0 && (
+                          <span className="ml-1 text-[10px] font-semibold text-slate-400">
+                            ({attached.length})
+                          </span>
                         )}
-                      </div>
+                      </button>
+                      {!collapsedBranches[b.id] && (
+                        <div
+                          className={`min-h-[52px] space-y-2 rounded-lg border border-dashed p-2 transition-colors dark:border-white/15 ${
+                            branchHighlighted ? 'border-brand-400 bg-brand-50/40 dark:bg-brand-900/20' : 'border-slate-200 bg-white/40 dark:bg-apple-surface-dark/40'
+                          }`}
+                        >
+                          {attached.length === 0 ? (
+                            <p className="py-3 text-center text-xs text-slate-400 dark:text-slate-500">
+                              {t.branchDropHint}
+                            </p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {attached.map((d) => (
+                                <li
+                                  key={d.id}
+                                  className="flex items-center gap-2 rounded-lg bg-white/90 px-2 py-1.5 dark:bg-apple-surface-dark/90"
+                                >
+                                  <div
+                                    draggable
+                                    onDragStart={(e) => handleDeviceDragStart(e, d.id)}
+                                    onDragEnd={handleDeviceDragEnd}
+                                    className="flex min-w-0 flex-1 cursor-grab items-center gap-2 active:cursor-grabbing"
+                                  >
+                                    <GripVertical
+                                      size={16}
+                                      className="shrink-0 text-slate-400"
+                                      aria-hidden
+                                    />
+                                    <span className="truncate text-xs font-bold text-slate-700 dark:text-slate-200">
+                                      {d.label}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    title={t.removeFromBranch}
+                                    onClick={() =>
+                                      setAssignments((prev) => ({ ...prev, [d.id]: '' }))
+                                    }
+                                    className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-rose-400"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </li>
                 );
