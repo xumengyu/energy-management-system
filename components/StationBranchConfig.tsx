@@ -7,10 +7,26 @@ const DND_DEVICE_MIME = 'text/plain';
 import { translations } from '../translations';
 import type { StationListItem } from './StationList';
 
+export type FeederAssetType = 'bess' | 'pv' | 'evse' | 'dg' | 'load';
+
 export interface FeederBranch {
   id: string;
   name: string;
   meterId: string;
+  assetType: FeederAssetType;
+}
+
+const FEEDER_ASSET_TYPES: FeederAssetType[] = ['bess', 'pv', 'evse', 'dg', 'load'];
+
+const DEFAULT_FEEDER_ASSET_TYPE: FeederAssetType = 'bess';
+
+type FeederBranchInput = Omit<FeederBranch, 'assetType'> & { assetType?: FeederAssetType };
+
+function normalizeFeederBranch(b: FeederBranchInput): FeederBranch {
+  return {
+    ...b,
+    assetType: b.assetType ?? DEFAULT_FEEDER_ASSET_TYPE,
+  };
 }
 
 export interface StationFeederConfig {
@@ -95,7 +111,7 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
   const devices = useMemo(() => buildStationDevices(station, lang), [station, lang]);
 
   const [branches, setBranches] = useState<FeederBranch[]>(() =>
-    initialConfig.branches.length ? initialConfig.branches : []
+    initialConfig.branches.length ? initialConfig.branches.map(normalizeFeederBranch) : []
   );
   const [assignments, setAssignments] = useState<Record<string, string>>(() => {
     const next = { ...initialConfig.assignments };
@@ -119,6 +135,15 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
     return lang === 'zh' ? m.labelZh : m.labelEn;
   };
 
+  const assetTypeLabel = (type: FeederAssetType) =>
+    ({
+      bess: t.assetTypeBess,
+      pv: t.assetTypePv,
+      evse: t.assetTypeEvse,
+      dg: t.assetTypeDg,
+      load: t.assetTypeLoad,
+    })[type];
+
   type BranchFormModal =
     | { open: false }
     | { open: true; mode: 'create' }
@@ -127,18 +152,21 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
   const [formModal, setFormModal] = useState<BranchFormModal>({ open: false });
   const [draftName, setDraftName] = useState('');
   const [draftMeterId, setDraftMeterId] = useState(METER_OPTIONS[0]?.id ?? '');
+  const [draftAssetType, setDraftAssetType] = useState<FeederAssetType>(DEFAULT_FEEDER_ASSET_TYPE);
 
   const closeFormModal = () => setFormModal({ open: false });
 
   const openCreateModal = () => {
     setDraftName('');
     setDraftMeterId(METER_OPTIONS[0]?.id ?? '');
+    setDraftAssetType(DEFAULT_FEEDER_ASSET_TYPE);
     setFormModal({ open: true, mode: 'create' });
   };
 
   const openEditModal = (b: FeederBranch) => {
     setDraftName(b.name);
     setDraftMeterId(b.meterId || (METER_OPTIONS[0]?.id ?? ''));
+    setDraftAssetType(b.assetType ?? DEFAULT_FEEDER_ASSET_TYPE);
     setFormModal({ open: true, mode: 'edit', branchId: b.id });
   };
 
@@ -173,12 +201,17 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
     const meter = draftMeterId || (METER_OPTIONS[0]?.id ?? '');
     if (formModal.mode === 'create') {
       const id = `br-${Date.now()}`;
-      setBranches((prev) => [...prev, { id, name: draftName.trim(), meterId: meter }]);
+      setBranches((prev) => [
+        ...prev,
+        { id, name: draftName.trim(), meterId: meter, assetType: draftAssetType },
+      ]);
     } else {
       const { branchId } = formModal;
       setBranches((prev) =>
         prev.map((b) =>
-          b.id === branchId ? { ...b, name: draftName.trim(), meterId: meter } : b
+          b.id === branchId
+            ? { ...b, name: draftName.trim(), meterId: meter, assetType: draftAssetType }
+            : b
         )
       );
     }
@@ -371,6 +404,14 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
                             <span className="line-clamp-3">{meterLabel(b.meterId)}</span>
                           </div>
                         </div>
+                        <div className="min-w-0 sm:col-span-2">
+                          <div className="mb-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                            {t.branchAssetType}
+                          </div>
+                          <div className="rounded-lg border border-slate-100 bg-white/90 px-3 py-2 text-sm font-semibold text-slate-800 dark:border-white/10 dark:bg-apple-surface-dark/80 dark:text-slate-100">
+                            {assetTypeLabel(b.assetType ?? DEFAULT_FEEDER_ASSET_TYPE)}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -555,6 +596,39 @@ const StationBranchConfig: React.FC<StationBranchConfigProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="min-w-0" role="radiogroup" aria-labelledby="branch-asset-type-label">
+                  <div
+                    id="branch-asset-type-label"
+                    className="mb-2 block text-[11px] font-bold text-slate-600 dark:text-slate-400"
+                  >
+                    {t.branchAssetType}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {FEEDER_ASSET_TYPES.map((atype) => {
+                      const selected = draftAssetType === atype;
+                      return (
+                        <label
+                          key={atype}
+                          className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${
+                            selected
+                              ? 'border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-400 dark:bg-brand-900/30 dark:text-brand-200'
+                              : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-300 dark:hover:border-white/20'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="feeder-asset-type"
+                            value={atype}
+                            checked={selected}
+                            onChange={() => setDraftAssetType(atype)}
+                            className="h-3.5 w-3.5 border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-apple-surface-dark"
+                          />
+                          <span>{assetTypeLabel(atype)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
