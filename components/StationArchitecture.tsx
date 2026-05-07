@@ -559,18 +559,11 @@ function ArchDetailPanelContent({ id, stationData, lang, isDark }: { id: ArchDet
                     </div>
 
                     <div>
-                        <PcsSectionTitle isDark={isDark}>{L('AC Main Parameters', '交流主参数')}</PcsSectionTitle>
+                        <PcsSectionTitle isDark={isDark}>{L('AC / DC main parameters', '交直流主参数')}</PcsSectionTitle>
                         <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                             <PcsKpiCard label={L('AC total active power', '交流_总有功功率')} value={d.ac.p} unit="kW" isDark={isDark} />
                             <PcsKpiCard label={L('AC total reactive power', '交流_总无功功率')} value="0.2" unit="kVar" isDark={isDark} />
                             <PcsKpiCard label={L('AC total power factor', '交流_总功率因数')} value="1" isDark={isDark} />
-                            <PcsKpiCard label={L('Grid frequency', '交流_电网总频率')} value={id === 'pcs1' ? stationData.dg.freq : '50.02'} unit="Hz" isDark={isDark} />
-                        </div>
-                    </div>
-
-                    <div>
-                        <PcsSectionTitle isDark={isDark}>{L('DC Input', '直流输入')}</PcsSectionTitle>
-                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
                             <PcsKpiCard label={L('DC power', '直流_功率')} value={d.dc.p} unit="kW" isDark={isDark} />
                             <PcsKpiCard label={L('DC voltage', '直流_电压')} value={d.dc.v} unit="V" isDark={isDark} />
                             <PcsKpiCard label={L('DC current', '直流_电流')} value={d.dc.i} unit="A" isDark={isDark} />

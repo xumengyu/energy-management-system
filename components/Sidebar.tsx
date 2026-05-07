@@ -4,7 +4,6 @@ import {
   LayoutDashboard, 
   BarChart3, 
   List,
-  Map,
   Activity,
   PieChart,
   Network,
@@ -21,8 +20,11 @@ import { translations } from '../translations';
 interface SidebarProps {
   lang: Language;
   isCollapsed: boolean;
+  isMobile?: boolean;
+  isMobileOpen?: boolean;
   currentPath: string;
   onNavigate: (path: string) => void;
+  onMobileClose?: () => void;
 }
 
 // Define the structure for grouped menu items
@@ -37,11 +39,21 @@ type MenuCategory = {
   items: MenuItem[];
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNavigate }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  lang,
+  isCollapsed,
+  isMobile = false,
+  isMobileOpen = false,
+  currentPath,
+  onNavigate,
+  onMobileClose,
+}) => {
   const t = translations[lang].sidebar;
+  const effectiveCollapsed = isMobile ? false : isCollapsed;
   
   const handleNavigate = (path: string) => {
       onNavigate(path);
+      if (isMobile) onMobileClose?.();
   };
 
   const menuGroups: MenuCategory[] = [
@@ -50,14 +62,14 @@ const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNav
         items: [
             { id: '/', label: t.assets, icon: LayoutDashboard },
             { id: '/stations', label: t.stationList, icon: List },
-            { id: '/stations/map', label: t.stationMap, icon: Map },
         ]
     },
     {
         title: t.categoryManagement,
         items: [
             { id: '/stations/architecture', label: t.stationArchitecture, icon: Network },
-            { id: '/stations/realtime', label: t.realtimeData, icon: Activity },
+            { id: '/stations/realtime', label: t.realtimeOverview ?? t.realtimeData, icon: Activity },
+            { id: '/stations/realtime-detail', label: t.realtimeDetail ?? (lang === 'zh' ? '实时详细' : 'Real-time Detail'), icon: Activity },
             { id: '/stations/analysis', label: t.dataAnalysis, icon: PieChart },
             { id: '/energy', label: t.energyStats, icon: BarChart3 },
         ]
@@ -90,9 +102,15 @@ const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNav
   ];
 
   return (
-    <div className={`${isCollapsed ? 'w-14' : 'w-64'} bg-apple-surface-light dark:bg-apple-surface-dark text-slate-800 dark:text-white flex flex-col h-screen fixed left-0 top-0 z-50 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] overflow-hidden border-r border-apple-border-light dark:border-apple-border-dark`}>
+    <div
+      className={`${
+        effectiveCollapsed ? 'w-14' : 'w-64'
+      } bg-apple-surface-light dark:bg-apple-surface-dark text-slate-800 dark:text-white flex flex-col h-screen fixed left-0 top-0 z-50 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] overflow-hidden border-r border-apple-border-light dark:border-apple-border-dark ${
+        isMobile ? (isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full') : 'translate-x-0'
+      }`}
+    >
       {/* Brand / Logo Area */}
-      <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} transition-all`}>
+      <div className={`h-16 flex items-center ${effectiveCollapsed ? 'justify-center px-0' : 'px-4'} transition-all`}>
         <div className="flex items-center gap-2.5">
           {/* EcoWatt Custom Logo */}
           <div className="w-6 h-6 flex-shrink-0 transform transition-transform hover:scale-105 cursor-pointer">
@@ -106,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNav
             </svg>
           </div>
           
-          {!isCollapsed && (
+          {!effectiveCollapsed && (
             <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-300">
                 <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-white leading-none font-sans">
                   EcoWatt
@@ -118,10 +136,10 @@ const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNav
       </div>
 
       {/* Menu Items */}
-      <div className={`flex-1 overflow-y-auto custom-scrollbar ${isCollapsed ? 'py-2 px-0' : 'space-y-2 py-2 px-3'}`}>
+      <div className={`flex-1 overflow-y-auto custom-scrollbar ${effectiveCollapsed ? 'py-2 px-0' : 'space-y-2 py-2 px-3'}`}>
         {menuGroups.map((group, index) => (
             <div key={index}>
-                {group.title && !isCollapsed && (
+                {group.title && !effectiveCollapsed && (
                     <h3 className="px-1 text-[10px] font-extrabold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-1 animate-in fade-in duration-300 delay-100">
                         {group.title}
                     </h3>
@@ -135,13 +153,13 @@ const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNav
                                 <button 
                                     onClick={() => handleNavigate(item.id)}
                                     className={`w-full h-10 flex items-center rounded-xl transition-all duration-200 group relative select-none text-[13px]
-                                    ${isCollapsed ? 'justify-center px-0' : 'justify-start px-3 text-left'}
+                                    ${effectiveCollapsed ? 'justify-center px-0' : 'justify-start px-3 text-left'}
                                     ${isActive 
                                         ? 'bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400 font-bold' 
                                         : 'text-slate-600 dark:text-slate-400 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark hover:text-slate-900 dark:hover:text-slate-200 font-medium'}`}
-                                    title={isCollapsed ? item.label : ''}
+                                    title={effectiveCollapsed ? item.label : ''}
                                 >
-                                    {isCollapsed ? (
+                                    {effectiveCollapsed ? (
                                         <span className={`flex items-center justify-center shrink-0 rounded-md p-0.5 transition-colors ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`}>
                                             <item.icon size={15} strokeWidth={isActive ? 2.5 : 2} />
                                         </span>
@@ -163,7 +181,7 @@ const Sidebar: React.FC<SidebarProps> = ({ lang, isCollapsed, currentPath, onNav
       </div>
 
       {/* Footer */}
-      {!isCollapsed && (
+      {!effectiveCollapsed && (
           <div className="px-3 py-2.5 border-t border-slate-200 dark:border-apple-border-dark bg-slate-50/80 dark:bg-apple-surface-secondary-dark/40 shrink-0">
               <div className="text-xs text-slate-500 dark:text-slate-400 text-center font-medium leading-snug tracking-wide">
                   © 2025 EcoWatt Technologies

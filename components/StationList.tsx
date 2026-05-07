@@ -131,7 +131,7 @@ const StationList: React.FC<StationListProps> = ({
 
   const renderStatusBadge = (status: string) => {
       if (status === 'Normal') return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"><CheckCircle2 size={12}/> {t.statusNormal}</span>
-      if (status === 'Warning') return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"><AlertCircle size={12}/> {t.statusWarning}</span>
+      if (status === 'Warning') return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800"><AlertCircle size={12}/> {t.statusFault}</span>
       return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-apple-surface-secondary-dark text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-apple-border-dark"><Power size={12}/> {t.statusOffline}</span>
   }
 
@@ -265,7 +265,7 @@ const StationList: React.FC<StationListProps> = ({
                         >
                             {status === 'All' ? t.filterAll : (
                                 status === 'Normal' ? t.statusNormal : (
-                                    status === 'Warning' ? t.statusWarning : t.statusOffline
+                                    status === 'Warning' ? t.statusFault : t.statusOffline
                                 )
                             )}
                         </button>
@@ -365,7 +365,7 @@ const StationList: React.FC<StationListProps> = ({
                                                     <div className="flex items-center gap-2 mr-2">
                                                         <div className="flex items-center gap-1 text-[10px]">
                                                             {normalCount > 0 && <span className="flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/40"><CheckCircle2 size={8}/> {normalCount}</span>}
-                                                            {warningCount > 0 && <span className="flex items-center gap-1 text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 px-1 py-0.5 rounded border border-amber-100 dark:border-amber-900/40"><AlertCircle size={8}/> {warningCount}</span>}
+                                                            {warningCount > 0 && <span className="flex items-center gap-1 text-rose-600 font-bold bg-rose-50 dark:bg-rose-900/20 px-1 py-0.5 rounded border border-rose-100 dark:border-rose-900/40"><AlertCircle size={8}/> {warningCount}</span>}
                                                             {offlineCount > 0 && <span className="flex items-center gap-1 text-slate-500 font-bold bg-slate-100 dark:bg-apple-surface-dark px-1 py-0.5 rounded border border-slate-200 dark:border-apple-border-dark"><Power size={8}/> {offlineCount}</span>}
                                                         </div>
                                                     </div>

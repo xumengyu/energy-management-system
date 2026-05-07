@@ -7,7 +7,6 @@ import StrategyTemplates from './components/StrategyTemplates';
 import StrategyEditor from './components/StrategyEditor';
 import ProtectionStrategy from './components/ProtectionStrategy';
 import ManualControl from './components/ManualControl';
-import Dashboard from './components/Dashboard';
 import StationRealtime from './components/StationRealtime';
 import StationArchitecture from './components/StationArchitecture';
 import DataAnalysis from './components/DataAnalysis';
@@ -83,6 +82,8 @@ const App: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [selectedStation, setSelectedStation] = useState('Station #2 (Munich)');
   const [isStationMenuOpen, setIsStationMenuOpen] = useState(false);
   const [stationSearch, setStationSearch] = useState('');
@@ -188,6 +189,23 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 1024px)');
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      const mobile = 'matches' in e ? e.matches : mq.matches;
+      setIsMobileViewport(mobile);
+      if (mobile) {
+        setIsSidebarCollapsed(true);
+        setIsMobileSidebarOpen(false);
+      }
+    };
+    onChange(mq);
+    const handler = (e: MediaQueryListEvent) => onChange(e);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const getLangLabel = (l: Language) => {
       if(l === 'en') return 'English';
       if(l === 'zh') return '中文';
@@ -201,6 +219,7 @@ const App: React.FC = () => {
 
   const handleNavigate = (path: string) => {
       setCurrentPath(path);
+      if (isMobileViewport) setIsMobileSidebarOpen(false);
   };
 
   const renderContent = () => {
@@ -213,7 +232,7 @@ const App: React.FC = () => {
 
       switch (currentPath) {
           case '/':
-              return <Dashboard lang={lang} theme={theme} selectedStation={selectedStation} onNavigate={handleNavigate} />;
+              return <StationMap lang={lang} theme={theme} onNavigate={handleNavigate} />;
           case '/stations':
               return <StationList 
                         lang={lang} 
@@ -285,6 +304,8 @@ const App: React.FC = () => {
               return <StationArchitecture lang={lang} theme={theme} selectedStation={selectedStation} />;
           case '/stations/realtime':
               return <StationRealtime lang={lang} theme={theme} selectedStation={selectedStation} stationData={selectedStationData} />;
+          case '/stations/realtime-detail':
+              return <StationRealtime lang={lang} theme={theme} selectedStation={selectedStation} stationData={selectedStationData} initialSubView="detail" hideSubViewToggle />;
           case '/stations/analysis':
               return <DataAnalysis lang={lang} theme={theme} selectedStation={selectedStation} />;
           case '/energy':
@@ -310,7 +331,7 @@ const App: React.FC = () => {
           case '/revenue':
               return <SiteRevenueDetail lang={lang} theme={theme} />;
           default:
-              return <Dashboard lang={lang} theme={theme} selectedStation={selectedStation} onNavigate={handleNavigate} />;
+              return <StationMap lang={lang} theme={theme} onNavigate={handleNavigate} />;
       }
   };
 
@@ -319,24 +340,50 @@ const App: React.FC = () => {
   const isEntityMgmt = currentPath === '/entity-mgmt';
 
   return (
-    <div className={`flex min-h-screen bg-apple-bg-light dark:bg-apple-bg-dark font-sans text-slate-800 dark:text-slate-100 selection:bg-brand-100 dark:selection:bg-brand-900 selection:text-brand-900 dark:selection:text-brand-100`}>
+    <div className={`flex min-h-screen overflow-x-hidden bg-apple-bg-light dark:bg-apple-bg-dark font-sans text-slate-800 dark:text-slate-100 selection:bg-brand-100 dark:selection:bg-brand-900 selection:text-brand-900 dark:selection:text-brand-100`}>
       {!isEntityMgmt && (
         <Sidebar 
             lang={lang} 
             isCollapsed={isSidebarCollapsed}
+            isMobile={isMobileViewport}
+            isMobileOpen={isMobileSidebarOpen}
             currentPath={currentPath}
             onNavigate={handleNavigate}
+            onMobileClose={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+      {!isEntityMgmt && isMobileViewport && isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[1px]"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          aria-hidden
         />
       )}
       
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${isSidebarCollapsed || isEntityMgmt ? (isEntityMgmt ? 'ml-0' : 'ml-14') : 'ml-64'}`}>
+      <div
+        className={`flex min-w-0 flex-col min-h-screen transition-all duration-300 ease-in-out ${
+          isEntityMgmt
+            ? 'ml-0 w-full'
+            : isMobileViewport
+              ? 'ml-0 w-full'
+            : isSidebarCollapsed
+              ? 'ml-14 w-[calc(100%-3.5rem)]'
+              : 'ml-64 w-[calc(100%-16rem)]'
+        }`}
+      >
         {/* Top Header - Hidden in Entity Mgmt because it has its own shell or header logic */}
         {!isEntityMgmt && (
             <header className="h-[72px] shrink-0 bg-apple-surface-light/80 dark:bg-apple-surface-dark/80 backdrop-blur-xl border-b border-apple-border-light dark:border-apple-border-dark shadow-sm sticky top-0 z-50 px-5 flex items-center justify-between transition-all">
             
             <div className="flex items-center gap-2">
                 <button 
-                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    onClick={() => {
+                        if (isMobileViewport) {
+                            setIsMobileSidebarOpen(prev => !prev);
+                        } else {
+                            setIsSidebarCollapsed(!isSidebarCollapsed);
+                        }
+                    }}
                     className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-apple-surface-secondary-light dark:text-slate-400 dark:hover:bg-apple-surface-secondary-dark"
                 >
                     <Menu size={20} />

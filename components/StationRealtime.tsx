@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Zap, Battery, Sun, Activity, Thermometer, Gauge, HeartPulse,
-  Droplets, RotateCw, Cable, Download
+  Droplets, RotateCw, Cable
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -10,6 +10,12 @@ import {
 } from 'recharts';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
+import {
+  RealtimeDetailDgCards,
+  RealtimeDetailEssCabinets,
+  RealtimeDetailEvseCards,
+  RealtimeDetailPvCards,
+} from './realtime/RealtimeDetailCards';
 
 // Dynamic Data Generator
 const generateData = (days: number = 1) => {
@@ -108,13 +114,16 @@ interface StationRealtimeProps {
   theme: Theme;
   selectedStation: string;
   stationData?: any;
+  initialSubView?: 'overview' | 'detail';
+  hideSubViewToggle?: boolean;
 }
 
-const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selectedStation, stationData }) => {
+const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selectedStation, stationData, initialSubView = 'overview', hideSubViewToggle = false }) => {
   const t = translations[lang].stationRealtime;
   const isDark = theme === 'dark';
   
   const [activeTab, setActiveTab] = useState('pv');
+  const [subView, setSubView] = useState<'overview' | 'detail'>(initialSubView);
   const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
 
   // Memoize data to avoid regeneration on every render
@@ -145,8 +154,13 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
       }
   }, [visibleTabs, activeTab, selectedStation]);
 
+  useEffect(() => {
+    setSubView(initialSubView);
+  }, [initialSubView, selectedStation]);
+
   const handleTabChange = (tabId: string) => {
       setActiveTab(tabId);
+      setSubView(hideSubViewToggle ? initialSubView : 'overview');
       setHiddenSeries([]);
   };
 
@@ -196,7 +210,11 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
 
   // --- Render Contents ---
 
-  const renderEssContent = () => (
+  const renderEssContent = () => {
+    if (subView === 'detail') {
+      return <RealtimeDetailEssCabinets lang={lang} cabinetT={t.cabinetCard} />;
+    }
+    return (
     <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
         {/* Left Column: ESS Overview */}
         <div className="xl:col-span-1 space-y-3">
@@ -382,8 +400,13 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
         </div>
     </div>
   );
+  };
 
-  const renderPvContent = () => (
+  const renderPvContent = () => {
+    if (subView === 'detail') {
+      return <RealtimeDetailPvCards cabinetT={t.cabinetCard} />;
+    }
+    return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300">
         {/* 大屏：与「光伏监控」同列同行拉伸，曲线区高度与左侧卡片一致 */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 xl:items-stretch">
@@ -506,8 +529,13 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
         </div>
     </div>
   );
+  };
 
-  const renderEvseContent = () => (
+  const renderEvseContent = () => {
+    if (subView === 'detail') {
+      return <RealtimeDetailEvseCards lang={lang} cabinetT={t.cabinetCard} />;
+    }
+    return (
     <div className="space-y-4 animate-in fade-in duration-300">
         {/* 第一行：Charging Hub 与 Charging Load Profile 同高（xl stretch） */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 xl:items-stretch">
@@ -616,8 +644,13 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
         </div>
     </div>
   );
+  };
 
-  const renderDgContent = () => (
+  const renderDgContent = () => {
+    if (subView === 'detail') {
+      return <RealtimeDetailDgCards lang={lang} cabinetT={t.cabinetCard} />;
+    }
+    return (
     <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
         <div className="xl:col-span-1 space-y-3">
              {/* DG Overview */}
@@ -745,13 +778,14 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
         </div>
     </div>
   );
+  };
 
   return (
     <div className="ems-page-shell">
         {/* 顶栏：与电价列表 Header / Toolbar 同款 */}
-        <div className="ems-card p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-6 w-full md:w-auto overflow-x-auto custom-scrollbar-hide">
-                <div className="ems-segmented shrink-0">
+        <div className="ems-card mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
+            <div className="min-w-0 flex-1 overflow-x-auto custom-scrollbar-hide">
+                <div className="ems-segmented inline-flex shrink-0">
                     {visibleTabs.map((item) => (
                         <button 
                             key={item.id} 
@@ -767,16 +801,7 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                     ))}
                 </div>
             </div>
-
-            <div className="flex w-full items-center justify-end gap-3 md:w-auto">
-                <button
-                    type="button"
-                    className="flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
-                    title={lang === 'zh' ? '导出' : 'Export'}
-                >
-                    <Download size={16} />
-                </button>
-            </div>
+            {/* Subview toggle (Overview / Detail) intentionally removed from UI per design request */}
         </div>
 
         <div className="min-h-0 space-y-4">
