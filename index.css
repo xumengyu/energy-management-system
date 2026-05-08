@@ -120,3 +120,11 @@
   color: #fff;
   border-radius: 8px;
 }
+
+/* Brand-colored selected option for custom analysis category select */
+.custom-brand-select option:checked,
+.custom-brand-select option:hover,
+.custom-brand-select option:focus {
+  background: var(--color-brand-600);
+  color: #fff;
+}

@@ -1,9 +1,9 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   ComposedChart, Line, Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Brush, LineChart
 } from 'recharts';
-import { Calendar, RotateCcw, Battery, ChevronDown, Layers, Package, Zap, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, RotateCcw, Battery, ChevronDown, Layers, Package, Zap, Activity, ChevronLeft, ChevronRight, SlidersHorizontal, Download, Check } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
 
@@ -129,6 +129,43 @@ const generateBatteryData = (startDateStr: string) => {
     });
 };
 
+const CUSTOM_METRICS = [
+  'soc',
+  'soh',
+  'acActivePower',
+  'dcVoltage',
+  'dcCurrent',
+  'cellMaxVoltage',
+  'cellMinVoltage',
+  'cellMaxTemp',
+  'cellMinTemp',
+] as const;
+
+const CUSTOM_CATEGORIES = ['battery'] as const;
+
+const generateCustomReportData = () => {
+  return Array.from({ length: 168 }, (_, i) => {
+    const day = 17 + Math.floor(i / 24);
+    const hour = i % 24;
+    const dayStr = `05-${String(day).padStart(2, '0')}`;
+    const timeLabel = `${String(hour).padStart(2, '0')}:00`;
+    const t = i / 10;
+
+    return {
+      time: `${dayStr} ${timeLabel}`,
+      soc: Math.round((68 + Math.sin(t) * 1.6) * 10) / 10,
+      soh: Math.round((92 + Math.sin(t / 3) * 0.25) * 10) / 10,
+      acActivePower: Math.round(128 + Math.sin(t * 2.2) * 12 + Math.random() * 4),
+      dcVoltage: Math.round((752 + Math.sin(t / 2) * 1.8) * 10) / 10,
+      dcCurrent: Math.round((185 + Math.cos(t * 1.7) * 2.4) * 10) / 10,
+      cellMaxVoltage: Math.round((3.655 + Math.sin(t / 2.5) * 0.006) * 1000) / 1000,
+      cellMinVoltage: Math.round((3.281 + Math.sin(t / 2.5) * 0.004) * 1000) / 1000,
+      cellMaxTemp: Math.round((32.6 + Math.sin(t / 2.8) * 0.25) * 10) / 10,
+      cellMinTemp: Math.round((24.2 + Math.cos(t / 2.8) * 0.18) * 10) / 10,
+    };
+  });
+};
+
 const BATTERY_CLUSTERS_EN = [
     'Cluster 1-1', 'Cluster 1-2', 'Cluster 1-3',
     'Cluster 2-1', 'Cluster 2-2', 'Cluster 2-3'
@@ -173,16 +210,50 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
 
   const today = new Date().toISOString().split('T')[0];
   
-  const [activeTab, setActiveTab] = useState<'load' | 'power' | 'battery'>('load');
+  const [activeTab, setActiveTab] = useState<'load' | 'power' | 'battery' | 'custom'>('load');
   const [dateRange, setDateRange] = useState({ start: today, end: today });
   const [selectedStack, setSelectedStack] = useState(BATTERY_STACKS[0]);
   const [selectedCluster, setSelectedCluster] = useState(BATTERY_CLUSTERS[0]);
+  const [isBatteryStackOpen, setIsBatteryStackOpen] = useState(false);
+  const [isBatteryClusterOpen, setIsBatteryClusterOpen] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
+  const [customCategory, setCustomCategory] = useState('battery');
+  const [customMetrics, setCustomMetrics] = useState<string[]>([...CUSTOM_METRICS]);
+  const [customStartDateTime, setCustomStartDateTime] = useState('2025-05-17T00:00:00');
+  const [customEndDateTime, setCustomEndDateTime] = useState('2025-05-23T23:59:59');
+  const [isCustomMetricOpen, setIsCustomMetricOpen] = useState(false);
+  const [isCustomCategoryOpen, setIsCustomCategoryOpen] = useState(false);
+  const [isCustomTimeRangeOpen, setIsCustomTimeRangeOpen] = useState(false);
+  const [activeCustomTimeField, setActiveCustomTimeField] = useState<'start' | 'end'>('start');
+  const [customCalendarView, setCustomCalendarView] = useState(new Date(2025, 4, 1));
+  const customHourListRef = useRef<HTMLDivElement>(null);
+  const customMinuteListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSelectedStack(BATTERY_STACKS[0]);
     setSelectedCluster(BATTERY_CLUSTERS[0]);
+    setIsBatteryStackOpen(false);
+    setIsBatteryClusterOpen(false);
   }, [lang]);
+
+  useEffect(() => {
+    setIsCustomMetricOpen(false);
+    setIsCustomCategoryOpen(false);
+    setIsCustomTimeRangeOpen(false);
+    setIsBatteryStackOpen(false);
+    setIsBatteryClusterOpen(false);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!isCustomTimeRangeOpen) return;
+    const [hour = '00', minute = '00'] = getCustomTimePart(getCustomTimeValue(activeCustomTimeField)).split(':');
+    requestAnimationFrame(() => {
+      const row = 32;
+      const viewportMid = 246 / 2 - row / 2;
+      if (customHourListRef.current) customHourListRef.current.scrollTop = Math.max(0, Number(hour) * row - viewportMid + 24);
+      if (customMinuteListRef.current) customMinuteListRef.current.scrollTop = Math.max(0, Number(minute) * row - viewportMid + 24);
+    });
+  }, [isCustomTimeRangeOpen, activeCustomTimeField, customStartDateTime, customEndDateTime]);
   
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [viewDate, setViewDate] = useState(new Date()); 
@@ -191,6 +262,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   const LOAD_CHART_DATA = useMemo(() => generateLoadData(dateRange.start), [dateRange]);
   const POWER_CHART_DATA = useMemo(() => generatePowerData(dateRange.start), [dateRange]);
   const BATTERY_CHART_DATA = useMemo(() => generateBatteryData(dateRange.start), [dateRange]);
+  const CUSTOM_REPORT_DATA = useMemo(() => generateCustomReportData(), []);
 
   const toggleSeries = (dataKey: string) => {
     setHiddenSeries(prev => prev.includes(dataKey) ? prev.filter(k => k !== dataKey) : [...prev, dataKey]);
@@ -291,6 +363,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
     const daysInMonth = getDaysInMonth(viewDate.getFullYear(), viewDate.getMonth());
     const startDay = getFirstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth());
     const days = [];
+    const weekDays = lang === 'zh' ? ['日', '一', '二', '三', '四', '五', '六'] : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    const monthLabel = lang === 'zh'
+      ? `${viewDate.getFullYear()}年${viewDate.getMonth() + 1}月`
+      : viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
     for (let i = 0; i < startDay; i++) {
         days.push(<div key={`empty-${i}`} className="h-8"></div>);
@@ -306,13 +382,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                 key={d} 
                 disabled={disabled}
                 onClick={() => handleDateClick(d)}
-                className={`h-8 w-full text-xs font-bold rounded-lg transition-all relative
-                    ${disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed bg-slate-50/50 dark:bg-slate-800/50' : ''}
+                className={`relative h-8 w-full rounded-lg text-xs font-bold transition-all
+                    ${disabled ? (isDark ? 'cursor-not-allowed bg-slate-800/40 text-slate-600' : 'cursor-not-allowed bg-slate-50/50 text-slate-300') : ''}
                     ${!disabled && selected 
                         ? 'bg-brand-500 text-white z-10 shadow-md shadow-brand-500/30' 
                         : !disabled && inRange 
-                            ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-none' 
-                            : !disabled && 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark'
+                            ? (isDark ? 'rounded-none bg-brand-900/20 text-brand-200' : 'rounded-none bg-brand-50 text-brand-700') 
+                            : !disabled && (isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')
                     }
                     ${d === 1 && inRange ? 'rounded-l-lg' : ''}
                     ${d === daysInMonth && inRange ? 'rounded-r-lg' : ''}
@@ -324,47 +400,57 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
     }
 
     return (
-        <div className="p-4 w-[320px]">
-            <div className="flex items-center justify-between mb-4">
-                <button onClick={handlePrevMonth} className="p-1 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark rounded text-slate-500"><ChevronLeft size={16}/></button>
-                <div className="text-sm font-bold text-slate-800 dark:text-white">
-                    {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                </div>
-                <button onClick={handleNextMonth} className="p-1 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark rounded text-slate-500"><ChevronRight size={16}/></button>
-            </div>
-            
-            <div className="grid grid-cols-7 mb-2 text-center">
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                    <div key={d} className="text-[10px] font-bold text-slate-400 uppercase">{d}</div>
-                ))}
-            </div>
-            
-            <div className="grid grid-cols-7 gap-y-1">
-                {days}
-            </div>
-
-            <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-apple-border-dark">
-                <div className="text-xs text-slate-400">
-                    {tempSelection.start ? (
-                        <span>{tempSelection.start} {tempSelection.end ? `→ ${tempSelection.end}` : ''}</span>
-                    ) : 'Select range'}
-                </div>
-                <div className="flex gap-2">
-                    <button 
-                        onClick={() => setIsDateOpen(false)}
-                        className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark rounded-lg transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={applyDateSelection}
-                        className="px-3 py-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors shadow-sm"
-                    >
-                        Apply
-                    </button>
-                </div>
-            </div>
+      <div className={`w-[320px] p-4 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+        <div className="mb-4 flex items-center justify-between">
+          <button
+            onClick={handlePrevMonth}
+            className={`rounded p-1 transition-colors ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+            {monthLabel}
+          </div>
+          <button
+            onClick={handleNextMonth}
+            className={`rounded p-1 transition-colors ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
+
+        <div className="mb-2 grid grid-cols-7 text-center">
+          {weekDays.map(d => (
+            <div key={d} className={`text-[10px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{d}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-y-1">
+          {days}
+        </div>
+
+        <div className={`mt-4 flex items-center justify-between border-t pt-4 ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
+          <div className={`min-w-0 pr-3 text-xs ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
+            {tempSelection.start ? (
+              <span className="block truncate">{tempSelection.start} {tempSelection.end ? `→ ${tempSelection.end}` : ''}</span>
+            ) : 'Select range'}
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              onClick={() => setIsDateOpen(false)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={applyDateSelection}
+              className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -737,137 +823,716 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
       </div>
   );
 
+  const customMetricConfig = {
+    soc: { label: 'SOC (%)', color: '#84cc16' },
+    soh: { label: 'SOH (%)', color: '#60a5fa' },
+    acActivePower: { label: 'AC Active Power (kW)', color: '#a855f7' },
+    dcVoltage: { label: 'DC Voltage (V)', color: '#f97316' },
+    dcCurrent: { label: 'DC Current (A)', color: '#06b6d4' },
+    cellMaxVoltage: { label: 'Cell Max Voltage (V)', color: '#facc15' },
+    cellMinVoltage: { label: 'Cell Min Voltage (V)', color: '#f472b6' },
+    cellMaxTemp: { label: 'Cell Max Temperature (°C)', color: '#ef4444' },
+    cellMinTemp: { label: 'Cell Min Temperature (°C)', color: '#3b82f6' },
+  } as const;
+
+  const removeCustomMetric = (metric: string) => {
+    setCustomMetrics((prev) => prev.filter((m) => m !== metric));
+  };
+
+  const toggleCustomMetric = (metric: string) => {
+    setCustomMetrics((prev) => (prev.includes(metric) ? prev.filter((m) => m !== metric) : [...prev, metric]));
+  };
+
+  const formatCustomDateTime = (value: string) => {
+    const [date, time = '00:00:00'] = value.split('T');
+    const [hour = '00', minute = '00'] = time.split(':');
+    return `${date} ${hour}:${minute}`;
+  };
+  const getCustomDatePart = (value: string) => value.split('T')[0];
+  const getCustomTimePart = (value: string) => value.split('T')[1] || '00:00:00';
+  const getCustomTimeValue = (field: 'start' | 'end') => (field === 'start' ? customStartDateTime : customEndDateTime);
+  const customTimeLabels = {
+    start: lang === 'zh' ? '开始时间' : 'Start Time',
+    end: lang === 'zh' ? '结束时间' : 'End Time',
+    confirm: lang === 'zh' ? '确定' : 'Confirm',
+  };
+
+  const setCustomDateTimeValue = (field: 'start' | 'end', value: string) => {
+    if (field === 'start') {
+      setCustomStartDateTime(value);
+      return;
+    }
+    setCustomEndDateTime(value);
+  };
+
+  const activateCustomTimeField = (field: 'start' | 'end') => {
+    setActiveCustomTimeField(field);
+    const fieldDate = new Date(`${getCustomDatePart(getCustomTimeValue(field))}T00:00:00`);
+    if (!Number.isNaN(fieldDate.getTime())) {
+      setCustomCalendarView(new Date(fieldDate.getFullYear(), fieldDate.getMonth(), 1));
+    }
+  };
+
+  const handleCustomDateSelect = (day: number) => {
+    const datePart = `${customCalendarView.getFullYear()}-${String(customCalendarView.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const timePart = getCustomTimePart(getCustomTimeValue(activeCustomTimeField));
+    setCustomDateTimeValue(activeCustomTimeField, `${datePart}T${timePart}`);
+  };
+
+  const handleCustomTimeChange = (field: 'start' | 'end', timeValue: string) => {
+    const normalizedTime = `${timeValue.split(':').slice(0, 2).join(':')}:00`;
+    setCustomDateTimeValue(field, `${getCustomDatePart(getCustomTimeValue(field))}T${normalizedTime}`);
+  };
+
+  const handleCustomTimeUnitChange = (field: 'start' | 'end', unitIndex: number, unitValue: string) => {
+    const parts = getCustomTimePart(getCustomTimeValue(field)).split(':');
+    parts[unitIndex] = unitValue;
+    handleCustomTimeChange(field, parts.slice(0, 2).join(':'));
+  };
+
+  const shiftCustomCalendarMonth = (offset: number) => {
+    setCustomCalendarView(new Date(customCalendarView.getFullYear(), customCalendarView.getMonth() + offset, 1));
+  };
+
+  const renderCustomTimeRangeDropdown = () => {
+    const year = customCalendarView.getFullYear();
+    const month = customCalendarView.getMonth();
+    const daysInMonth = getDaysInMonth(year, month);
+    const startDay = getFirstDayOfMonth(year, month);
+    const prevMonthDays = getDaysInMonth(year, month - 1);
+    const selectedDate = getCustomDatePart(getCustomTimeValue(activeCustomTimeField));
+    const activeTimeParts = getCustomTimePart(getCustomTimeValue(activeCustomTimeField)).split(':');
+    const monthLabel = lang === 'zh'
+      ? `${year}年 ${month + 1}月`
+      : customCalendarView.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const weekDays = lang === 'zh' ? ['一', '二', '三', '四', '五', '六', '日'] : ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    const mondayStartOffset = (startDay + 6) % 7;
+    const days = [];
+
+    for (let i = 0; i < mondayStartOffset; i++) {
+      days.push(
+        <span key={`prev-${i}`} className="flex h-8 items-center justify-center text-xs font-semibold text-slate-300 dark:text-slate-600">
+          {prevMonthDays - mondayStartOffset + i + 1}
+        </span>
+      );
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const datePart = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isActive = datePart === selectedDate;
+
+      days.push(
+        <button
+          key={day}
+          type="button"
+          onClick={() => handleCustomDateSelect(day)}
+          className={`flex h-8 items-center justify-center rounded-lg text-xs font-bold transition-all
+            ${isActive
+              ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/20 dark:bg-brand-500 dark:text-white'
+              : 'text-slate-900 hover:bg-brand-50 hover:text-brand-700 dark:text-slate-100 dark:hover:bg-brand-900/25 dark:hover:text-brand-300'}`}
+        >
+          {day}
+        </button>
+      );
+    }
+
+    while (days.length < 42) {
+      const nextDay = days.length - (mondayStartOffset + daysInMonth) + 1;
+      days.push(
+        <span key={`next-${nextDay}`} className="flex h-8 items-center justify-center text-xs font-semibold text-slate-300 dark:text-slate-600">
+          {nextDay}
+        </span>
+      );
+    }
+
+    const renderTimeColumn = (unitIndex: number, max: number) => (
+      <div
+        ref={unitIndex === 0 ? customHourListRef : customMinuteListRef}
+        className="custom-scrollbar-hide h-[246px] snap-y scroll-pt-6 scroll-pb-0 overflow-y-auto border-l border-slate-100 pt-6 pb-0 dark:border-apple-border-dark"
+      >
+        {Array.from({ length: max + 1 }, (_, value) => {
+          const label = String(value).padStart(2, '0');
+          const selected = activeTimeParts[unitIndex] === label;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => handleCustomTimeUnitChange(activeCustomTimeField, unitIndex, label)}
+              className={`mx-1 flex h-8 w-[calc(100%-0.5rem)] snap-center items-center justify-center rounded-md text-xs font-bold transition-colors
+                ${selected
+                  ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/20 dark:bg-brand-500 dark:text-white'
+                  : 'text-slate-900 hover:bg-brand-50 hover:text-brand-700 dark:text-slate-100 dark:hover:bg-brand-900/25 dark:hover:text-brand-300'}`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    );
+
+    return (
+      <div className="w-[min(94vw,440px)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:shadow-black/30">
+        <div className="grid grid-cols-[292px_148px] items-start">
+          <div>
+            <div className="flex h-10 items-center justify-between border-b border-slate-100 px-2 dark:border-apple-border-dark">
+              <button
+                type="button"
+                onClick={() => shiftCustomCalendarMonth(-12)}
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-50 hover:text-brand-700 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-brand-300"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => shiftCustomCalendarMonth(-1)}
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-50 hover:text-brand-700 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-brand-300"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <div className="min-w-24 text-center text-xs font-bold text-slate-900 dark:text-white">{monthLabel}</div>
+              <button
+                type="button"
+                onClick={() => shiftCustomCalendarMonth(1)}
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-50 hover:text-brand-700 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-brand-300"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => shiftCustomCalendarMonth(12)}
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-50 hover:text-brand-700 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-brand-300"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+            <div className="grid grid-cols-7 border-b border-slate-100 px-2.5 py-1.5 text-center dark:border-apple-border-dark">
+              {weekDays.map((day) => (
+                <div key={day} className="text-xs font-bold text-slate-500 dark:text-slate-400">{day}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-y-0.5 px-2.5 py-1.5">{days}</div>
+          </div>
+          <div className="grid grid-cols-2 items-start self-start border-l border-slate-100 dark:border-apple-border-dark">
+            {renderTimeColumn(0, 23)}
+            {renderTimeColumn(1, 59)}
+          </div>
+        </div>
+        <div className="flex h-12 items-center justify-end border-t border-slate-100 px-3 dark:border-apple-border-dark">
+          <button
+            type="button"
+            onClick={() => {
+              if (activeCustomTimeField === 'start') {
+                activateCustomTimeField('end');
+                setIsCustomTimeRangeOpen(true);
+              } else {
+                setIsCustomTimeRangeOpen(false);
+              }
+            }}
+            className="rounded-lg border border-brand-500 bg-brand-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-brand-700 dark:border-brand-500 dark:bg-brand-600"
+          >
+            {customTimeLabels.confirm}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCustomFilters = () => (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-4 xl:grid-cols-12 xl:gap-x-6">
+      <div className="min-w-0 sm:col-span-1 xl:col-span-2">
+        <div className={`relative w-full max-w-full ${isCustomCategoryOpen ? 'z-50' : ''}`}>
+          <button
+            type="button"
+            onClick={() => {
+              setIsCustomMetricOpen(false);
+              setIsCustomTimeRangeOpen(false);
+              setIsCustomCategoryOpen((v) => !v);
+            }}
+            className={`flex h-10 w-full items-center justify-between rounded-xl border bg-slate-50 px-3 text-sm font-bold text-slate-700 transition-all dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200
+              ${isCustomCategoryOpen
+                ? 'border-brand-400 ring-2 ring-brand-100 dark:ring-brand-900/30'
+                : 'border-slate-200 hover:border-slate-300 dark:hover:border-white/15'}`}
+          >
+            <span>{customCategory === 'battery' ? t.custom.batterySystem : customCategory}</span>
+            <ChevronDown size={14} className={`text-slate-400 transition-transform ${isCustomCategoryOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : ''}`} />
+          </button>
+          {isCustomCategoryOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setIsCustomCategoryOpen(false)} />
+              <div className="absolute left-0 top-full z-30 mt-2 w-full rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark">
+                {CUSTOM_CATEGORIES.map((category) => {
+                  const checked = customCategory === category;
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => {
+                        setCustomCategory(category);
+                        setIsCustomCategoryOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-bold transition-colors
+                        ${checked
+                          ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/25 dark:text-brand-300'
+                          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark'}`}
+                    >
+                      <span>{t.custom.batterySystem}</span>
+                      {checked && <Check size={14} className="text-brand-600 dark:text-brand-400" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="min-w-0 sm:col-span-2 xl:col-span-7">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setIsCustomCategoryOpen(false);
+              setIsCustomTimeRangeOpen(false);
+              setIsCustomMetricOpen((v) => !v);
+            }}
+            className={`flex min-h-10 w-full max-w-full items-start gap-2 rounded-xl border bg-slate-50 px-3 py-2 text-left text-sm font-bold outline-none ring-0 transition-all dark:bg-apple-surface-secondary-dark
+              ${isCustomMetricOpen
+                ? 'border-brand-400 ring-2 ring-brand-100 dark:ring-brand-900/30'
+                : 'border-slate-200 hover:border-slate-300 dark:border-apple-border-dark dark:hover:border-white/15'}`}
+          >
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              {customMetrics.length === 0 ? (
+                <span className="whitespace-nowrap text-slate-500 dark:text-slate-400">{t.custom.selectDataValues}</span>
+              ) : (
+                customMetrics.map((metric) => (
+                  <span
+                    key={metric}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-xs font-bold text-slate-700 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-200"
+                  >
+                    {customMetricConfig[metric as keyof typeof customMetricConfig].label}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCustomMetric(metric);
+                      }}
+                      className="rounded px-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      aria-label={`Remove ${metric}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+            <ChevronDown
+              size={14}
+              className={`shrink-0 self-center transition-transform ${isCustomMetricOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : 'text-slate-400'}`}
+            />
+          </button>
+          {isCustomMetricOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setIsCustomMetricOpen(false)} />
+              <div className="absolute left-0 top-full z-30 mt-2 max-h-[min(60vh,22rem)] w-[min(100%,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark sm:w-full">
+                {CUSTOM_METRICS.map((metric) => {
+                  const checked = customMetrics.includes(metric);
+                  return (
+                    <button
+                      key={metric}
+                      type="button"
+                      onClick={() => toggleCustomMetric(metric)}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-bold transition-colors
+                        ${checked
+                          ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/25 dark:text-brand-300'
+                          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark'}`}
+                    >
+                      <span>{customMetricConfig[metric].label}</span>
+                      {checked && <Check size={14} className="text-brand-600 dark:text-brand-400" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="min-w-0 w-full max-w-[440px] sm:col-span-2 xl:col-span-3 xl:justify-self-end">
+        <div className={`relative ${isCustomTimeRangeOpen ? 'z-50' : ''}`}>
+          <div
+            className={`relative z-50 flex h-10 w-full items-center gap-2 overflow-hidden rounded-xl border bg-slate-50 px-2 text-left outline-none ring-0 transition-all dark:bg-apple-surface-secondary-dark
+              ${isCustomTimeRangeOpen
+                ? 'border-brand-400 ring-2 ring-brand-100 dark:ring-brand-900/30'
+                : 'border-slate-200 hover:border-slate-300 dark:border-apple-border-dark dark:hover:border-white/15'}`}
+          >
+            <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center text-sm font-bold">
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={() => {
+                    setIsCustomCategoryOpen(false);
+                  activateCustomTimeField('start');
+                    setIsCustomMetricOpen(false);
+                  setIsCustomTimeRangeOpen(true);
+                }}
+                className={`min-w-0 truncate rounded-lg px-1.5 py-2 text-left transition-colors
+                  ${activeCustomTimeField === 'start' && isCustomTimeRangeOpen
+                    ? 'text-brand-700 dark:text-brand-300'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100'}`}
+              >
+                {formatCustomDateTime(customStartDateTime) || customTimeLabels.start}
+              </button>
+              <span className="px-3 text-slate-400">→</span>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={() => {
+                    setIsCustomCategoryOpen(false);
+                  activateCustomTimeField('end');
+                    setIsCustomMetricOpen(false);
+                  setIsCustomTimeRangeOpen(true);
+                }}
+                className={`min-w-0 truncate rounded-lg px-1.5 py-2 text-left transition-colors
+                  ${activeCustomTimeField === 'end' && isCustomTimeRangeOpen
+                    ? 'text-brand-700 dark:text-brand-300'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100'}`}
+              >
+                {formatCustomDateTime(customEndDateTime) || customTimeLabels.end}
+              </button>
+            </div>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={() => {
+                setIsCustomCategoryOpen(false);
+                activateCustomTimeField(activeCustomTimeField);
+                setIsCustomMetricOpen(false);
+                setIsCustomTimeRangeOpen(true);
+              }}
+              className="flex shrink-0 items-center justify-center rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-brand-700 dark:hover:bg-apple-surface-dark dark:hover:text-brand-300"
+              aria-label={t.custom.timeRange}
+            >
+              <Calendar size={16} />
+            </button>
+            {isCustomTimeRangeOpen && (
+              <span
+                className={`absolute bottom-0 h-0.5 bg-brand-500 transition-all ${activeCustomTimeField === 'start' ? 'left-3 w-[calc(50%-28px)]' : 'left-[calc(50%+15px)] w-[calc(50%-50px)]'}`}
+              />
+            )}
+          </div>
+          {isCustomTimeRangeOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setIsCustomTimeRangeOpen(false)} />
+              <div className="absolute right-0 top-full z-50 mt-3 w-[min(94vw,440px)] max-w-[calc(100vw-1rem)] animate-in fade-in zoom-in-95 duration-100">
+                {renderCustomTimeRangeDropdown()}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="mt-2 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setCustomStartDateTime('2025-05-17T00:00:00');
+              setCustomEndDateTime('2025-05-23T23:59:59');
+              setCustomCalendarView(new Date(2025, 4, 1));
+            }}
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100 dark:border-apple-border-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
+          >
+            {t.reset}
+          </button>
+          <button type="button" className="rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-brand-700">{t.custom.generateReport}</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBatteryFilters = () => (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className={`relative w-full sm:w-auto sm:min-w-[220px] ${isBatteryStackOpen ? 'z-50' : ''}`}>
+        <button
+          type="button"
+          onClick={() => {
+            setIsBatteryClusterOpen(false);
+            setIsBatteryStackOpen((v) => !v);
+          }}
+          className={`flex h-10 w-full items-center justify-between rounded-xl border bg-slate-50 px-3 text-sm font-bold text-slate-700 transition-all dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200
+            ${isBatteryStackOpen
+              ? 'border-brand-400 ring-2 ring-brand-100 dark:ring-brand-900/30'
+              : 'border-slate-200 hover:border-slate-300 dark:hover:border-white/15'}`}
+          aria-label={t.stackSelect}
+        >
+          <span>{selectedStack}</span>
+          <ChevronDown size={14} className={`text-slate-400 transition-transform ${isBatteryStackOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : ''}`} />
+        </button>
+        {isBatteryStackOpen && (
+          <>
+            <div className="fixed inset-0 z-20" onClick={() => setIsBatteryStackOpen(false)} />
+            <div className="absolute left-0 top-full z-30 mt-2 w-full rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark">
+              {BATTERY_STACKS.map((s) => {
+                const checked = selectedStack === s;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      setSelectedStack(s);
+                      setIsBatteryStackOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-bold transition-colors
+                      ${checked
+                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/25 dark:text-brand-300'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark'}`}
+                  >
+                    <span>{s}</span>
+                    {checked && <Check size={14} className="text-brand-600 dark:text-brand-400" />}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+      <div className={`relative w-full sm:w-auto sm:min-w-[220px] ${isBatteryClusterOpen ? 'z-50' : ''}`}>
+        <button
+          type="button"
+          onClick={() => {
+            setIsBatteryStackOpen(false);
+            setIsBatteryClusterOpen((v) => !v);
+          }}
+          className={`flex h-10 w-full items-center justify-between rounded-xl border bg-slate-50 px-3 text-sm font-bold text-slate-700 transition-all dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200
+            ${isBatteryClusterOpen
+              ? 'border-brand-400 ring-2 ring-brand-100 dark:ring-brand-900/30'
+              : 'border-slate-200 hover:border-slate-300 dark:hover:border-white/15'}`}
+          aria-label={t.clusterSelect}
+        >
+          <span>{selectedCluster}</span>
+          <ChevronDown size={14} className={`text-slate-400 transition-transform ${isBatteryClusterOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : ''}`} />
+        </button>
+        {isBatteryClusterOpen && (
+          <>
+            <div className="fixed inset-0 z-20" onClick={() => setIsBatteryClusterOpen(false)} />
+            <div className="absolute left-0 top-full z-30 mt-2 w-full rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark">
+              {BATTERY_CLUSTERS.map((c) => {
+                const checked = selectedCluster === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCluster(c);
+                      setIsBatteryClusterOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-bold transition-colors
+                      ${checked
+                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/25 dark:text-brand-300'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark'}`}
+                  >
+                    <span>{c}</span>
+                    {checked && <Check size={14} className="text-brand-600 dark:text-brand-400" />}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="ml-auto">{renderDateSelector()}</div>
+    </div>
+  );
+
+  const renderCustomAnalysis = () => (
+    <div className="animate-in fade-in space-y-4 duration-300">
+      <div className="ems-card p-5">
+        <div className="h-[540px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={CUSTOM_REPORT_DATA} margin={{ top: 28, right: 24, left: 0, bottom: 12 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+              <XAxis dataKey="time" tickLine={false} axisLine={false} stroke={chartColors.text} interval={23} />
+              <YAxis yAxisId="left" tickLine={false} axisLine={false} stroke={chartColors.text} domain={[0, 100]} />
+              <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} stroke={chartColors.text} domain={[0, 1000]} />
+              <Tooltip {...tooltipStyle} />
+              <Legend verticalAlign="top" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
+              {customMetrics.includes('soc') && <Line yAxisId="left" type="monotone" dataKey="soc" name={customMetricConfig.soc.label} stroke={customMetricConfig.soc.color} dot={false} isAnimationActive={false} />}
+              {customMetrics.includes('soh') && <Line yAxisId="left" type="monotone" dataKey="soh" name={customMetricConfig.soh.label} stroke={customMetricConfig.soh.color} dot={false} isAnimationActive={false} />}
+              {customMetrics.includes('acActivePower') && <Line yAxisId="right" type="monotone" dataKey="acActivePower" name={customMetricConfig.acActivePower.label} stroke={customMetricConfig.acActivePower.color} dot={false} isAnimationActive={false} />}
+              {customMetrics.includes('dcVoltage') && <Line yAxisId="right" type="monotone" dataKey="dcVoltage" name={customMetricConfig.dcVoltage.label} stroke={customMetricConfig.dcVoltage.color} dot={false} isAnimationActive={false} />}
+              {customMetrics.includes('dcCurrent') && <Line yAxisId="right" type="monotone" dataKey="dcCurrent" name={customMetricConfig.dcCurrent.label} stroke={customMetricConfig.dcCurrent.color} dot={false} isAnimationActive={false} />}
+              {customMetrics.includes('cellMaxVoltage') && <Line yAxisId="left" type="monotone" dataKey="cellMaxVoltage" name={customMetricConfig.cellMaxVoltage.label} stroke={customMetricConfig.cellMaxVoltage.color} dot={false} isAnimationActive={false} />}
+              {customMetrics.includes('cellMinVoltage') && <Line yAxisId="left" type="monotone" dataKey="cellMinVoltage" name={customMetricConfig.cellMinVoltage.label} stroke={customMetricConfig.cellMinVoltage.color} dot={false} isAnimationActive={false} />}
+              {customMetrics.includes('cellMaxTemp') && <Line yAxisId="left" type="monotone" dataKey="cellMaxTemp" name={customMetricConfig.cellMaxTemp.label} stroke={customMetricConfig.cellMaxTemp.color} dot={false} isAnimationActive={false} />}
+              {customMetrics.includes('cellMinTemp') && <Line yAxisId="left" type="monotone" dataKey="cellMinTemp" name={customMetricConfig.cellMinTemp.label} stroke={customMetricConfig.cellMinTemp.color} dot={false} isAnimationActive={false} />}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="ems-card p-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="text-base font-bold text-slate-800 dark:text-slate-100">
+            {t.custom.reportData}
+          </div>
+          <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-brand-500/30 bg-brand-500/10 px-3 py-1.5 text-xs font-bold text-brand-700 transition-colors hover:bg-brand-500/20 dark:text-brand-300">
+            <Download size={14} />
+            {t.custom.exportCsv}
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs font-bold text-slate-500 dark:border-apple-border-dark dark:text-slate-400">
+                <th className="px-3 py-2">{t.custom.timeCol}</th>
+                <th className="px-3 py-2">SOC (%)</th>
+                <th className="px-3 py-2">SOH (%)</th>
+                <th className="px-3 py-2">AC Active Power (kW)</th>
+                <th className="px-3 py-2">DC Voltage (V)</th>
+                <th className="px-3 py-2">DC Current (A)</th>
+                <th className="px-3 py-2">Cell Max Voltage (V)</th>
+                <th className="px-3 py-2">Cell Min Voltage (V)</th>
+                <th className="px-3 py-2">Cell Max Temperature (°C)</th>
+                <th className="px-3 py-2">Cell Min Temperature (°C)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CUSTOM_REPORT_DATA.slice(0, 8).map((row) => (
+                <tr key={row.time} className="border-b border-slate-100 text-slate-700 transition-colors hover:bg-slate-50/70 dark:border-white/5 dark:text-slate-200 dark:hover:bg-white/5">
+                  <td className="px-3 py-2">{`2025-${row.time}`}</td>
+                  <td className="px-3 py-2">{row.soc}</td>
+                  <td className="px-3 py-2">{row.soh}</td>
+                  <td className="px-3 py-2">{row.acActivePower}</td>
+                  <td className="px-3 py-2">{row.dcVoltage}</td>
+                  <td className="px-3 py-2">{row.dcCurrent}</td>
+                  <td className="px-3 py-2">{row.cellMaxVoltage}</td>
+                  <td className="px-3 py-2">{row.cellMinVoltage}</td>
+                  <td className="px-3 py-2">{row.cellMaxTemp}</td>
+                  <td className="px-3 py-2">{row.cellMinTemp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t.custom.showingRecords}</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDateSelector = () => (
+    <div
+      className={`relative z-20 flex w-full max-w-full items-stretch overflow-visible rounded-xl border bg-slate-50 transition-all sm:w-auto sm:min-w-[300px] dark:bg-apple-surface-secondary-dark
+      ${isDateOpen
+        ? 'border-brand-500 ring-2 ring-brand-100 dark:ring-brand-900/30'
+        : 'border-slate-200 dark:border-apple-border-dark hover:border-slate-300 dark:hover:border-white/15'}`}
+    >
+      <button
+        type="button"
+        onClick={() => setIsDateOpen(!isDateOpen)}
+        className="group flex h-10 min-w-0 flex-1 items-center justify-between gap-2 border-0 bg-transparent px-3 text-left outline-none ring-0 sm:px-4"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <Calendar size={16} className="shrink-0 text-slate-400 transition-colors group-hover:text-brand-600 dark:group-hover:text-brand-400" />
+          <div className="flex min-w-0 items-center gap-1 font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
+            <span className="truncate">{dateRange.start}</span>
+            <span className="shrink-0 text-slate-400">-</span>
+            <span className="truncate">{dateRange.end}</span>
+          </div>
+        </div>
+        <ChevronDown size={14} className={`shrink-0 transition-transform duration-300 ${isDateOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : 'text-slate-400'}`} />
+      </button>
+      <div className="w-px shrink-0 self-stretch bg-slate-200 dark:bg-apple-border-dark" aria-hidden />
+      <button
+        type="button"
+        onClick={handleReset}
+        title={t.reset}
+        aria-label={t.reset}
+        className="flex shrink-0 items-center justify-center border-0 bg-transparent px-3 py-2 text-slate-600 outline-none transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
+      >
+        <RotateCcw size={16} />
+      </button>
+
+      {isDateOpen && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setIsDateOpen(false)} />
+          <div className={`absolute right-0 top-full z-40 mt-2 animate-in fade-in zoom-in-95 rounded-2xl border shadow-xl duration-100 ${
+            isDark ? 'border-white/10 bg-[#1b212d]' : 'border-slate-200 bg-white'
+          }`}>
+            {renderCalendar()}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div className="ems-page-shell">
         {/* 顶栏：与实时数据页同款 */}
-        <div className="ems-card mb-4 flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-            <div className="custom-scrollbar-hide flex w-full min-w-0 items-center overflow-x-auto md:w-auto md:flex-1">
-                <div className="ems-segmented shrink-0">
-                    {[
-                        { id: 'load', label: t.tabs.load, icon: Activity },
-                        { id: 'power', label: t.tabs.power, icon: Zap },
-                        { id: 'battery', label: t.tabs.battery, icon: Battery }
-                    ].map((item) => (
-                        <button 
-                            key={item.id} 
-                            onClick={() => setActiveTab(item.id as any)}
-                            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap
-                            ${activeTab === item.id 
-                                ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400' 
-                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
-                        >
-                            <item.icon size={16} />
-                            {item.label}
-                        </button>
-                    ))}
+        <div className="ems-card mb-4 flex flex-col gap-3 p-4">
+            <div className="flex w-full items-center justify-between gap-3">
+                <div className="custom-scrollbar-hide min-w-0 flex-1 overflow-x-auto">
+                    <div className="flex w-max shrink-0 flex-nowrap items-end border-b border-slate-200 dark:border-white/10">
+                        {[
+                            { id: 'load', label: t.tabs.load, icon: Activity },
+                            { id: 'power', label: t.tabs.power, icon: Zap },
+                            { id: 'battery', label: t.tabs.battery, icon: Battery },
+                            { id: 'custom', label: t.tabs.custom, icon: SlidersHorizontal }
+                        ].map((item) => (
+                            <button 
+                                key={item.id} 
+                                type="button"
+                                onClick={() => setActiveTab(item.id as any)}
+                                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm font-bold transition-colors -mb-px
+                                ${activeTab === item.id 
+                                    ? 'border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400' 
+                                    : 'border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
+                            >
+                                <item.icon size={14} />
+                                {item.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
-
-            <div className="flex w-full flex-wrap items-center justify-end gap-3 md:w-auto md:shrink-0">
-                {activeTab === 'battery' && (
-                    <div className="flex shrink-0 items-center gap-2">
-                        <div className="relative">
-                            <div className="relative flex min-w-[132px] items-center rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark">
-                                <Package size={16} className="mr-2 shrink-0 text-slate-400" aria-hidden />
-                                <select
-                                    value={selectedStack}
-                                    onChange={(e) => setSelectedStack(e.target.value)}
-                                    className="w-full min-w-0 cursor-pointer appearance-none bg-transparent pr-1 text-sm font-bold text-slate-700 outline-none dark:text-slate-200"
-                                    aria-label={t.stackSelect}
-                                >
-                                    {BATTERY_STACKS.map((s) => (
-                                        <option key={s} value={s}>{s}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            </div>
-                        </div>
-                        <div className="relative">
-                            <div className="relative flex min-w-[132px] items-center rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark">
-                                <Layers size={16} className="mr-2 shrink-0 text-slate-400" aria-hidden />
-                                <select 
-                                    value={selectedCluster} 
-                                    onChange={(e) => setSelectedCluster(e.target.value)}
-                                    className="w-full min-w-0 cursor-pointer appearance-none bg-transparent pr-1 text-sm font-bold text-slate-700 outline-none dark:text-slate-200"
-                                    aria-label={t.clusterSelect}
-                                >
-                                    {BATTERY_CLUSTERS.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-                            </div>
-                        </div>
+            <div className="border-t border-slate-100 pt-3 dark:border-white/10">
+                {(activeTab === 'load' || activeTab === 'power') && (
+                    <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                            {activeTab === 'load' ? t.titleLoad : t.titlePower}
+                        </h3>
+                        {renderDateSelector()}
                     </div>
                 )}
-
-                <div
-                    className={`relative flex min-w-[240px] items-stretch overflow-hidden rounded-xl border bg-slate-50 transition-all dark:bg-apple-surface-secondary-dark
-                    ${isDateOpen
-                        ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/30'
-                        : 'border-slate-200 dark:border-apple-border-dark hover:border-slate-300 dark:hover:border-white/15'}`}
-                >
-                    <button
-                        type="button"
-                        onClick={() => setIsDateOpen(!isDateOpen)}
-                        className="group flex min-w-0 flex-1 items-center justify-between gap-2 border-0 bg-transparent px-4 py-2 text-left outline-none ring-0"
-                    >
-                        <div className="flex min-w-0 items-center gap-2">
-                            <Calendar size={16} className="shrink-0 text-slate-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400"/>
-                            <span className="truncate font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
-                                {dateRange.start} <span className="mx-1 text-slate-300">→</span> {dateRange.end}
-                            </span>
-                        </div>
-                        <ChevronDown size={14} className={`shrink-0 text-slate-400 transition-transform duration-300 ${isDateOpen ? 'rotate-180' : ''}`}/>
-                    </button>
-                    <div className="w-px shrink-0 self-stretch bg-slate-200 dark:bg-apple-border-dark" aria-hidden />
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        title={t.reset}
-                        aria-label={t.reset}
-                        className="flex shrink-0 items-center justify-center border-0 bg-transparent px-3 py-2 text-slate-600 outline-none transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
-                    >
-                        <RotateCcw size={16} />
-                    </button>
-
-                    {isDateOpen && (
-                        <>
-                            <div className="fixed inset-0 z-30" onClick={() => setIsDateOpen(false)}></div>
-                            <div className="absolute right-0 top-full z-40 mt-2 animate-in fade-in zoom-in-95 rounded-2xl border border-slate-200 bg-white shadow-xl duration-100 dark:border-apple-border-dark dark:bg-apple-surface-dark">
-                                {renderCalendar()}
-                            </div>
-                        </>
-                    )}
-                </div>
+                {activeTab === 'custom' && renderCustomFilters()}
+                {activeTab === 'battery' && renderBatteryFilters()}
             </div>
         </div>
 
         <div className="min-h-0 space-y-4">
             {activeTab === 'load' && (
-                <div className="ems-card relative flex min-h-[560px] flex-col p-5">
-                    <div className="mb-4 flex shrink-0 items-center justify-between">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t.titleLoad}</h3>
+                <div className="animate-in fade-in space-y-4 duration-300">
+                    <div className="ems-card relative flex min-h-[560px] flex-col p-5">
+                        <div className="relative min-h-0 w-full flex-1">{renderLoadTracking()}</div>
                     </div>
-                    <div className="relative min-h-0 w-full flex-1">{renderLoadTracking()}</div>
                 </div>
             )}
             {activeTab === 'power' && (
                 <div className="animate-in fade-in space-y-4 duration-300">
-                    <div className="mb-1 flex shrink-0 items-center px-1">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t.titlePower}</h3>
-                    </div>
                     {renderPowerTracking()}
                 </div>
             )}
             {activeTab === 'battery' && (
                 <div className="animate-in fade-in duration-300">
-                    <div className="mb-4 flex items-center px-1">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                            {`${t.titleBattery} · ${selectedStack} · ${selectedCluster}`}
-                        </h3>
-                    </div>
                     {renderBatteryAnalysis()}
                 </div>
             )}
+            {activeTab === 'custom' && renderCustomAnalysis()}
         </div>
     </div>
   );

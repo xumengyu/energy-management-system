@@ -372,7 +372,7 @@ const EssCabinetCard: React.FC<{
               <span className={`text-2xl font-black leading-none ${offline ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>{offline ? ct.dash : cab.acKw}</span>
               <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
             </div>
-            <div className={`mt-2 ${DETAIL_BORDER_T} pt-1.5 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400`}>
+            <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
               <div>{acPhaseVoltage}</div>
               <div>{acPhaseCurrent}</div>
             </div>
@@ -383,7 +383,7 @@ const EssCabinetCard: React.FC<{
               <span className={`text-2xl font-black leading-none ${DETAIL_TITLE}`}>{offline ? ct.dash : cab.dcKw}</span>
               <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
             </div>
-            <div className={`mt-2 ${DETAIL_BORDER_T} pt-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400`}>
+            <div className="mt-2 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
               {offline ? `${ct.dash} V / ${ct.dash} A` : `${cab.dcV} V / ${cab.dcA} A`}
             </div>
           </div>
@@ -571,7 +571,7 @@ export const RealtimeDetailPvCards: React.FC<{
                     <span className={`text-2xl font-black leading-none ${off ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>{off ? cabinetT.dash : c.powerKw}</span>
                     <span className="text-base font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
                   </div>
-                  <div className={`mt-2 ${DETAIL_BORDER_T} pt-1.5 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400`}>
+                  <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                     <div>{off ? cabinetT.dash : c.acVoltage}</div>
                     <div>{off ? cabinetT.dash : c.acCurrent}</div>
                   </div>
@@ -582,7 +582,7 @@ export const RealtimeDetailPvCards: React.FC<{
                     <span className={`text-2xl font-black leading-none ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.dcKw}</span>
                     <span className="text-base font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
                   </div>
-                  <div className={`mt-2 ${DETAIL_BORDER_T} pt-1.5 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400`}>
+                  <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                     <div>{off ? cabinetT.dash : c.dcVoltage}</div>
                     <div>{off ? cabinetT.dash : c.dcCurrent}</div>
                   </div>
@@ -669,7 +669,7 @@ export const RealtimeDetailEvseCards: React.FC<{
                       <span className={`text-2xl font-black leading-none ${off ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>{off ? cabinetT.dash : c.powerKw}</span>
                       <span className="text-base font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
                     </div>
-                    <div className={`mt-2 ${DETAIL_BORDER_T} pt-1.5 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400`}>
+                    <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                       <div>{off ? cabinetT.dash : c.acVoltage}</div>
                       <div>{off ? cabinetT.dash : c.acCurrent}</div>
                     </div>
@@ -680,7 +680,7 @@ export const RealtimeDetailEvseCards: React.FC<{
                       <span className={`text-2xl font-black leading-none ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.dcKw}</span>
                       <span className="text-base font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
                     </div>
-                    <div className={`mt-2 ${DETAIL_BORDER_T} pt-1.5 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400`}>
+                    <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                       <div>{off ? cabinetT.dash : c.dcVoltage}</div>
                       <div>{off ? cabinetT.dash : c.dcCurrent}</div>
                     </div>

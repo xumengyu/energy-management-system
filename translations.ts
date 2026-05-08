@@ -372,6 +372,21 @@ const en = {
             outputKw: 'Output',
             viewDetails: 'View details',
         },
+        emuDetail: {
+            backToList: 'Back to list',
+            title: 'Point detail',
+            subtitle: 'EMU field list (mock values)',
+            fieldName: 'Field',
+            value: 'Value',
+            equipmentList: 'Equipment list',
+            searchPlaceholder: 'Enter device name',
+            totalDevices: 'Total {count} devices',
+            lastUpdated: 'Last updated',
+            refresh: 'Refresh',
+            exportCsv: 'Export CSV',
+            param: 'Parameter',
+            realtimeData: 'Real-time data',
+        },
         legend: {
             gridPower: 'Grid Power',
             meterPower: 'Meter Power',
@@ -411,7 +426,8 @@ const en = {
         tabs: {
             load: 'Power Analysis',
             power: 'SOC Analysis',
-            battery: 'Battery Cluster Analysis'
+            battery: 'Battery Cluster Analysis',
+            custom: 'Custom Analysis'
         },
         time: 'Time',
         to: 'to',
@@ -422,6 +438,23 @@ const en = {
         titleLoad: 'Power Analysis',
         titlePower: 'SOC Analysis',
         titleBattery: 'Battery Cluster Analysis',
+        titleCustom: 'Custom Analysis',
+        custom: {
+            selectData: 'Select Data',
+            category: 'Category',
+            batterySystem: 'Battery System',
+            dataValues: 'Data Values',
+            selectDataValues: 'Select data values',
+            timeRange: 'Time Range',
+            cancel: 'Cancel',
+            apply: 'Apply',
+            generateReport: 'Generate Report',
+            reportChart: 'Report Chart',
+            reportData: 'Report Data',
+            timeCol: 'Time',
+            showingRecords: 'Showing 1 to 8 of 168 records',
+            exportCsv: 'Export CSV'
+        },
         charts: {
             clusterVol: 'Cluster Voltage Curve',
             clusterCur: 'Cluster Current Curve',
@@ -1366,6 +1399,21 @@ const zh = {
             outputKw: '输出功率',
             viewDetails: '查看详情',
         },
+        emuDetail: {
+            backToList: '返回列表',
+            title: '测点详情',
+            subtitle: 'EMU 数据字段（模拟值）',
+            fieldName: '字段',
+            value: '数值',
+            equipmentList: '设备列表',
+            searchPlaceholder: '请输入设备名称',
+            totalDevices: '共 {count} 个设备',
+            lastUpdated: '最后更新',
+            refresh: '刷新',
+            exportCsv: '导出 CSV',
+            param: '参数',
+            realtimeData: '实时数据',
+        },
         legend: {
             gridPower: '电网功率',
             meterPower: '关口功率',
@@ -1405,7 +1453,8 @@ const zh = {
         tabs: {
             load: '功率分析',
             power: 'SOC 分析',
-            battery: '电池簇分析'
+            battery: '电池簇分析',
+            custom: '自定义分析'
         },
         time: '时间',
         to: '至',
@@ -1416,6 +1465,23 @@ const zh = {
         titleLoad: '功率分析',
         titlePower: 'SOC 分析',
         titleBattery: '电池簇分析',
+        titleCustom: '自定义分析',
+        custom: {
+            selectData: '数据选择',
+            category: '类别',
+            batterySystem: '电池系统',
+            dataValues: '数据项',
+            selectDataValues: '选择数据项',
+            timeRange: '时间范围',
+            cancel: '取消',
+            apply: '应用',
+            generateReport: '生成报表',
+            reportChart: '报表图表',
+            reportData: '报表数据',
+            timeCol: '时间',
+            showingRecords: '显示第 1 到 8 条，共 168 条记录',
+            exportCsv: '导出 CSV'
+        },
         charts: {
             clusterVol: 'Cluster Voltage Curve',
             clusterCur: 'Cluster Current Curve',

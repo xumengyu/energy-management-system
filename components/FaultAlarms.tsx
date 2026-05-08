@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
     Search, Filter, AlertTriangle, Info, XCircle, CheckCircle2,
-    Calendar, ChevronDown, ChevronLeft, ChevronRight, Activity, List, MapPin, Eye
+    Calendar, ChevronDown, ChevronLeft, ChevronRight, MapPin, Eye
 } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
@@ -225,43 +225,12 @@ const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang }) => {
         );
     };
 
-    const statusTabBtn = (active: boolean) =>
-        `flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap ${
-            active
-                ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
-                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-        }`;
-
     return (
         <div className="ems-page-shell">
-            {/* Header / Toolbar — 与电价列表同款 */}
-            <div className="ems-card mb-4 flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row sm:items-center md:w-auto md:gap-6">
-                    <div className="custom-scrollbar-hide flex min-w-0 items-center overflow-x-auto">
-                        <div className="ems-segmented shrink-0">
-                            {(
-                                [
-                                    { id: 'Active' as const, label: t.status.active, icon: Activity },
-                                    { id: 'Recovered' as const, label: t.status.recovered, icon: CheckCircle2 },
-                                    { id: 'all' as const, label: t.status.all, icon: List },
-                                ] as const
-                            ).map((item) => (
-                                <button
-                                    key={item.id}
-                                    type="button"
-                                    onClick={() => setStatusFilter(item.id)}
-                                    className={statusTabBtn(statusFilter === item.id)}
-                                >
-                                    <item.icon size={16} />
-                                    {item.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="hidden h-8 w-px shrink-0 bg-slate-200 dark:bg-white/10 sm:block" />
-
-                    <div className="relative w-full sm:min-w-[200px] md:w-64">
+            {/* Toolbar — 与站点列表同款：搜索在前，分隔线，筛选按钮 */}
+            <div className="ems-card mb-4 flex flex-col items-center justify-between gap-4 p-4 md:flex-row">
+                <div className="flex w-full items-center gap-6 overflow-x-auto md:w-auto md:overflow-visible">
+                    <div className="relative w-full min-w-[160px] md:w-64">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
@@ -270,6 +239,29 @@ const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang }) => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:focus:ring-blue-900"
                         />
+                    </div>
+                    <div className="hidden h-8 w-px shrink-0 bg-slate-200 dark:bg-white/10 md:block" />
+                    <div className="flex shrink-0 items-center gap-1">
+                        {(
+                            [
+                                { id: 'Active' as const, label: t.status.active },
+                                { id: 'Recovered' as const, label: t.status.recovered },
+                                { id: 'all' as const, label: t.status.all },
+                            ] as const
+                        ).map((item) => (
+                            <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => setStatusFilter(item.id)}
+                                className={`whitespace-nowrap rounded-lg border px-4 py-2 text-sm font-bold transition-colors ${
+                                    statusFilter === item.id
+                                        ? 'border-slate-800 bg-slate-800 text-white dark:border-white dark:bg-white dark:text-slate-900'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-400 dark:hover:border-white/15'
+                                }`}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 

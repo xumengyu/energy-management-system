@@ -16,6 +16,8 @@ import {
   RealtimeDetailEvseCards,
   RealtimeDetailPvCards,
 } from './realtime/RealtimeDetailCards';
+import { RealtimeEmuDetailView } from './realtime/RealtimeEmuDetailView';
+import type { EmuRealtimeDeviceTab } from '../types/emuRealtimeDetail';
 
 // Dynamic Data Generator
 const generateData = (days: number = 1) => {
@@ -125,6 +127,8 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
   const [activeTab, setActiveTab] = useState('pv');
   const [subView, setSubView] = useState<'overview' | 'detail'>(initialSubView);
   const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
+  /** EMU 字段表详情：从「详细信息」卡片进入时为设备 id，返回列表时置空 */
+  const [emuDetailDeviceId, setEmuDetailDeviceId] = useState<string | null>(null);
 
   // Memoize data to avoid regeneration on every render
   const chartData = useMemo(() => {
@@ -158,10 +162,15 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
     setSubView(initialSubView);
   }, [initialSubView, selectedStation]);
 
+  useEffect(() => {
+    setEmuDetailDeviceId(null);
+  }, [selectedStation]);
+
   const handleTabChange = (tabId: string) => {
       setActiveTab(tabId);
       setSubView(hideSubViewToggle ? initialSubView : 'overview');
       setHiddenSeries([]);
+      setEmuDetailDeviceId(null);
   };
 
   const toggleSeries = (dataKey: string) => {
@@ -211,8 +220,17 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
   // --- Render Contents ---
 
   const renderEssContent = () => {
+    if (subView === 'detail' && emuDetailDeviceId) {
+      return null;
+    }
     if (subView === 'detail') {
-      return <RealtimeDetailEssCabinets lang={lang} cabinetT={t.cabinetCard} />;
+      return (
+        <RealtimeDetailEssCabinets
+          lang={lang}
+          cabinetT={t.cabinetCard}
+          onViewDetail={(id) => setEmuDetailDeviceId(id)}
+        />
+      );
     }
     return (
     <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
@@ -403,8 +421,11 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
   };
 
   const renderPvContent = () => {
+    if (subView === 'detail' && emuDetailDeviceId) {
+      return null;
+    }
     if (subView === 'detail') {
-      return <RealtimeDetailPvCards cabinetT={t.cabinetCard} />;
+      return <RealtimeDetailPvCards cabinetT={t.cabinetCard} onViewDetail={(id) => setEmuDetailDeviceId(id)} />;
     }
     return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300">
@@ -532,8 +553,17 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
   };
 
   const renderEvseContent = () => {
+    if (subView === 'detail' && emuDetailDeviceId) {
+      return null;
+    }
     if (subView === 'detail') {
-      return <RealtimeDetailEvseCards lang={lang} cabinetT={t.cabinetCard} />;
+      return (
+        <RealtimeDetailEvseCards
+          lang={lang}
+          cabinetT={t.cabinetCard}
+          onViewDetail={(id) => setEmuDetailDeviceId(id)}
+        />
+      );
     }
     return (
     <div className="space-y-4 animate-in fade-in duration-300">
@@ -647,8 +677,13 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
   };
 
   const renderDgContent = () => {
+    if (subView === 'detail' && emuDetailDeviceId) {
+      return null;
+    }
     if (subView === 'detail') {
-      return <RealtimeDetailDgCards lang={lang} cabinetT={t.cabinetCard} />;
+      return (
+        <RealtimeDetailDgCards lang={lang} cabinetT={t.cabinetCard} onViewDetail={(id) => setEmuDetailDeviceId(id)} />
+      );
     }
     return (
     <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
@@ -782,20 +817,21 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
 
   return (
     <div className="ems-page-shell">
-        {/* 顶栏：与电价列表 Header / Toolbar 同款 */}
-        <div className="ems-card mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
-            <div className="min-w-0 flex-1 overflow-x-auto custom-scrollbar-hide">
-                <div className="ems-segmented inline-flex shrink-0">
+        {/* 顶栏：与数据分析页同款 */}
+        <div className="ems-card mb-4 flex flex-col gap-3 p-4">
+            <div className="custom-scrollbar-hide flex w-full min-w-0 items-center overflow-x-auto md:w-auto md:flex-1">
+                <div className="flex shrink-0 flex-nowrap items-end border-b border-slate-200 dark:border-white/10">
                     {visibleTabs.map((item) => (
                         <button 
                             key={item.id} 
                             onClick={() => handleTabChange(item.id)}
-                            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap
+                            type="button"
+                            className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm font-bold transition-colors -mb-px
                             ${activeTab === item.id 
-                                ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400' 
-                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                ? 'border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400' 
+                                : 'border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
                         >
-                            <item.icon size={16} />
+                            <item.icon size={14} />
                             {item.label}
                         </button>
                     ))}
@@ -805,10 +841,19 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
         </div>
 
         <div className="min-h-0 space-y-4">
-            {activeTab === 'ess' && visibleTabs.some(t => t.id === 'ess') && renderEssContent()}
-            {activeTab === 'pv' && visibleTabs.some(t => t.id === 'pv') && renderPvContent()}
-            {activeTab === 'evse' && visibleTabs.some(t => t.id === 'evse') && renderEvseContent()}
-            {activeTab === 'dg' && visibleTabs.some(t => t.id === 'dg') && renderDgContent()}
+            {subView === 'detail' && emuDetailDeviceId && (
+              <RealtimeEmuDetailView
+                deviceId={emuDetailDeviceId}
+                activeTab={activeTab as EmuRealtimeDeviceTab}
+                lang={lang}
+                theme={theme}
+                onBack={() => setEmuDetailDeviceId(null)}
+              />
+            )}
+            {!emuDetailDeviceId && activeTab === 'ess' && visibleTabs.some(t => t.id === 'ess') && renderEssContent()}
+            {!emuDetailDeviceId && activeTab === 'pv' && visibleTabs.some(t => t.id === 'pv') && renderPvContent()}
+            {!emuDetailDeviceId && activeTab === 'evse' && visibleTabs.some(t => t.id === 'evse') && renderEvseContent()}
+            {!emuDetailDeviceId && activeTab === 'dg' && visibleTabs.some(t => t.id === 'dg') && renderDgContent()}
         </div>
     </div>
   );

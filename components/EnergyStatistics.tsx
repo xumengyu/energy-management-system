@@ -451,17 +451,17 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
   );
 
   const segmentedTabBtn = (active: boolean) =>
-    `flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap ${
+    `flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm font-bold transition-colors -mb-px ${
       active
-        ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
-        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+        ? 'border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400'
+        : 'border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
     }`;
 
   /** 页面内第三层（并网点）——较主 Tab 更紧凑 */
   const segmentedAreaBtn = (active: boolean) =>
     `flex items-center rounded-md px-2.5 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
       active
-        ? 'bg-white text-blue-600 shadow-sm dark:bg-apple-surface-dark dark:text-blue-400'
+        ? 'bg-white text-brand-600 shadow-sm dark:bg-apple-surface-dark dark:text-brand-400'
         : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
     }`;
 
@@ -471,7 +471,7 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
       <div className="ems-card flex shrink-0 flex-col gap-4 p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="custom-scrollbar-hide flex w-full min-w-0 flex-1 items-center overflow-x-auto">
-            <div className="ems-segmented shrink-0">
+            <div className="flex w-max shrink-0 flex-nowrap items-end border-b border-slate-200 dark:border-white/10">
               {[
                 { id: 'ess', label: t?.tabs?.ess || 'BESS', icon: Battery },
                 { id: 'pv', label: t?.tabs?.pv || 'PV', icon: Sun },
@@ -485,7 +485,7 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
                   onClick={() => handleTabChange(item.id as any)}
                   className={segmentedTabBtn(activeTab === item.id)}
                 >
-                  <item.icon size={16} />
+                  <item.icon size={14} />
                   {item.label}
                 </button>
               ))}
@@ -496,7 +496,7 @@ const EnergyStatistics: React.FC<EnergyStatisticsProps> = ({ lang, theme, select
             <MonthPicker value={month} onChange={setMonth} theme={theme} lang={lang} />
             <button
               type="button"
-              className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-500 transition-colors hover:text-blue-600 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-400 dark:hover:text-blue-400"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-500 transition-colors hover:text-brand-600 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-400 dark:hover:text-brand-400"
             >
               <Download size={18} />
             </button>
