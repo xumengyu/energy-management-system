@@ -44,7 +44,7 @@ interface EssCabinet {
 const ESS_CABINETS: EssCabinet[] = [
   { id: '1-1', status: 'online', soc: 68, soh: 92.3, acKw: 125, acV: 400, acA: [76, 75, 76], dcKw: 128, dcV: 750, dcA: 121, vmax: '3.654', vmin: '3.280', tmax: '32.5', tmin: '24.1' },
   { id: '1-2', status: 'online', soc: 72, soh: 93.1, acKw: 130, acV: 401, acA: [78, 77, 77], dcKw: 132, dcV: 752, dcA: 125, vmax: '3.648', vmin: '3.295', tmax: '31.8', tmin: '24.5' },
-  { id: '2-1', status: 'warning', soc: 45, soh: 89.2, acKw: 98, acV: 398, acA: [61, 59, 60], dcKw: 96, dcV: 748, dcA: 109, vmax: '3.672', vmin: '3.265', tmax: '38.2', tmin: '26.1' },
+  { id: '2-1', status: 'warning', soc: 4, soh: 89.2, acKw: 98, acV: 398, acA: [61, 59, 60], dcKw: 96, dcV: 748, dcA: 109, vmax: '3.672', vmin: '3.265', tmax: '38.2', tmin: '26.1' },
   { id: '2-2', status: 'fault', soc: 12, soh: 88.0, acKw: 0, acV: 0, acA: [0, 0, 0], dcKw: 0, dcV: 0, dcA: 0, vmax: '3.701', vmin: '3.210', tmax: '42.0', tmin: '28.4' },
   { id: '3-1', status: 'online', soc: 100, soh: 94.0, acKw: 110, acV: 400, acA: [69, 68, 69], dcKw: 114, dcV: 755, dcA: 117, vmax: '3.640', vmin: '3.310', tmax: '30.1', tmin: '23.8' },
   { id: '3-2', status: 'offline', soc: 0, soh: 0, acKw: 0, acV: 0, acA: [0, 0, 0], dcKw: 0, dcV: 0, dcA: 0, vmax: '—', vmin: '—', tmax: '—', tmin: '—' },
@@ -86,7 +86,7 @@ function statusMeta(status: CabinetStatus, ct: StationRealtimeCabinetT): StatusM
     case 'fault':
       return {
         label: ct.statusFault,
-        border: 'border-red-500/50',
+        border: 'border-red-500',
         accent: 'text-rose-600 dark:text-rose-400',
         bar: 'bg-rose-500',
         text: 'text-rose-700 dark:text-rose-300',
@@ -303,8 +303,15 @@ const EssCabinetCard: React.FC<{
 }> = ({ cab, ct, onViewDetail }) => {
   const m = statusMeta(cab.status, ct);
   const offline = cab.status === 'offline';
+  const lowSoc = !offline && cab.soc < 5;
   const batteryLevel = Math.min(100, Math.max(0, cab.soc));
-  const batteryBarColor = cab.status === 'fault' ? 'bg-rose-500' : 'bg-brand-500';
+  const batteryBarColor = cab.id === '2-2'
+    ? 'bg-brand-500'
+    : cab.status === 'fault'
+      ? 'bg-rose-500'
+      : lowSoc
+        ? 'bg-amber-500'
+        : 'bg-brand-500';
   const neutralValue = `${ct.dash} / ${ct.dash} / ${ct.dash}`;
   const acPhaseCurrent = offline ? neutralValue : `${cab.acA[0]} / ${cab.acA[1]} / ${cab.acA[2]} A`;
   const acPhaseVoltage = offline ? neutralValue : `${cab.acV} / ${cab.acV + 1} / ${cab.acV + 2} V`;
@@ -331,7 +338,13 @@ const EssCabinetCard: React.FC<{
         <div className={`${metricShell} p-2`}>
           <div className="flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-1">
-              <span className={`text-3xl font-black tabular-nums leading-none tracking-tight ${offline ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>
+              <span className={`text-3xl font-black tabular-nums leading-none tracking-tight ${
+                offline
+                  ? 'text-slate-500 dark:text-slate-300'
+                  : lowSoc
+                    ? 'text-amber-500 dark:text-amber-400'
+                    : 'text-brand-500 dark:text-brand-400'
+              }`}>
                 {offline ? ct.dash : cab.soc}
                 {!offline && <span className="ml-px text-xl">%</span>}
               </span>
