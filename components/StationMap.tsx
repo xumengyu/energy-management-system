@@ -4,7 +4,6 @@ import {
   Battery,
   Cable,
   CheckCircle2,
-  Clock3,
   Crosshair,
   Expand,
   MapPin,
@@ -44,12 +43,12 @@ interface MapStation {
 const STATIONS_EN: MapStation[] = [
   { id: 'ST-001', name: 'Station #1 (Berlin)', location: 'Berlin, Germany', assetTypes: ['BESS', 'PV'], assetDetails: [{ type: 'BESS', power: '28 MW', capacity: '56 MWh' }, { type: 'PV', power: '16 MW', capacity: '20 MWp' }], status: 'Normal', chargeState: 'Charging', soc: 86, powerMw: 10.8, top: '32%', left: '42%' },
   { id: 'ST-002', name: 'Station #2 (Munich)', location: 'Munich, Germany', assetTypes: ['BESS', 'PV', 'DG'], assetDetails: [{ type: 'BESS', power: '22 MW', capacity: '44 MWh' }, { type: 'PV', power: '18 MW', capacity: '24 MWp' }, { type: 'DG', power: '6 MW', capacity: '9 MVA' }], status: 'Warning', chargeState: 'Discharging', soc: 43, powerMw: 6.2, top: '48%', left: '56%' },
-  { id: 'ST-003', name: 'Station #3 (London)', location: 'London, UK', assetTypes: ['BESS', 'PV', 'EVSE'], assetDetails: [{ type: 'BESS', power: '14 MW', capacity: '28 MWh' }, { type: 'PV', power: '12 MW', capacity: '15 MWp' }, { type: 'EVSE', power: '4 MW', capacity: '120 stalls' }], status: 'Offline', chargeState: 'Standby', soc: 0, powerMw: 0, top: '21%', left: '29%' },
+  { id: 'ST-003', name: 'Station #3 (London)', location: 'London, UK', assetTypes: ['BESS', 'PV', 'EVSE'], assetDetails: [{ type: 'BESS', power: '14 MW', capacity: '28 MWh' }, { type: 'PV', power: '12 MW', capacity: '15 MWp' }, { type: 'EVSE', power: '4 MW', capacity: '120 Ports' }], status: 'Offline', chargeState: 'Standby', soc: 0, powerMw: 0, top: '21%', left: '29%' },
   { id: 'ST-004', name: 'Station #5 (Paris)', location: 'Paris, France', assetTypes: ['PV', 'DG'], assetDetails: [{ type: 'PV', power: '21 MW', capacity: '27 MWp' }, { type: 'DG', power: '8 MW', capacity: '12 MVA' }], status: 'Normal', chargeState: 'Discharging', soc: 91, powerMw: 12.4, top: '56%', left: '60%' },
-  { id: 'ST-005', name: 'Station #6 (Madrid)', location: 'Madrid, Spain', assetTypes: ['BESS', 'EVSE'], assetDetails: [{ type: 'BESS', power: '20 MW', capacity: '40 MWh' }, { type: 'EVSE', power: '5 MW', capacity: '160 stalls' }], status: 'Normal', chargeState: 'Charging', soc: 67, powerMw: 8.1, top: '62%', left: '45%' },
+  { id: 'ST-005', name: 'Station #6 (Madrid)', location: 'Madrid, Spain', assetTypes: ['BESS', 'EVSE'], assetDetails: [{ type: 'BESS', power: '20 MW', capacity: '40 MWh' }, { type: 'EVSE', power: '5 MW', capacity: '160 Ports' }], status: 'Normal', chargeState: 'Charging', soc: 67, powerMw: 8.1, top: '62%', left: '45%' },
   { id: 'ST-006', name: 'Station #8 (Rome)', location: 'Rome, Italy', assetTypes: ['BESS', 'PV'], assetDetails: [{ type: 'BESS', power: '24 MW', capacity: '48 MWh' }, { type: 'PV', power: '14 MW', capacity: '18 MWp' }], status: 'Normal', chargeState: 'Standby', soc: 78, powerMw: 9.3, top: '77%', left: '37%' },
   { id: 'ST-007', name: 'Station #9 (Zurich)', location: 'Zurich, Switzerland', assetTypes: ['BESS', 'DG'], assetDetails: [{ type: 'BESS', power: '18 MW', capacity: '36 MWh' }, { type: 'DG', power: '7 MW', capacity: '10 MVA' }], status: 'Warning', chargeState: 'Discharging', soc: 35, powerMw: 5.4, top: '66%', left: '27%' },
-  { id: 'ST-008', name: 'Station #11 (Oslo)', location: 'Oslo, Norway', assetTypes: ['BESS', 'PV', 'DG', 'EVSE'], assetDetails: [{ type: 'BESS', power: '30 MW', capacity: '60 MWh' }, { type: 'PV', power: '19 MW', capacity: '25 MWp' }, { type: 'DG', power: '9 MW', capacity: '13 MVA' }, { type: 'EVSE', power: '6 MW', capacity: '200 stalls' }], status: 'Normal', chargeState: 'Charging', soc: 58, powerMw: 7.2, top: '52%', left: '20%' },
+  { id: 'ST-008', name: 'Station #11 (Oslo)', location: 'Oslo, Norway', assetTypes: ['BESS', 'PV', 'DG', 'EVSE'], assetDetails: [{ type: 'BESS', power: '30 MW', capacity: '60 MWh' }, { type: 'PV', power: '19 MW', capacity: '25 MWp' }, { type: 'DG', power: '9 MW', capacity: '13 MVA' }, { type: 'EVSE', power: '6 MW', capacity: '200 Ports' }], status: 'Normal', chargeState: 'Charging', soc: 58, powerMw: 7.2, top: '52%', left: '20%' },
 ];
 
 const STATIONS_ZH: MapStation[] = [
@@ -130,8 +129,8 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
     essInstalled: lang === 'zh' ? '储能装机' : 'ESS installed',
     pvInstalled: lang === 'zh' ? '光伏装机' : 'PV installed',
     dgInstalled: lang === 'zh' ? 'DG装机' : 'DG installed',
+    evseInstalled: lang === 'zh' ? '充电桩装机' : 'EVSE installed',
     onlineRate: lang === 'zh' ? '在线率' : 'Online rate',
-    liveFeed: lang === 'zh' ? '实时事件流' : 'Live event feed',
     mapLayer: lang === 'zh' ? '图层' : 'Layers',
     mapHeat: lang === 'zh' ? '热力图' : 'Heatmap',
     mapTraffic: lang === 'zh' ? '路况' : 'Traffic',
@@ -199,32 +198,6 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
   const onlineRate = Math.round(((counts.Normal + counts.Warning) / stations.length) * 100);
   const warningRate = Math.round((counts.Warning / stations.length) * 100);
   const offlineRate = Math.round((counts.Offline / stations.length) * 100);
-  const liveEvents: LiveEvent[] = [
-    {
-      id: 'EVT-001',
-      level: 'warning',
-      station: stations[1]?.name ?? 'Station #2',
-      message: lang === 'zh' ? '逆变器温度偏高' : 'Inverter temperature high',
-      time: lang === 'zh' ? '8 分钟前' : '8m ago',
-    },
-    {
-      id: 'EVT-002',
-      level: 'warning',
-      station: stations[6]?.name ?? 'Station #9',
-      message: lang === 'zh' ? '并网电压偏移' : 'Grid voltage deviation',
-      time: lang === 'zh' ? '15 分钟前' : '15m ago',
-    },
-    {
-      id: 'EVT-003',
-      level: 'info',
-      station: stations[7]?.name ?? 'Station #11',
-      message: lang === 'zh' ? '通信恢复成功' : 'Communication restored',
-      time: lang === 'zh' ? '1 小时前' : '1h ago',
-    },
-  ];
-  const tickerText = liveEvents
-    .map((e) => `${e.time} · ${e.station} · ${e.message}`)
-    .join('     ');
   const selectedStation = selectedStationId
     ? stations.find((s) => s.id === selectedStationId) ?? null
     : null;
@@ -340,6 +313,16 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
                   <div className="rounded-lg border border-slate-200/80 bg-slate-50/75 p-2 dark:border-white/10 dark:bg-apple-surface-secondary-dark/65">
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{labels.dgInstalled}</div>
                     <div className="mt-1 text-xl font-extrabold leading-none text-slate-900 dark:text-white">500<span className="ml-1 text-xs font-bold text-slate-500 dark:text-slate-400">MW</span></div>
+                  </div>
+                  <div className="col-span-2 rounded-lg border border-slate-200/80 bg-slate-50/75 p-2 dark:border-white/10 dark:bg-apple-surface-secondary-dark/65">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{labels.evseInstalled}</div>
+                    <div className="mt-1 flex items-end gap-1 text-slate-900 dark:text-white">
+                      <span className="text-2xl font-extrabold leading-none">120</span>
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">kW</span>
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">/</span>
+                      <span className="text-2xl font-extrabold leading-none">2</span>
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Ports</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -526,20 +509,6 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
 
       </div>
 
-      <div className="ems-card relative z-20 mx-3 mb-3 mt-auto shrink-0 overflow-hidden border-brand-100/70 sm:mx-4 sm:mb-4 lg:mx-5 2xl:mx-6 dark:border-brand-900/40">
-        <div className="flex items-center gap-2 bg-brand-50/70 px-3 py-2 text-xs dark:bg-brand-900/20 sm:gap-3">
-          <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2 py-1 font-bold text-brand-700 dark:bg-apple-surface-dark dark:text-brand-300">
-            <Clock3 size={12} />
-            <span className="hidden sm:inline">{labels.liveFeed}</span>
-            <span className="sm:hidden">{lang === 'zh' ? '事件流' : 'Feed'}</span>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <div className="whitespace-nowrap font-medium text-slate-600 dark:text-slate-300 animate-[marquee_24s_linear_infinite]">
-              {tickerText} &nbsp; {tickerText}
-            </div>
-          </div>
-        </div>
-      </div>
       </div>
     </div>
   );
