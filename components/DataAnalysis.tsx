@@ -141,7 +141,9 @@ const CUSTOM_METRICS = [
   'cellMinTemp',
 ] as const;
 
-const CUSTOM_CATEGORIES = ['battery'] as const;
+const CUSTOM_CATEGORIES = ['bess', 'pv', 'evse', 'dg', 'gateway_meter'] as const;
+
+type CustomCategoryId = (typeof CUSTOM_CATEGORIES)[number];
 
 const generateCustomReportData = () => {
   return Array.from({ length: 168 }, (_, i) => {
@@ -217,7 +219,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   const [isBatteryStackOpen, setIsBatteryStackOpen] = useState(false);
   const [isBatteryClusterOpen, setIsBatteryClusterOpen] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
-  const [customCategory, setCustomCategory] = useState('battery');
+  const [customCategory, setCustomCategory] = useState<CustomCategoryId>('bess');
   const [customMetrics, setCustomMetrics] = useState<string[]>([...CUSTOM_METRICS]);
   const [customStartDateTime, setCustomStartDateTime] = useState('2025-05-17T00:00:00');
   const [customEndDateTime, setCustomEndDateTime] = useState('2025-05-23T23:59:59');
@@ -1053,7 +1055,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                 ? 'border-brand-400 ring-2 ring-brand-100 dark:ring-brand-900/30'
                 : 'border-slate-200 hover:border-slate-300 dark:hover:border-white/15'}`}
           >
-            <span>{customCategory === 'battery' ? t.custom.batterySystem : customCategory}</span>
+            <span>{t.custom.categories[customCategory]}</span>
             <ChevronDown size={14} className={`text-slate-400 transition-transform ${isCustomCategoryOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : ''}`} />
           </button>
           {isCustomCategoryOpen && (
@@ -1075,7 +1077,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                           ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/25 dark:text-brand-300'
                           : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark'}`}
                     >
-                      <span>{t.custom.batterySystem}</span>
+                      <span>{t.custom.categories[category]}</span>
                       {checked && <Check size={14} className="text-brand-600 dark:text-brand-400" />}
                     </button>
                   );

@@ -442,7 +442,13 @@ const en = {
         custom: {
             selectData: 'Select Data',
             category: 'Category',
-            batterySystem: 'Battery System',
+            categories: {
+                bess: 'BESS',
+                pv: 'PV',
+                evse: 'EVSE',
+                dg: 'DG',
+                gateway_meter: 'Gateway Meter',
+            },
             dataValues: 'Data Values',
             selectDataValues: 'Select data values',
             timeRange: 'Time Range',
@@ -1469,7 +1475,13 @@ const zh = {
         custom: {
             selectData: '数据选择',
             category: '类别',
-            batterySystem: '电池系统',
+            categories: {
+                bess: 'BESS',
+                pv: 'PV',
+                evse: 'EVSE',
+                dg: 'DG',
+                gateway_meter: '关口表',
+            },
             dataValues: '数据项',
             selectDataValues: '选择数据项',
             timeRange: '时间范围',
