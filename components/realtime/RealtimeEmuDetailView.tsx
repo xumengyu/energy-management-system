@@ -42,8 +42,6 @@ const DEVICES_BY_TAB: Record<EmuRealtimeDeviceTab, { id: string; nameZh: string;
   ],
 };
 
-const PAGE_SIZE = 8;
-
 function hashString(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -179,7 +177,6 @@ export const RealtimeEmuDetailView: React.FC<RealtimeEmuDetailViewProps> = ({
   const allDevices = DEVICES_BY_TAB[activeTab] ?? [];
   const [selectedId, setSelectedId] = useState(initialDeviceId);
   const [search, setSearch] = useState('');
-  const [listPage, setListPage] = useState(1);
   const [lastUpdated, setLastUpdated] = useState(() =>
     new Date().toLocaleString(lang === 'zh' ? 'zh-CN' : 'en-GB', {
       year: 'numeric',
@@ -206,25 +203,6 @@ export const RealtimeEmuDetailView: React.FC<RealtimeEmuDetailViewProps> = ({
         d.nameEn.toLowerCase().includes(q),
     );
   }, [allDevices, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredDevices.length / PAGE_SIZE));
-  const safePage = Math.min(listPage, totalPages);
-  const pagedDevices = useMemo(() => {
-    const start = (safePage - 1) * PAGE_SIZE;
-    return filteredDevices.slice(start, start + PAGE_SIZE);
-  }, [filteredDevices, safePage]);
-
-  useEffect(() => {
-    setListPage(1);
-  }, [search, activeTab]);
-
-  /** 从卡片进入时：按完整设备列表定位分页（避免随搜索 filtered 误跳页） */
-  useEffect(() => {
-    const idx = allDevices.findIndex((d) => d.id === initialDeviceId);
-    if (idx >= 0) {
-      setListPage(Math.floor(idx / PAGE_SIZE) + 1);
-    }
-  }, [initialDeviceId, activeTab, allDevices]);
 
   const selectedMeta = useMemo(
     () => allDevices.find((d) => d.id === selectedId) ?? allDevices[0] ?? { id: selectedId, nameZh: selectedId, nameEn: selectedId },
@@ -299,7 +277,7 @@ export const RealtimeEmuDetailView: React.FC<RealtimeEmuDetailViewProps> = ({
             </div>
           </div>
           <ul className="max-h-[min(480px,50vh)] flex-1 overflow-y-auto custom-scrollbar">
-            {pagedDevices.map((d) => {
+            {filteredDevices.map((d) => {
               const name = lang === 'zh' ? d.nameZh : d.nameEn;
               const sel = d.id === selectedId;
               return (
@@ -320,29 +298,8 @@ export const RealtimeEmuDetailView: React.FC<RealtimeEmuDetailViewProps> = ({
               );
             })}
           </ul>
-          <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-3 py-2.5 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
+          <div className="flex items-center border-t border-slate-200 px-3 py-2.5 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
             <span className="font-medium">{emu.totalDevices.replace('{count}', String(filteredDevices.length))}</span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={safePage <= 1}
-                onClick={() => setListPage((p) => Math.max(1, p - 1))}
-                className="rounded-md border border-slate-200 px-2 py-1 font-bold text-slate-600 disabled:opacity-40 dark:border-white/10 dark:text-slate-300"
-              >
-                ‹
-              </button>
-              <span className="tabular-nums">
-                {safePage}/{totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={safePage >= totalPages}
-                onClick={() => setListPage((p) => Math.min(totalPages, p + 1))}
-                className="rounded-md border border-slate-200 px-2 py-1 font-bold text-slate-600 disabled:opacity-40 dark:border-white/10 dark:text-slate-300"
-              >
-                ›
-              </button>
-            </div>
           </div>
         </aside>
 
