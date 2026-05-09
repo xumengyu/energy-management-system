@@ -158,7 +158,7 @@ const PriceSelectionModal: React.FC<PriceSelectionModalProps> = ({
                 </div>
 
                 <div className="custom-scrollbar flex-1 overflow-y-auto px-0 pb-2 pt-0">
-                    <div className="ems-card mx-4 mb-4 overflow-hidden border-slate-200 dark:border-apple-border-dark">
+                    <div className="ems-card mx-4 mb-4 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead className="border-b border-slate-100 bg-slate-50/50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50 dark:text-slate-400">

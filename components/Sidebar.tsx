@@ -105,7 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div
       className={`${
         effectiveCollapsed ? 'w-14' : 'w-64'
-      } bg-apple-surface-light dark:bg-apple-surface-dark text-slate-800 dark:text-white flex flex-col h-screen fixed left-0 top-0 z-50 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] overflow-hidden border-r border-apple-border-light dark:border-apple-border-dark ${
+      } border-r border-apple-border-light dark:border-apple-border-dark bg-apple-surface-light dark:bg-apple-surface-dark text-slate-800 dark:text-white flex flex-col h-screen fixed left-0 top-0 z-50 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] overflow-hidden ${
         isMobile ? (isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full') : 'translate-x-0'
       }`}
     >

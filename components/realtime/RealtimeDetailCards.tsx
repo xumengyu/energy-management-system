@@ -1,5 +1,5 @@
 import React from 'react';
-import { Battery, Sun, Cable, RotateCw, Zap, ArrowUp, ArrowDown, Activity, Thermometer, Car } from 'lucide-react';
+import { Battery, Sun, Cable, RotateCw, ArrowUp, ArrowDown, Activity, Thermometer } from 'lucide-react';
 import { Language } from '../../types';
 
 type CabinetStatus = 'online' | 'warning' | 'fault' | 'offline';
@@ -60,8 +60,8 @@ type StatusMetaResolved = {
 };
 
 function statusMeta(status: CabinetStatus, ct: StationRealtimeCabinetT): StatusMetaResolved {
-  /* Card chrome matches global `ems-card`; only fault tints the outer border. */
-  const shellDefault = 'border-slate-200 dark:border-apple-border-dark';
+  /* Keep card border hidden by default; only fault shows explicit border. */
+  const shellDefault = 'border-transparent';
   switch (status) {
     case 'online':
       return {
@@ -86,7 +86,7 @@ function statusMeta(status: CabinetStatus, ct: StationRealtimeCabinetT): StatusM
     case 'fault':
       return {
         label: ct.statusFault,
-        border: 'border-red-500',
+        border: 'border-2 border-red-500',
         accent: 'text-rose-600 dark:text-rose-400',
         bar: 'bg-rose-500',
         text: 'text-rose-700 dark:text-rose-300',
@@ -108,7 +108,7 @@ function statusMeta(status: CabinetStatus, ct: StationRealtimeCabinetT): StatusM
 
 /* Realtime detail cards — align with global `ems-card` + StationRealtime nested rows (index.css / StationRealtime.tsx) */
 
-const DETAIL_CARD_SHELL = 'ems-card flex w-full min-w-0 flex-col p-3';
+const DETAIL_CARD_SHELL = 'ems-card shadow-none flex w-full min-w-0 flex-col p-3';
 const DETAIL_CARD_MIN_WIDTH = 280;
 const DETAIL_CARD_MAX_WIDTH = 432;
 const DETAIL_CARD_GAP = 12; // Tailwind `gap-3`
@@ -147,27 +147,19 @@ const RealtimeAdaptiveCardGrid: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 };
 
-const DETAIL_PANEL_SHELL =
-  'rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50';
-
 /** BESS detail card: stacked sections separated by faint rules (no inner framed panels) */
-const ESS_DETAIL_SECTIONS = 'flex min-w-0 flex-col divide-y divide-slate-200/55 dark:divide-white/[0.08]';
+const ESS_DETAIL_SECTIONS = 'flex min-w-0 flex-col';
 
-const ESS_DETAIL_SECTION_PAD = 'px-0 py-2.5 first:pt-0 last:pb-0';
+const ESS_DETAIL_SECTION_PAD = 'px-2 py-2.5 first:pt-0 last:pb-0';
+const ESS_DETAIL_SECTION_DIVIDER = 'border-t border-slate-200/55 dark:border-white/[0.08]';
 
 const DETAIL_BORDER_T = 'border-t border-slate-200 dark:border-apple-border-dark';
 
 const DETAIL_BORDER_R = 'border-r border-slate-200 dark:border-apple-border-dark';
 
-const DETAIL_LABEL =
-  'text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400';
-
 const DETAIL_VALUE = 'text-sm font-black text-slate-900 dark:text-white';
 
 const DETAIL_TITLE = 'text-slate-900 dark:text-white';
-const DETAIL_SECTION_TITLE = 'text-slate-700 dark:text-slate-300';
-
-const DETAIL_GRID_HEADING = 'text-lg font-bold text-slate-900 dark:text-white';
 
 const DETAIL_CAP_LABEL =
   'text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500';
@@ -175,25 +167,22 @@ const DETAIL_CAP_LABEL =
 const DETAIL_SECONDARY_CELL = 'text-xs font-semibold text-slate-400 dark:text-slate-500';
 
 const DETAIL_STATUS_PILL =
-  'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black uppercase tracking-wider';
+  'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-black uppercase tracking-wider';
 
 /** Icon + name left, status pill right, one row */
-const DETAIL_CARD_HEADER = 'mb-2 flex min-w-0 items-center justify-between gap-2';
+const DETAIL_CARD_HEADER = 'mb-5 flex min-w-0 items-center justify-between gap-2 px-2';
 
-/** Same language as BESS health row icon wells: white / apple-surface-dark + apple-border */
+/** Icon-only style: no container chrome */
 const DETAIL_HEADER_TYPE_ICON =
-  'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm dark:border-apple-border-dark dark:bg-apple-surface-dark';
+  'flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100/55 dark:bg-brand-900/35';
 
 const DETAIL_SECTION_ICON =
-  'flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-brand-600 shadow-sm dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-brand-400';
+  'flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100/55 text-brand-600 dark:bg-brand-900/35 dark:text-brand-400';
+const DETAIL_ICON_ALIGN_SLOT = 'inline-flex w-7 shrink-0 items-center justify-center';
 
-/** BESS SOC — track only (no bordered shell; matches thin progress style used elsewhere) */
+/** BESS SOC / EVSE Car SOC — track only (no outer shell) */
 const DETAIL_BAR_TRACK =
-  'relative h-5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700';
-
-/** EVSE Car SOC — track only (no outer shell) */
-const DETAIL_PERCENT_METER_TRACK =
-  'h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700';
+  'relative h-4 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700';
 
 const DG_SEMI_GAUGE_R = 34;
 const DG_SEMI_GAUGE_ARC = Math.PI * DG_SEMI_GAUGE_R;
@@ -272,14 +261,14 @@ const DetailPercentMeter: React.FC<{
         <span className={`shrink-0 text-xl font-black tabular-nums leading-none ${DETAIL_TITLE}`}>{valueLabel}</span>
       </div>
       <div
-        className={DETAIL_PERCENT_METER_TRACK}
+        className={DETAIL_BAR_TRACK}
         role="meter"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={hasValue ? Math.round(valuePercent as number) : undefined}
       >
         <div
-          className={`h-full rounded-full transition-[width] duration-300 ease-out ${hasValue ? fillClass : 'bg-transparent'}`}
+          className={`h-full rounded-full transition-all duration-500 ease-out ${hasValue ? fillClass : 'bg-transparent'}`}
           style={{ width: hasValue ? `${pct}%` : '0%' }}
         />
       </div>
@@ -292,13 +281,15 @@ const RealtimeDetailCardFooter: React.FC<{
   deviceId: string;
   onViewDetail?: (deviceId: string) => void;
 }> = ({ label, deviceId, onViewDetail }) => (
-  <button
-    type="button"
-    className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark/80 dark:focus-visible:ring-brand-900/40 disabled:opacity-50"
-    onClick={() => onViewDetail?.(deviceId)}
-  >
-    {label}
-  </button>
+  <div className="mt-2.5 px-2">
+    <button
+      type="button"
+      className="flex w-full items-center justify-center rounded-xl border-transparent bg-[rgb(247,249,252)] px-3 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-[rgb(241,244,249)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100 dark:border-transparent dark:bg-apple-surface-secondary-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark/80 dark:focus-visible:ring-brand-900/40 disabled:opacity-50"
+      onClick={() => onViewDetail?.(deviceId)}
+    >
+      {label}
+    </button>
+  </div>
 );
 
 const EssCabinetCard: React.FC<{
@@ -327,9 +318,11 @@ const EssCabinetCard: React.FC<{
     >
       <div className={DETAIL_CARD_HEADER}>
         <div className="flex min-w-0 items-center gap-2 text-left">
-          <div className={DETAIL_HEADER_TYPE_ICON}>
-            <Battery size={16} className={m.accent} />
-          </div>
+          <span className={DETAIL_ICON_ALIGN_SLOT}>
+            <div className={DETAIL_HEADER_TYPE_ICON}>
+              <Battery size={18} className={m.accent} />
+            </div>
+          </span>
           <span className={`min-w-0 truncate font-mono text-base font-black tracking-wide ${DETAIL_TITLE}`}>{cab.id}</span>
         </div>
         <span className={`${DETAIL_STATUS_PILL} ${m.pillSurface} ${m.text}`}>
@@ -354,7 +347,6 @@ const EssCabinetCard: React.FC<{
               </span>
               <span className="text-slate-400 dark:text-slate-500">/</span>
               <span className={DETAIL_CAP_LABEL}>{ct.soc}</span>
-              <span className="select-none text-slate-400 dark:text-slate-600">,</span>
             </span>
             <span className="inline-flex min-w-0 shrink-0 flex-wrap items-baseline justify-end gap-x-0.5 text-right">
               <span className={`text-xs font-black tabular-nums leading-none tracking-tight ${offline ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -375,12 +367,6 @@ const EssCabinetCard: React.FC<{
         </div>
 
         <div className={ESS_DETAIL_SECTION_PAD}>
-          <div className="mb-2 flex items-center gap-1.5">
-            <span className={DETAIL_SECTION_ICON}>
-              <Zap size={13} strokeWidth={2.25} />
-            </span>
-            <span className={`text-lg font-semibold ${DETAIL_SECTION_TITLE}`}>PCS</span>
-          </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div className={`${DETAIL_BORDER_R} pr-2.5`}>
               <div className={DETAIL_SECONDARY_CELL}>{ct.ac}</div>
@@ -406,42 +392,50 @@ const EssCabinetCard: React.FC<{
           </div>
         </div>
 
-        <div className={`${ESS_DETAIL_SECTION_PAD} grid grid-cols-2 gap-2.5 text-[11px]`}>
+        <div className={`${ESS_DETAIL_SECTION_PAD} ${ESS_DETAIL_SECTION_DIVIDER} grid grid-cols-2 gap-2.5 text-[11px]`}>
           <div>
-            <div className="mb-1 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+            <div className="mb-1 flex items-center gap-2 text-slate-700 dark:text-slate-200">
               <GaugeBadge />
-              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{ct.vmaxMin}</span>
+              <span className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{ct.vmaxMin}</span>
             </div>
             <div className="space-y-1.5">
-              <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
-                <ArrowUp size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+              <div className={`flex items-center gap-2 text-base font-semibold ${DETAIL_TITLE}`}>
+                <span className="inline-flex w-7 shrink-0 items-center justify-center">
+                  <ArrowUp size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+                </span>
                 <span>{offline ? ct.dash : cab.vmax}</span>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">V</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">V</span>
               </div>
-              <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
-                <ArrowDown size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+              <div className={`flex items-center gap-2 text-base font-semibold ${DETAIL_TITLE}`}>
+                <span className="inline-flex w-7 shrink-0 items-center justify-center">
+                  <ArrowDown size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500 dark:text-rose-400'} />
+                </span>
                 <span>{offline ? ct.dash : cab.vmin}</span>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">V</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">V</span>
               </div>
             </div>
           </div>
           <div>
-            <div className="mb-1 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+            <div className="mb-1 flex items-center gap-2 text-slate-700 dark:text-slate-200">
               <span className={DETAIL_SECTION_ICON}>
-                <Thermometer size={13} />
+                <Thermometer size={17} />
               </span>
-              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{ct.tmaxMin}</span>
+              <span className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{ct.tmaxMin}</span>
             </div>
             <div className="space-y-1.5">
-              <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
-                <ArrowUp size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+              <div className={`flex items-center gap-2 text-base font-semibold ${DETAIL_TITLE}`}>
+                <span className="inline-flex w-7 shrink-0 items-center justify-center">
+                  <ArrowUp size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+                </span>
                 <span>{offline ? ct.dash : cab.tmax}</span>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">°C</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">°C</span>
               </div>
-              <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
-                <ArrowDown size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+              <div className={`flex items-center gap-2 text-base font-semibold ${DETAIL_TITLE}`}>
+                <span className="inline-flex w-7 shrink-0 items-center justify-center">
+                  <ArrowDown size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500 dark:text-rose-400'} />
+                </span>
                 <span>{offline ? ct.dash : cab.tmin}</span>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">°C</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">°C</span>
               </div>
             </div>
           </div>
@@ -458,7 +452,7 @@ const EssCabinetCard: React.FC<{
 
 const GaugeBadge: React.FC = () => (
   <span className={DETAIL_SECTION_ICON}>
-    <Activity size={13} />
+    <Activity size={17} />
   </span>
 );
 
@@ -563,9 +557,11 @@ export const RealtimeDetailPvCards: React.FC<{
           <div key={c.id} className={`${DETAIL_CARD_SHELL} ${m.border}`}>
             <div className={DETAIL_CARD_HEADER}>
               <div className="flex min-w-0 items-center gap-2 text-left">
-                <div className={DETAIL_HEADER_TYPE_ICON}>
-                  <Sun size={16} className={m.accent} />
-                </div>
+                <span className={DETAIL_ICON_ALIGN_SLOT}>
+                  <div className={DETAIL_HEADER_TYPE_ICON}>
+                    <Sun size={18} className={m.accent} />
+                  </div>
+                </span>
                 <span className={`min-w-0 truncate font-mono text-base font-black tracking-wide ${DETAIL_TITLE}`}>{c.id}</span>
               </div>
               <span className={`${DETAIL_STATUS_PILL} ${m.pillSurface} ${m.text}`}>
@@ -574,34 +570,30 @@ export const RealtimeDetailPvCards: React.FC<{
               </span>
             </div>
 
-            <div className={`${DETAIL_PANEL_SHELL} mb-2.5`}>
-              <div className="mb-2 flex items-center gap-1.5">
-                <span className={DETAIL_SECTION_ICON}>
-                  <Zap size={13} strokeWidth={2.25} />
-                </span>
-                <span className={`text-lg font-semibold ${DETAIL_SECTION_TITLE}`}>ACDC</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className={`${DETAIL_BORDER_R} pr-2.5`}>
-                  <div className={DETAIL_SECONDARY_CELL}>{cabinetT.ac}</div>
-                  <div className="mt-1 flex items-end gap-1">
-                    <span className={`text-2xl font-black leading-none ${off ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>{off ? cabinetT.dash : c.powerKw}</span>
-                    <span className="text-base font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+            <div className={ESS_DETAIL_SECTIONS}>
+              <div className={ESS_DETAIL_SECTION_PAD}>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className={`${DETAIL_BORDER_R} pr-2.5`}>
+                    <div className={DETAIL_SECONDARY_CELL}>{cabinetT.ac}</div>
+                    <div className="mt-1 flex items-end gap-1">
+                      <span className={`text-2xl font-black leading-none ${off ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>{off ? cabinetT.dash : c.powerKw}</span>
+                      <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+                    </div>
+                    <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      <div>{off ? cabinetT.dash : c.acVoltage}</div>
+                      <div>{off ? cabinetT.dash : c.acCurrent}</div>
+                    </div>
                   </div>
-                  <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                    <div>{off ? cabinetT.dash : c.acVoltage}</div>
-                    <div>{off ? cabinetT.dash : c.acCurrent}</div>
-                  </div>
-                </div>
-                <div>
-                  <div className={DETAIL_SECONDARY_CELL}>{cabinetT.dc}</div>
-                  <div className="mt-1 flex items-end gap-1">
-                    <span className={`text-2xl font-black leading-none ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.dcKw}</span>
-                    <span className="text-base font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
-                  </div>
-                  <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                    <div>{off ? cabinetT.dash : c.dcVoltage}</div>
-                    <div>{off ? cabinetT.dash : c.dcCurrent}</div>
+                  <div>
+                    <div className={DETAIL_SECONDARY_CELL}>{cabinetT.dc}</div>
+                    <div className="mt-1 flex items-end gap-1">
+                      <span className={`text-2xl font-black leading-none ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.dcKw}</span>
+                      <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+                    </div>
+                    <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      <div>{off ? cabinetT.dash : c.dcVoltage}</div>
+                      <div>{off ? cabinetT.dash : c.dcCurrent}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -656,9 +648,11 @@ export const RealtimeDetailEvseCards: React.FC<{
           <div key={c.id} className={`${DETAIL_CARD_SHELL} ${m.border}`}>
             <div className={DETAIL_CARD_HEADER}>
               <div className="flex min-w-0 items-center gap-2 text-left">
-                <div className={DETAIL_HEADER_TYPE_ICON}>
-                  <Cable size={16} className={m.accent} />
-                </div>
+                <span className={DETAIL_ICON_ALIGN_SLOT}>
+                  <div className={DETAIL_HEADER_TYPE_ICON}>
+                    <Cable size={18} className={m.accent} />
+                  </div>
+                </span>
                 <span className={`min-w-0 truncate font-mono text-base font-black tracking-wide ${DETAIL_TITLE}`}>{c.id}</span>
               </div>
               <span className={`${DETAIL_STATUS_PILL} ${m.pillSurface} ${m.text}`}>
@@ -667,24 +661,19 @@ export const RealtimeDetailEvseCards: React.FC<{
               </span>
             </div>
 
-            <div className={`${DETAIL_PANEL_SHELL} mb-2.5`}>
-              <div className="mb-2 flex items-center gap-1.5">
-                <span className={DETAIL_SECTION_ICON}>
-                  <Cable size={13} />
-                </span>
-                <span className={`text-lg font-semibold ${DETAIL_SECTION_TITLE}`}>EVSE</span>
+            <div className={ESS_DETAIL_SECTIONS}>
+              <div className={ESS_DETAIL_SECTION_PAD}>
+                <div className={DETAIL_SECONDARY_CELL}>{lang === 'zh' ? '枪状态' : 'Gun Status'}</div>
+                <div className={`mt-1 text-lg font-black ${gunStatusTone}`}>{gunStatusLabel}</div>
               </div>
-              <div>
-                <div className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">{lang === 'zh' ? '枪状态' : 'Gun Status'}</div>
-                <div className={`text-lg font-black ${gunStatusTone}`}>{gunStatusLabel}</div>
-              </div>
-              <div className={`mt-2.5 ${DETAIL_BORDER_T} pt-2.5`}>
+
+              <div className={`${ESS_DETAIL_SECTION_PAD} ${ESS_DETAIL_SECTION_DIVIDER}`}>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className={`${DETAIL_BORDER_R} pr-2.5`}>
                     <div className={DETAIL_SECONDARY_CELL}>{cabinetT.ac}</div>
                     <div className="mt-1 flex items-end gap-1">
                       <span className={`text-2xl font-black leading-none ${off ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>{off ? cabinetT.dash : c.powerKw}</span>
-                      <span className="text-base font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+                      <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
                     </div>
                     <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                       <div>{off ? cabinetT.dash : c.acVoltage}</div>
@@ -695,7 +684,7 @@ export const RealtimeDetailEvseCards: React.FC<{
                     <div className={DETAIL_SECONDARY_CELL}>{cabinetT.dc}</div>
                     <div className="mt-1 flex items-end gap-1">
                       <span className={`text-2xl font-black leading-none ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.dcKw}</span>
-                      <span className="text-base font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+                      <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
                     </div>
                     <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                       <div>{off ? cabinetT.dash : c.dcVoltage}</div>
@@ -704,25 +693,19 @@ export const RealtimeDetailEvseCards: React.FC<{
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className={`${DETAIL_PANEL_SHELL} mb-2.5`}>
-              <div className="mb-2 flex items-center gap-1.5">
-                <span className={DETAIL_SECTION_ICON}>
-                  <Car size={13} strokeWidth={2.25} />
-                </span>
-                <span className={`text-lg font-semibold ${DETAIL_SECTION_TITLE}`}>EV</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">{lang === 'zh' ? '需求功率' : 'Demand Power'}</div>
-                  <div className={`text-lg font-black ${DETAIL_TITLE}`}>{off ? cabinetT.dash : `${c.demandKw} kW`}</div>
+              <div className={`${ESS_DETAIL_SECTION_PAD} ${ESS_DETAIL_SECTION_DIVIDER}`}>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <div className={DETAIL_SECONDARY_CELL}>{lang === 'zh' ? '需求功率' : 'Demand Power'}</div>
+                    <div className={`mt-1 text-lg font-black ${DETAIL_TITLE}`}>{off ? cabinetT.dash : `${c.demandKw} kW`}</div>
+                  </div>
+                  <DetailPercentMeter
+                    label={lang === 'zh' ? '汽车 SOC' : 'Car SOC'}
+                    valueLabel={off ? cabinetT.dash : c.carSoc}
+                    valuePercent={off ? null : parsePercentFromGaugeLabel(c.carSoc)}
+                  />
                 </div>
-                <DetailPercentMeter
-                  label={lang === 'zh' ? '汽车 SOC' : 'Car SOC'}
-                  valueLabel={off ? cabinetT.dash : c.carSoc}
-                  valuePercent={off ? null : parsePercentFromGaugeLabel(c.carSoc)}
-                />
               </div>
             </div>
 
@@ -770,9 +753,11 @@ export const RealtimeDetailDgCards: React.FC<{
           <div key={c.id} className={`${DETAIL_CARD_SHELL} ${m.border}`}>
             <div className={DETAIL_CARD_HEADER}>
               <div className="flex min-w-0 items-center gap-2 text-left">
-                <div className={DETAIL_HEADER_TYPE_ICON}>
-                  <RotateCw size={16} className={m.accent} />
-                </div>
+                <span className={DETAIL_ICON_ALIGN_SLOT}>
+                  <div className={DETAIL_HEADER_TYPE_ICON}>
+                    <RotateCw size={18} className={m.accent} />
+                  </div>
+                </span>
                 <span className={`min-w-0 truncate font-mono text-base font-black tracking-wide ${DETAIL_TITLE}`}>{c.id}</span>
               </div>
               <span className={`${DETAIL_STATUS_PILL} ${m.pillSurface} ${m.text}`}>
@@ -781,8 +766,8 @@ export const RealtimeDetailDgCards: React.FC<{
               </span>
             </div>
 
-            <div className="mb-2.5">
-              <div className={`${DETAIL_PANEL_SHELL} p-2`}>
+            <div className={ESS_DETAIL_SECTIONS}>
+              <div className={ESS_DETAIL_SECTION_PAD}>
                 <div className="flex items-baseline justify-between gap-2">
                   <span className={`text-3xl font-black leading-none tracking-tight ${off ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>
                     {off ? cabinetT.dash : c.totalKw}
@@ -790,56 +775,52 @@ export const RealtimeDetailDgCards: React.FC<{
                   </span>
                   <span className={DETAIL_CAP_LABEL}>{lang === 'zh' ? '总功率' : 'Total Power'}</span>
                 </div>
-                <div className={`mt-2 ${DETAIL_BORDER_T} pt-3`}>
-                  <div className="grid grid-cols-2 gap-2 px-0.5">
-                    <DetailDgArcGauge
-                      label={lang === 'zh' ? '输出功率百分比' : 'Output %'}
-                      valueLabel={off ? cabinetT.dash : c.outPct}
-                      valuePercent={outPctNum}
-                      stress={outputPctStress}
-                    />
-                    <DetailDgArcGauge
-                      label={lang === 'zh' ? '油位' : 'Fuel'}
-                      valueLabel={off ? cabinetT.dash : c.fuel}
-                      valuePercent={fuelNum}
-                      stress={fuelPctStress}
-                    />
-                  </div>
-                </div>
-                <div className={`mt-2 ${DETAIL_BORDER_T} pt-3`}>
-                  <div className="grid grid-cols-2 gap-2 px-0.5">
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">{lang === 'zh' ? '温度' : 'Temperature'}</div>
-                      <div className={`mt-1 text-sm font-bold ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.temp}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">{lang === 'zh' ? '油压' : 'Oil Pressure'}</div>
-                      <div className={`mt-1 text-sm font-bold ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.oilPress}</div>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </div>
 
-            <div className={`${DETAIL_PANEL_SHELL} mb-2.5`}>
-              <div className="mb-2 flex items-center gap-1.5">
-                <span className={DETAIL_SECTION_ICON}>
-                  <Zap size={13} strokeWidth={2.25} />
-                </span>
-                <span className={`text-lg font-semibold ${DETAIL_SECTION_TITLE}`}>{cabinetT.ac}</span>
+              <div className={`${ESS_DETAIL_SECTION_PAD} ${ESS_DETAIL_SECTION_DIVIDER}`}>
+                <div className="grid grid-cols-2 gap-2 px-0.5">
+                  <DetailDgArcGauge
+                    label={lang === 'zh' ? '输出功率百分比' : 'Output %'}
+                    valueLabel={off ? cabinetT.dash : c.outPct}
+                    valuePercent={outPctNum}
+                    stress={outputPctStress}
+                  />
+                  <DetailDgArcGauge
+                    label={lang === 'zh' ? '油位' : 'Fuel'}
+                    valueLabel={off ? cabinetT.dash : c.fuel}
+                    valuePercent={fuelNum}
+                    stress={fuelPctStress}
+                  />
+                </div>
               </div>
-              <div className="space-y-2.5">
-                <div>
-                  <div className={DETAIL_LABEL}>{lang === 'zh' ? '交流电压' : 'AC Voltage'}</div>
-                  <div className={`mt-1 ${DETAIL_VALUE}`}>{off ? cabinetT.dash : c.acVoltage}</div>
+
+              <div className={`${ESS_DETAIL_SECTION_PAD} ${ESS_DETAIL_SECTION_DIVIDER}`}>
+                <div className="grid grid-cols-2 gap-2 px-0.5">
+                  <div>
+                    <div className={DETAIL_SECONDARY_CELL}>{lang === 'zh' ? '温度' : 'Temperature'}</div>
+                    <div className={`mt-1 text-sm font-bold ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.temp}</div>
+                  </div>
+                  <div>
+                    <div className={DETAIL_SECONDARY_CELL}>{lang === 'zh' ? '油压' : 'Oil Pressure'}</div>
+                    <div className={`mt-1 text-sm font-bold ${DETAIL_TITLE}`}>{off ? cabinetT.dash : c.oilPress}</div>
+                  </div>
                 </div>
-                <div className={`${DETAIL_BORDER_T} pt-2.5`}>
-                  <div className={DETAIL_LABEL}>{lang === 'zh' ? '交流电流' : 'AC Current'}</div>
-                  <div className={`mt-1 ${DETAIL_VALUE}`}>{off ? cabinetT.dash : c.acCurrent}</div>
-                </div>
-                <div className={`${DETAIL_BORDER_T} pt-2.5`}>
-                  <div className={DETAIL_LABEL}>{lang === 'zh' ? '发电机频率' : 'Generator Frequency'}</div>
-                  <div className={`mt-1 ${DETAIL_VALUE}`}>{off ? cabinetT.dash : c.genFreq}</div>
+              </div>
+
+              <div className={`${ESS_DETAIL_SECTION_PAD} ${ESS_DETAIL_SECTION_DIVIDER}`}>
+                <div className="space-y-2.5">
+                  <div>
+                    <div className={DETAIL_SECONDARY_CELL}>{lang === 'zh' ? '交流电压' : 'AC Voltage'}</div>
+                    <div className={`mt-1 ${DETAIL_VALUE}`}>{off ? cabinetT.dash : c.acVoltage}</div>
+                  </div>
+                  <div className={`${DETAIL_BORDER_T} pt-2.5`}>
+                    <div className={DETAIL_SECONDARY_CELL}>{lang === 'zh' ? '交流电流' : 'AC Current'}</div>
+                    <div className={`mt-1 ${DETAIL_VALUE}`}>{off ? cabinetT.dash : c.acCurrent}</div>
+                  </div>
+                  <div className={`${DETAIL_BORDER_T} pt-2.5`}>
+                    <div className={DETAIL_SECONDARY_CELL}>{lang === 'zh' ? '发电机频率' : 'Generator Frequency'}</div>
+                    <div className={`mt-1 ${DETAIL_VALUE}`}>{off ? cabinetT.dash : c.genFreq}</div>
+                  </div>
                 </div>
               </div>
             </div>

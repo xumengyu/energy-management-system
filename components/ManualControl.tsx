@@ -1470,7 +1470,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                         return (
                             <div
                                 key={panelKey}
-                                className="ems-card group/card relative flex flex-col overflow-hidden p-0 shadow-sm ring-1 ring-slate-900/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/50 dark:ring-white/[0.06] dark:hover:shadow-black/50"
+                                className="ems-card group/card relative flex flex-col overflow-hidden p-0 transition-all duration-300 hover:-translate-y-1"
                             >
                                 <div className="relative border-b border-slate-200/80 bg-white px-5 pb-4 pt-4 dark:border-apple-border-dark dark:bg-apple-surface-dark">
                                     <div className="flex items-center gap-3">
@@ -1519,7 +1519,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                         return (
                             <div
                                 key={slot}
-                                className="ems-card group/card relative flex flex-col overflow-hidden p-0 shadow-sm ring-1 ring-slate-900/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/50 dark:ring-white/[0.06] dark:hover:shadow-black/50"
+                                className="ems-card group/card relative flex flex-col overflow-hidden p-0 transition-all duration-300 hover:-translate-y-1"
                             >
                                 <div className="relative border-b border-slate-200/80 bg-white px-5 pb-4 pt-4 dark:border-apple-border-dark dark:bg-apple-surface-dark">
                                     <div className="flex items-center gap-3">
@@ -1548,7 +1548,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                 </div>
             ) : activeCategory === 'diesel' ? (
                 <div className="grid w-full max-w-4xl grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
-                    <div className="ems-card group/card relative flex flex-col overflow-hidden p-0 shadow-sm ring-1 ring-slate-900/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/50 dark:ring-white/[0.06] dark:hover:shadow-black/50">
+                    <div className="ems-card group/card relative flex flex-col overflow-hidden p-0 transition-all duration-300 hover:-translate-y-1">
                         <div className="relative border-b border-slate-200/80 bg-white px-5 pb-4 pt-4 dark:border-apple-border-dark dark:bg-apple-surface-dark">
                             <div className="flex items-center gap-3">
                                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-500/25 bg-brand-500/10 text-brand-600 transition-transform duration-300 group-hover/card:scale-[1.02] dark:border-brand-500/35 dark:bg-brand-500/15 dark:text-brand-400">
@@ -1587,7 +1587,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ lang, theme: _theme, sele
                         return (
                             <div
                                 key={slot}
-                                className="ems-card group/card relative flex flex-col overflow-hidden p-0 shadow-sm ring-1 ring-slate-900/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/50 dark:ring-white/[0.06] dark:hover:shadow-black/50"
+                                className="ems-card group/card relative flex flex-col overflow-hidden p-0 transition-all duration-300 hover:-translate-y-1"
                             >
                                 <div className="relative border-b border-slate-200/80 bg-white px-5 pb-4 pt-4 dark:border-apple-border-dark dark:bg-apple-surface-dark">
                                     <div className="flex items-center gap-3">

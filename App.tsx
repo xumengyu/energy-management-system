@@ -373,7 +373,7 @@ const App: React.FC = () => {
       >
         {/* Top Header - Hidden in Entity Mgmt because it has its own shell or header logic */}
         {!isEntityMgmt && (
-            <header className="h-[72px] shrink-0 bg-apple-surface-light/80 dark:bg-apple-surface-dark/80 backdrop-blur-xl border-b border-apple-border-light dark:border-apple-border-dark shadow-sm sticky top-0 z-50 px-5 flex items-center justify-between transition-all">
+            <header className="h-[72px] shrink-0 bg-apple-surface-light/80 dark:bg-apple-surface-dark/80 backdrop-blur-xl sticky top-0 z-50 px-5 flex items-center justify-between transition-all">
             
             <div className="flex items-center gap-2">
                 <button 

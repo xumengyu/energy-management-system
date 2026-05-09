@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* 使用祖先 .dark（html.dark）匹配，避免部分环境下 `.x:where(.dark, .dark *)` 对壳层背景不生效 */
+@custom-variant dark (.dark &);
 
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
@@ -21,7 +22,7 @@
   --color-slate-850: #1e293b;
   --color-slate-950: #020617;
 
-  --color-apple-bg-light: #f9fafc;
+  --color-apple-bg-light: rgb(240, 240, 240);
   /* Dark canvas — global base */
   --color-apple-bg-dark: #191C20;
   --color-apple-surface-light: #FFFFFF;
@@ -42,12 +43,23 @@
 }
 
 @layer base {
+  html {
+    @apply bg-apple-bg-light;
+  }
+
   body {
-    @apply antialiased;
+    @apply antialiased min-h-screen bg-apple-bg-light dark:bg-apple-bg-dark;
+  }
+
+  /* Global shadow reset per UI request */
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
   }
 }
 
-/* 与电价列表页一致的页面壳层与卡片（浅色：白底 + slate 边框） */
+/* 与电价列表页一致的页面壳层与卡片（浅色：灰底衬托白卡片） */
 @keyframes ems-page-enter {
   from {
     opacity: 0;
@@ -68,17 +80,35 @@
 
 @layer components {
   .ems-page-shell {
-    @apply p-4 w-full;
+    @apply w-full bg-apple-bg-light p-4 dark:bg-apple-bg-dark;
     animation: ems-page-enter 0.3s ease-out;
   }
 
   .ems-card {
-    @apply bg-white dark:bg-apple-surface-dark rounded-2xl border border-slate-200 dark:border-apple-border-dark shadow-sm;
+    @apply rounded-xl border-0 bg-white shadow-none outline-none ring-0 dark:bg-apple-surface-dark;
+    box-shadow: none !important;
   }
 
   .ems-segmented {
-    @apply flex bg-slate-100 dark:bg-apple-surface-secondary-dark p-1 rounded-xl border border-slate-200 dark:border-apple-border-dark;
+    @apply flex bg-slate-100 dark:bg-apple-surface-secondary-dark p-1 rounded-lg border border-slate-200 dark:border-apple-border-dark;
   }
+}
+
+@layer utilities {
+  .drop-shadow,
+  .drop-shadow-sm,
+  .drop-shadow-md,
+  .drop-shadow-lg,
+  .drop-shadow-xl,
+  .drop-shadow-2xl,
+  .drop-shadow-none {
+    filter: none !important;
+  }
+}
+
+/* (.dark &) 无法匹配「带 .dark 的 html 本体」，避免出现浅灰画布露边 */
+html.dark {
+  background-color: var(--color-apple-bg-dark);
 }
 
 /* Custom scrollbar - Apple style */

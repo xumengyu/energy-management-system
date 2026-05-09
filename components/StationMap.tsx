@@ -214,10 +214,10 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
           <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(148,163,184,0.35)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.35)_1px,transparent_1px)] [background-size:28px_28px]" />
           <div className="absolute inset-x-3 top-3 z-20 flex min-w-0 items-start justify-between gap-2 sm:inset-x-4 sm:top-4 sm:gap-3 lg:inset-x-5 2xl:inset-x-6">
           <div className="min-w-0 flex w-full max-w-[320px] flex-col gap-2">
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-lg backdrop-blur dark:border-apple-border-dark dark:bg-apple-surface-dark/90">
+            <div className="rounded-2xl border-0 bg-white/90 p-3 shadow-lg backdrop-blur dark:bg-apple-surface-dark/90">
               <h3 className="text-sm font-black text-slate-900 dark:text-white">{labels.summary}</h3>
               <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{labels.stations}</p>
-              <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50/60 p-2.5 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/40">
+              <div className="mt-2 rounded-xl border-0 bg-slate-50/60 p-2.5 dark:bg-apple-surface-secondary-dark/40">
                 <div className="flex items-center gap-2.5">
                   <div className="relative h-14 w-14 shrink-0">
                     <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90">
@@ -256,7 +256,7 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
                 ].map((item) => (
                   <div
                     key={item.status}
-                    className="rounded-lg border border-slate-200 bg-slate-50/70 px-1.5 py-1.5 text-center dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/40"
+                    className="rounded-lg border-0 bg-slate-50/70 px-1.5 py-1.5 text-center dark:bg-apple-surface-secondary-dark/40"
                   >
                     <div className="mb-0.5 flex items-center justify-center">{statusMeta[item.status].icon}</div>
                     <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-300">{item.label}</div>
@@ -277,10 +277,10 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
                       key={item.id}
                       type="button"
                       onClick={() => setStatusFilter(item.id as 'All' | StationStatus)}
-                      className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-colors ${
+                      className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border-0 px-2 py-1.5 text-[11px] font-bold transition-colors ${
                         selected
-                          ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-900/50 dark:bg-brand-900/20 dark:text-brand-300'
-                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300'
+                          ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-300'
+                          : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark/50'
                       }`}
                     >
                       <span className={`h-2 w-2 rounded-full ${item.dot}`} />
@@ -290,12 +290,12 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
                 })}
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-lg backdrop-blur dark:border-apple-border-dark dark:bg-apple-surface-dark/90">
+            <div className="rounded-2xl border-0 bg-white/90 p-3 shadow-lg backdrop-blur dark:bg-apple-surface-dark/90">
               <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 {labels.installedCapacity}
               </div>
               <div className="mt-2 grid grid-cols-1 gap-1.5">
-                <div className="rounded-lg border border-slate-200/80 bg-slate-50/75 p-2 dark:border-white/10 dark:bg-apple-surface-secondary-dark/65">
+                <div className="rounded-lg border-0 bg-slate-50/75 p-2 dark:bg-apple-surface-secondary-dark/65">
                   <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{labels.essInstalled}</div>
                   <div className="mt-1 flex items-end gap-1 text-slate-900 dark:text-white">
                     <span className="text-2xl font-extrabold leading-none">108</span>
@@ -306,15 +306,15 @@ const StationMap: React.FC<StationMapProps> = ({ lang, theme, onNavigate }) => {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
-                  <div className="rounded-lg border border-slate-200/80 bg-slate-50/75 p-2 dark:border-white/10 dark:bg-apple-surface-secondary-dark/65">
+                  <div className="rounded-lg border-0 bg-slate-50/75 p-2 dark:bg-apple-surface-secondary-dark/65">
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{labels.pvInstalled}</div>
                     <div className="mt-1 text-xl font-extrabold leading-none text-slate-900 dark:text-white">254<span className="ml-1 text-xs font-bold text-slate-500 dark:text-slate-400">MW</span></div>
                   </div>
-                  <div className="rounded-lg border border-slate-200/80 bg-slate-50/75 p-2 dark:border-white/10 dark:bg-apple-surface-secondary-dark/65">
+                  <div className="rounded-lg border-0 bg-slate-50/75 p-2 dark:bg-apple-surface-secondary-dark/65">
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{labels.dgInstalled}</div>
                     <div className="mt-1 text-xl font-extrabold leading-none text-slate-900 dark:text-white">500<span className="ml-1 text-xs font-bold text-slate-500 dark:text-slate-400">MW</span></div>
                   </div>
-                  <div className="col-span-2 rounded-lg border border-slate-200/80 bg-slate-50/75 p-2 dark:border-white/10 dark:bg-apple-surface-secondary-dark/65">
+                  <div className="col-span-2 rounded-lg border-0 bg-slate-50/75 p-2 dark:bg-apple-surface-secondary-dark/65">
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{labels.evseInstalled}</div>
                     <div className="mt-1 flex items-end gap-1 text-slate-900 dark:text-white">
                       <span className="text-2xl font-extrabold leading-none">120</span>

@@ -243,7 +243,7 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                 </h3>
                 <div className="space-y-3">
                     {/* SOC Circle */}
-                    <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                    <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl">
                          <div className="relative w-28 h-28 flex items-center justify-center">
                             <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                                 <path className="text-slate-200 dark:text-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
@@ -262,7 +262,7 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
 
                     {/* Energy Stats */}
                     <div className="grid grid-cols-2 gap-2">
-                        <div className="p-3 bg-amber-100/50 dark:bg-amber-900/20 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
+                        <div className="p-3 bg-amber-100/50 dark:bg-amber-900/20 rounded-2xl">
                             <div className="text-sm text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest mb-0.5">{t?.chargeEnergy || 'Charge'}</div>
                             <div className="text-xl font-extrabold text-slate-900 dark:text-white mb-0.5">4.2</div>
                             <div className="text-sm text-slate-500 dark:text-slate-400 flex justify-between items-center font-medium">
@@ -270,7 +270,7 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                                 <span className="font-mono bg-white/50 dark:bg-black/20 px-1 py-0.5 rounded text-amber-600 dark:text-amber-400">1.2</span>
                             </div>
                         </div>
-                        <div className="p-3 bg-blue-100/50 dark:bg-blue-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-800/50">
+                        <div className="p-3 bg-blue-100/50 dark:bg-blue-900/20 rounded-2xl">
                             <div className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest mb-0.5">{t?.dischargeEnergy || 'Discharge'}</div>
                             <div className="text-xl font-extrabold text-slate-900 dark:text-white mb-0.5">3.8</div>
                             <div className="text-sm text-slate-500 dark:text-slate-400 flex justify-between items-center font-medium">
@@ -289,9 +289,9 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                     {lang === 'zh' ? '电池健康' : 'Battery Health'}
                 </h3>
                 <div className="space-y-2.5">
-                     <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                     <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl">
                         <div className="flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-apple-surface-dark flex items-center justify-center shadow-sm text-emerald-500 border border-slate-200 dark:border-apple-border-dark">
+                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-apple-surface-dark flex items-center justify-center shadow-sm text-emerald-500">
                                 <Activity size={16} />
                             </div>
                             <div>
@@ -304,9 +304,9 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                             <div className="text-sm font-bold text-emerald-600/70 dark:text-emerald-400/70 uppercase tracking-widest">{lang === 'zh' ? '优秀' : 'Excellent'}</div>
                         </div>
                      </div>
-                     <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                     <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl">
                         <div className="flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-apple-surface-dark flex items-center justify-center shadow-sm text-orange-500 border border-slate-200 dark:border-apple-border-dark">
+                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-apple-surface-dark flex items-center justify-center shadow-sm text-orange-500">
                                 <Thermometer size={16} />
                             </div>
                             <div>
@@ -319,9 +319,9 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                             <div className="text-sm font-bold text-slate-400 tracking-widest">26.2 - 31.4°C</div>
                         </div>
                      </div>
-                     <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                     <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl">
                         <div className="flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-apple-surface-dark flex items-center justify-center shadow-sm text-blue-500 border border-slate-200 dark:border-apple-border-dark">
+                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-apple-surface-dark flex items-center justify-center shadow-sm text-blue-500">
                                 <Gauge size={16} />
                             </div>
                             <div>
@@ -437,20 +437,20 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                         <span className="p-1.5 bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl"><Sun size={16}/></span>
                     {lang === 'zh' ? '光伏监控' : 'PV Monitor'}
                 </h3>
-                    <div className="p-5 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark text-center mb-3">
+                    <div className="p-5 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl text-center mb-3">
                         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">{lang === 'zh' ? '实时总功率' : 'Total Real-time Power'}</p>
                         <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">854 <span className="text-base font-bold text-slate-400">kW</span></p>
                 </div>
                 <div className="space-y-2.5">
-                         <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
+                         <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
                             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{lang === 'zh' ? '日发电量' : 'Daily Yield'}</span>
                             <span className="text-xl font-extrabold text-slate-900 dark:text-white">5.8 MWh</span>
                          </div>
-                         <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
+                         <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
                             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{lang === 'zh' ? '总发电量' : 'Total Yield'}</span>
                             <span className="text-xl font-extrabold text-slate-900 dark:text-white">12.4 GWh</span>
                      </div>
-                         <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
+                         <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
                             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{lang === 'zh' ? '发电时长' : 'Yield Hours'}</span>
                             <span className="text-xl font-extrabold text-slate-900 dark:text-white">1,245 h</span>
                      </div>
@@ -502,7 +502,7 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                         ].map((inv) => (
                             <div
                                 key={inv.name}
-                                className={`flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark ${inv.mode === 'run' ? 'hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors' : ''}`}
+                                className={`flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl ${inv.mode === 'run' ? 'hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors' : ''}`}
                             >
                                 <div className="flex items-center gap-3">
                                     <div
@@ -575,7 +575,7 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                         <span className="p-1.5 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl"><Cable size={16}/></span>
                     {lang === 'zh' ? '充电站监控' : 'Charging Hub'}
                 </h3>
-                    <div className="flex flex-col items-center justify-center p-5 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark mb-3 shrink-0">
+                    <div className="flex flex-col items-center justify-center p-5 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl mb-3 shrink-0">
                         <div className="relative w-32 h-32 flex items-center justify-center">
                         <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                             <path className="text-slate-200 dark:text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
@@ -588,11 +588,11 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                         </div>
                      </div>
                     <div className="grid grid-cols-2 gap-4 shrink-0">
-                        <div className="text-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                        <div className="text-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl">
                             <div className="text-sm text-slate-400 font-bold uppercase tracking-widest mb-1">Active</div>
                             <div className="text-xl font-extrabold text-slate-900 dark:text-white">8/12</div>
                  </div>
-                        <div className="text-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                        <div className="text-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl">
                             <div className="text-sm text-slate-400 font-bold uppercase tracking-widest mb-1">Today</div>
                             <div className="text-xl font-extrabold text-slate-900 dark:text-white">1.2<span className="text-sm ml-1 text-slate-500">MWh</span></div>
                      </div>
@@ -634,7 +634,7 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                             const status = i < 4 ? 'Charging' : (i === 4 ? 'Available' : 'Fault');
                             const color = status === 'Charging' ? 'bg-blue-500 shadow-blue-500/50' : (status === 'Available' ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-red-500 shadow-red-500/50');
                             return (
-                                <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
+                                <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-md ${color}`}>
                                             {i}
@@ -695,25 +695,25 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
                     {lang === 'zh' ? '柴发监控' : 'Diesel Gen'}
                 </h3>
                 <div className="flex justify-center mb-4">
-                     <div className="relative w-32 h-32 rounded-full border-4 border-slate-200 dark:border-apple-border-dark flex items-center justify-center bg-slate-50 dark:bg-apple-surface-secondary-dark/50">
+                     <div className="relative w-32 h-32 rounded-full border-4 border-transparent flex items-center justify-center bg-slate-50 dark:bg-apple-surface-secondary-dark/50">
                          <div className="text-center">
                              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">500</div>
                              <div className="text-sm text-slate-400 font-bold uppercase tracking-widest mt-0.5">kW Output</div>
                          </div>
                          <div className="absolute bottom-3 flex flex-col items-center">
-                             <span className="text-sm font-black text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 uppercase tracking-widest">Running</span>
+                             <span className="text-sm font-black text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full uppercase tracking-widest">Running</span>
                          </div>
                      </div>
                 </div>
                 <div className="space-y-2">
-                     <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                     <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl">
                          <div className="flex items-center gap-2">
                              <Droplets size={16} className="text-blue-500" />
                              <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '油位' : 'Fuel Level'}</span>
                          </div>
                          <span className="text-lg font-mono font-bold text-slate-900 dark:text-white">76%</span>
                      </div>
-                     <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl border border-slate-200 dark:border-apple-border-dark">
+                     <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-apple-surface-secondary-dark/50 rounded-xl">
                          <div className="flex items-center gap-2">
                              <RotateCw size={16} className="text-amber-500" />
                              <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '运行时间' : 'Run Hours'}</span>
@@ -817,8 +817,8 @@ const StationRealtime: React.FC<StationRealtimeProps> = ({ lang, theme, selected
 
   return (
     <div className="ems-page-shell">
-        {/* 顶栏：与数据分析页同款 */}
-        <div className="ems-card mb-4 flex flex-col gap-3 p-4">
+        {/* Tab：保持 ems-card 抬升底（白/深色 surface），与页面壳区分 */}
+        <div className="ems-card shadow-none mb-4 flex flex-col gap-3 border-0 p-4 ring-0 outline-none">
             <div className="custom-scrollbar-hide flex w-full min-w-0 items-center overflow-x-auto md:w-auto md:flex-1">
                 <div className="flex shrink-0 flex-nowrap items-end border-b border-slate-200 dark:border-white/10">
                     {visibleTabs.map((item) => (
