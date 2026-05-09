@@ -150,6 +150,11 @@ const RealtimeAdaptiveCardGrid: React.FC<{ children: React.ReactNode }> = ({ chi
 const DETAIL_PANEL_SHELL =
   'rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/50';
 
+/** BESS detail card: stacked sections separated by faint rules (no inner framed panels) */
+const ESS_DETAIL_SECTIONS = 'flex min-w-0 flex-col divide-y divide-slate-200/55 dark:divide-white/[0.08]';
+
+const ESS_DETAIL_SECTION_PAD = 'px-0 py-2.5 first:pt-0 last:pb-0';
+
 const DETAIL_BORDER_T = 'border-t border-slate-200 dark:border-apple-border-dark';
 
 const DETAIL_BORDER_R = 'border-r border-slate-200 dark:border-apple-border-dark';
@@ -315,7 +320,6 @@ const EssCabinetCard: React.FC<{
   const neutralValue = `${ct.dash} / ${ct.dash} / ${ct.dash}`;
   const acPhaseCurrent = offline ? neutralValue : `${cab.acA[0]} / ${cab.acA[1]} / ${cab.acA[2]} A`;
   const acPhaseVoltage = offline ? neutralValue : `${cab.acV} / ${cab.acV + 1} / ${cab.acV + 2} V`;
-  const metricShell = DETAIL_PANEL_SHELL;
 
   return (
     <div
@@ -334,8 +338,8 @@ const EssCabinetCard: React.FC<{
         </span>
       </div>
 
-      <div className="mb-2.5">
-        <div className={`${metricShell} p-2`}>
+      <div className={ESS_DETAIL_SECTIONS}>
+        <div className={ESS_DETAIL_SECTION_PAD}>
           <div className="flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-1">
               <span className={`text-3xl font-black tabular-nums leading-none tracking-tight ${
@@ -369,76 +373,76 @@ const EssCabinetCard: React.FC<{
             </div>
           </div>
         </div>
-      </div>
 
-      <div className={`${metricShell} mb-2.5`}>
-        <div className="mb-2 flex items-center gap-1.5">
-          <span className={DETAIL_SECTION_ICON}>
-            <Zap size={13} strokeWidth={2.25} />
-          </span>
-          <span className={`text-lg font-semibold ${DETAIL_SECTION_TITLE}`}>PCS</span>
-        </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className={`${DETAIL_BORDER_R} pr-2.5`}>
-            <div className={DETAIL_SECONDARY_CELL}>{ct.ac}</div>
-            <div className="mt-1 flex items-end gap-1">
-              <span className={`text-2xl font-black leading-none ${offline ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>{offline ? ct.dash : cab.acKw}</span>
-              <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+        <div className={ESS_DETAIL_SECTION_PAD}>
+          <div className="mb-2 flex items-center gap-1.5">
+            <span className={DETAIL_SECTION_ICON}>
+              <Zap size={13} strokeWidth={2.25} />
+            </span>
+            <span className={`text-lg font-semibold ${DETAIL_SECTION_TITLE}`}>PCS</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className={`${DETAIL_BORDER_R} pr-2.5`}>
+              <div className={DETAIL_SECONDARY_CELL}>{ct.ac}</div>
+              <div className="mt-1 flex items-end gap-1">
+                <span className={`text-2xl font-black leading-none ${offline ? 'text-slate-500 dark:text-slate-300' : 'text-brand-500 dark:text-brand-400'}`}>{offline ? ct.dash : cab.acKw}</span>
+                <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+              </div>
+              <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                <div>{acPhaseVoltage}</div>
+                <div>{acPhaseCurrent}</div>
+              </div>
             </div>
-            <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-              <div>{acPhaseVoltage}</div>
-              <div>{acPhaseCurrent}</div>
+            <div>
+              <div className={DETAIL_SECONDARY_CELL}>{ct.dc}</div>
+              <div className="mt-1 flex items-end gap-1">
+                <span className={`text-2xl font-black leading-none ${DETAIL_TITLE}`}>{offline ? ct.dash : cab.dcKw}</span>
+                <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+              </div>
+              <div className="mt-2 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                {offline ? `${ct.dash} V / ${ct.dash} A` : `${cab.dcV} V / ${cab.dcA} A`}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={`${ESS_DETAIL_SECTION_PAD} grid grid-cols-2 gap-2.5 text-[11px]`}>
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+              <GaugeBadge />
+              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{ct.vmaxMin}</span>
+            </div>
+            <div className="space-y-1.5">
+              <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
+                <ArrowUp size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+                <span>{offline ? ct.dash : cab.vmax}</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">V</span>
+              </div>
+              <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
+                <ArrowDown size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+                <span>{offline ? ct.dash : cab.vmin}</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">V</span>
+              </div>
             </div>
           </div>
           <div>
-            <div className={DETAIL_SECONDARY_CELL}>{ct.dc}</div>
-            <div className="mt-1 flex items-end gap-1">
-              <span className={`text-2xl font-black leading-none ${DETAIL_TITLE}`}>{offline ? ct.dash : cab.dcKw}</span>
-              <span className="text-lg font-semibold leading-none text-slate-500 dark:text-slate-400">kW</span>
+            <div className="mb-1 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+              <span className={DETAIL_SECTION_ICON}>
+                <Thermometer size={13} />
+              </span>
+              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{ct.tmaxMin}</span>
             </div>
-            <div className="mt-2 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-              {offline ? `${ct.dash} V / ${ct.dash} A` : `${cab.dcV} V / ${cab.dcA} A`}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5 text-[11px]">
-        <div className={`${metricShell}`}>
-          <div className="mb-1 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-            <GaugeBadge />
-            <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{ct.vmaxMin}</span>
-          </div>
-          <div className="space-y-1.5">
-            <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
-              <ArrowUp size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
-              <span>{offline ? ct.dash : cab.vmax}</span>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">V</span>
-            </div>
-            <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
-              <ArrowDown size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
-              <span>{offline ? ct.dash : cab.vmin}</span>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">V</span>
-            </div>
-          </div>
-        </div>
-        <div className={`${metricShell}`}>
-          <div className="mb-1 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-            <span className={DETAIL_SECTION_ICON}>
-              <Thermometer size={13} />
-            </span>
-            <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{ct.tmaxMin}</span>
-          </div>
-          <div className="space-y-1.5">
-            <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
-              <ArrowUp size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
-              <span>{offline ? ct.dash : cab.tmax}</span>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">°C</span>
-            </div>
-            <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
-              <ArrowDown size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
-              <span>{offline ? ct.dash : cab.tmin}</span>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">°C</span>
+            <div className="space-y-1.5">
+              <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
+                <ArrowUp size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+                <span>{offline ? ct.dash : cab.tmax}</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">°C</span>
+              </div>
+              <div className={`flex items-center gap-1 text-base font-black ${DETAIL_TITLE}`}>
+                <ArrowDown size={12} className={offline ? 'text-slate-500 dark:text-slate-400' : 'text-brand-500 dark:text-brand-400'} />
+                <span>{offline ? ct.dash : cab.tmin}</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">°C</span>
+              </div>
             </div>
           </div>
         </div>

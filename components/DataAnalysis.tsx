@@ -141,9 +141,16 @@ const CUSTOM_METRICS = [
   'cellMinTemp',
 ] as const;
 
-const CUSTOM_CATEGORIES = ['bess', 'pv', 'evse', 'dg', 'gateway_meter'] as const;
+const CUSTOM_DEVICE_OPTIONS = [
+  { id: 'lot2_pcs_1_1', en: 'Lot 2 PCS 1-1', zh: '2#地块PCS1-1' },
+  { id: 'lot2_pcs_1_2', en: 'Lot 2 PCS 1-2', zh: '2#地块PCS1-2' },
+  { id: 'lot2_pcs_2_1', en: 'Lot 2 PCS 2-1', zh: '2#地块PCS2-1' },
+  { id: 'lot2_pcs_2_2', en: 'Lot 2 PCS 2-2', zh: '2#地块PCS2-2' },
+  { id: 'lot3_pcs_3_1', en: 'Lot 3 PCS 3-1', zh: '3#地块PCS3-1' },
+  { id: 'lot3_pcs_3_2', en: 'Lot 3 PCS 3-2', zh: '3#地块PCS3-2' },
+] as const;
 
-type CustomCategoryId = (typeof CUSTOM_CATEGORIES)[number];
+type CustomCategoryId = (typeof CUSTOM_DEVICE_OPTIONS)[number]['id'];
 
 const generateCustomReportData = () => {
   return Array.from({ length: 168 }, (_, i) => {
@@ -219,7 +226,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   const [isBatteryStackOpen, setIsBatteryStackOpen] = useState(false);
   const [isBatteryClusterOpen, setIsBatteryClusterOpen] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
-  const [customCategory, setCustomCategory] = useState<CustomCategoryId>('bess');
+  const [customCategory, setCustomCategory] = useState<CustomCategoryId>('lot2_pcs_1_1');
   const [customMetrics, setCustomMetrics] = useState<string[]>([...CUSTOM_METRICS]);
   const [customStartDateTime, setCustomStartDateTime] = useState('2025-05-17T00:00:00');
   const [customEndDateTime, setCustomEndDateTime] = useState('2025-05-23T23:59:59');
@@ -265,6 +272,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   const POWER_CHART_DATA = useMemo(() => generatePowerData(dateRange.start), [dateRange]);
   const BATTERY_CHART_DATA = useMemo(() => generateBatteryData(dateRange.start), [dateRange]);
   const CUSTOM_REPORT_DATA = useMemo(() => generateCustomReportData(), []);
+  const customDeviceLabelMap = useMemo(
+    () =>
+      Object.fromEntries(
+        CUSTOM_DEVICE_OPTIONS.map((item) => [item.id, lang === 'zh' ? item.zh : item.en]),
+      ) as Record<CustomCategoryId, string>,
+    [lang],
+  );
 
   const toggleSeries = (dataKey: string) => {
     setHiddenSeries(prev => prev.includes(dataKey) ? prev.filter(k => k !== dataKey) : [...prev, dataKey]);
@@ -1042,7 +1056,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
   const renderCustomFilters = () => (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-4 xl:grid-cols-12 xl:gap-x-6">
       <div className="min-w-0 sm:col-span-1 xl:col-span-2">
-        <div className={`relative w-full max-w-full ${isCustomCategoryOpen ? 'z-50' : ''}`}>
+        <div className={`relative w-full max-w-full ${isCustomCategoryOpen ? 'z-[70]' : ''}`}>
           <button
             type="button"
             onClick={() => {
@@ -1055,21 +1069,21 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                 ? 'border-brand-400 ring-2 ring-brand-100 dark:ring-brand-900/30'
                 : 'border-slate-200 hover:border-slate-300 dark:hover:border-white/15'}`}
           >
-            <span>{t.custom.categories[customCategory]}</span>
+            <span>{customDeviceLabelMap[customCategory]}</span>
             <ChevronDown size={14} className={`text-slate-400 transition-transform ${isCustomCategoryOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : ''}`} />
           </button>
           {isCustomCategoryOpen && (
             <>
-              <div className="fixed inset-0 z-20" onClick={() => setIsCustomCategoryOpen(false)} />
-              <div className="absolute left-0 top-full z-30 mt-2 w-full rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark">
-                {CUSTOM_CATEGORIES.map((category) => {
-                  const checked = customCategory === category;
+              <div className="fixed inset-0 z-[60]" onClick={() => setIsCustomCategoryOpen(false)} />
+              <div className="absolute left-0 top-full z-[80] mt-2 w-full rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark">
+                {CUSTOM_DEVICE_OPTIONS.map((device) => {
+                  const checked = customCategory === device.id;
                   return (
                     <button
-                      key={category}
+                      key={device.id}
                       type="button"
                       onClick={() => {
-                        setCustomCategory(category);
+                        setCustomCategory(device.id);
                         setIsCustomCategoryOpen(false);
                       }}
                       className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-bold transition-colors
@@ -1077,7 +1091,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
                           ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/25 dark:text-brand-300'
                           : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark'}`}
                     >
-                      <span>{t.custom.categories[category]}</span>
+                      <span>{lang === 'zh' ? device.zh : device.en}</span>
                       {checked && <Check size={14} className="text-brand-600 dark:text-brand-400" />}
                     </button>
                   );
@@ -1088,7 +1102,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
         </div>
       </div>
       <div className="min-w-0 sm:col-span-2 xl:col-span-7">
-        <div className="relative">
+        <div className={`relative ${isCustomMetricOpen ? 'z-[70]' : ''}`}>
           <button
             type="button"
             onClick={() => {
@@ -1133,8 +1147,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ lang, theme, selectedStatio
           </button>
           {isCustomMetricOpen && (
             <>
-              <div className="fixed inset-0 z-20" onClick={() => setIsCustomMetricOpen(false)} />
-              <div className="absolute left-0 top-full z-30 mt-2 max-h-[min(60vh,22rem)] w-[min(100%,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark sm:w-full">
+              <div className="fixed inset-0 z-[60]" onClick={() => setIsCustomMetricOpen(false)} />
+              <div className="absolute left-0 top-full z-[80] mt-2 max-h-[min(60vh,22rem)] w-[min(100%,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-apple-border-dark dark:bg-apple-surface-dark sm:w-full">
                 {CUSTOM_METRICS.map((metric) => {
                   const checked = customMetrics.includes(metric);
                   return (
