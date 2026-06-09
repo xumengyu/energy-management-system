@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, Plus, MapPin, Link as BindIcon,
   Battery, AlertCircle, CheckCircle2, Power, Settings, Sun,
-  ChevronDown, ChevronRight, Folder, Edit3, Check, X, FileText, GitBranch
+  ChevronDown, ChevronRight, Folder, Edit3, Check, X, GitBranch
 } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { translations } from '../translations';
@@ -139,14 +139,14 @@ const StationList: React.FC<StationListProps> = ({
     const isIncomplete = isStationInfoIncomplete(station);
     
     return (
-        <tr key={station.id} className={`group hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors ${selectedStation === station.name ? 'bg-blue-50/40 dark:bg-brand-900/10' : ''}`}>
+        <tr key={station.id} className={`group hover:bg-brand-50/40 dark:hover:bg-brand-900/10 transition-colors ${selectedStation === station.name ? 'bg-brand-50/50 dark:bg-brand-900/10' : ''}`}>
             <td className={`px-3 py-2.5 ${isIndented ? 'pl-8' : ''}`}>
                 <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-apple-surface-secondary-dark dark:to-apple-bg-dark flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold border border-slate-200 dark:border-apple-border-dark text-xs">
                         {station.type ? station.type.charAt(0) : '?'}
                     </div>
                     <div>
-                        <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm leading-tight">{station.name}</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors text-sm leading-tight">{station.name}</div>
                         <div className="text-xs text-slate-400 font-mono leading-none">{station.id}</div>
                     </div>
                 </div>
@@ -190,35 +190,33 @@ const StationList: React.FC<StationListProps> = ({
                 {station.lastUpdate}
             </td>
             <td className="px-3 py-2.5 text-right">
-                <div className="flex items-center justify-end gap-1">
+                <div className="inline-flex items-center justify-end gap-2">
                     {/* Modify Info Button - Conditioned on Incomplete status */}
                     <button 
                         onClick={() => onEdit && onEdit(station)}
-                        className={`p-0.5 rounded-lg transition-colors flex items-center gap-1 
+                        aria-label={t.actionModify}
+                        className={`relative inline-flex h-9 w-11 shrink-0 items-center justify-center rounded-xl transition-all
                         ${isIncomplete 
-                            ? 'text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20' 
-                            : 'text-slate-400 hover:text-brand-600 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark'}`} 
+                            ? 'bg-rose-50 text-rose-500 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/30'
+                            : 'text-slate-500 hover:bg-brand-600 hover:text-white dark:text-slate-400 dark:hover:bg-brand-500 dark:hover:text-white'}`}
                         title={isIncomplete 
                             ? (lang === 'zh' ? '请补全站点信息' : 'Please complete station info') 
                             : t.actionModify}
                     >
-                        <FileText size={12} />
-                        <span className="text-xs font-bold hidden xl:inline">
-                            {t.actionModify}
-                        </span>
+                        <Settings size={17} />
                         {isIncomplete && (
-                            <div className="absolute top-0 right-0 w-1 h-1 bg-rose-500 rounded-full border border-white dark:border-apple-bg-dark"></div>
+                            <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-apple-surface-secondary-dark"></span>
                         )}
                     </button>
                     <button
                         type="button"
                         onClick={() => onConfigureBranches?.(station)}
                         disabled={!onConfigureBranches}
-                        className="flex items-center gap-1 rounded-lg border border-transparent px-1.5 py-0.5 text-violet-600 transition-all hover:border-violet-200 hover:bg-violet-50 disabled:pointer-events-none disabled:opacity-40 dark:text-violet-400 dark:hover:border-violet-800 dark:hover:bg-violet-900/20"
+                        className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-1.5 text-xs font-bold text-slate-500 transition-colors hover:text-brand-700 disabled:pointer-events-none disabled:opacity-40 dark:text-slate-400 dark:hover:text-brand-400"
                         title={t.actionBranchConfig}
                     >
-                        <GitBranch size={12} />
-                        <span className="hidden text-xs font-bold xl:inline">{t.actionBranchConfig}</span>
+                        <GitBranch size={16} />
+                        <span>{t.actionBranchConfig}</span>
                     </button>
                     <button 
                         onClick={() => {
@@ -227,7 +225,7 @@ const StationList: React.FC<StationListProps> = ({
                                 onNavigate('/stations/realtime');
                             }
                         }}
-                        className="px-1.5 py-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400 font-bold text-sm border border-transparent hover:border-blue-200 dark:hover:border-blue-800 transition-all"
+                        className="inline-flex h-9 items-center whitespace-nowrap rounded-lg px-1.5 text-xs font-bold text-slate-500 transition-colors hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-400"
                     >
                         {t.actionMonitor}
                     </button>
@@ -240,28 +238,28 @@ const StationList: React.FC<StationListProps> = ({
   return (
     <div className="ems-page-shell">
         {/* Toolbar */}
-        <div className="ems-card p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-6 w-full md:w-auto overflow-x-auto md:overflow-visible">
-                <div className="relative w-full md:w-64 min-w-[160px]">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div className="ems-card mb-4 flex flex-col items-center justify-between gap-3 border border-slate-200 px-4 py-3 dark:border-apple-border-dark md:flex-row md:px-4 xl:px-5">
+            <div className="flex min-w-0 w-full items-center gap-3 overflow-x-auto md:w-auto md:overflow-visible xl:gap-4">
+                <div className="relative w-full min-w-[240px] md:w-64 lg:w-72 xl:w-[340px]">
+                    <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
                         type="text" 
                         placeholder={t.search} 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-apple-surface-secondary-dark border border-slate-200 dark:border-apple-border-dark rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-4 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-white/15 dark:bg-apple-surface-secondary-dark dark:focus:border-brand-600 dark:focus:ring-brand-900"
                     />
                 </div>
-                <div className="h-8 w-px bg-slate-200 dark:bg-white/10 hidden md:block"></div>
-                <div className="flex items-center gap-1">
+                <div className="hidden h-8 w-px bg-slate-200 dark:bg-white/10 md:block"></div>
+                <div className="flex items-center gap-1.5 xl:gap-2">
                     {['All', 'Normal', 'Warning', 'Offline'].map(status => (
                         <button 
                             key={status}
                             onClick={() => setStatusFilter(status)}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors whitespace-nowrap
+                            className={`h-10 rounded-xl border px-4 text-sm font-bold transition-colors whitespace-nowrap
                             ${statusFilter === status 
-                                ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900 dark:border-white' 
-                                : 'bg-white dark:bg-apple-surface-dark text-slate-600 dark:text-slate-400 border-slate-200 dark:border-apple-border-dark hover:border-slate-300 dark:hover:border-white/15'}`}
+                                ? 'bg-brand-600 text-white border-brand-600 dark:bg-brand-500 dark:border-brand-500'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-brand-400 hover:text-brand-700 dark:bg-apple-surface-dark dark:text-slate-400 dark:border-white/15 dark:hover:border-brand-600 dark:hover:text-brand-400'}`}
                         >
                             {status === 'All' ? t.filterAll : (
                                 status === 'Normal' ? t.statusNormal : (
@@ -273,10 +271,10 @@ const StationList: React.FC<StationListProps> = ({
                 </div>
             </div>
             
-            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <div className="flex w-full items-center justify-end md:w-auto">
                 <button 
                   onClick={() => onNavigate && onNavigate('/stations/new')}
-                  className="flex items-center gap-2 px-4 py-2 text-white rounded-xl shadow-md text-sm font-bold transition-all hover:-translate-y-0.5 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 whitespace-nowrap"
+                  className="flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-700 whitespace-nowrap"
                 >
                     <Plus size={18} /> {t.addStation}
                 </button>
@@ -286,16 +284,16 @@ const StationList: React.FC<StationListProps> = ({
         {/* Table List with Grouping */}
         <div className="ems-card overflow-hidden">
             <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left border-collapse">
+                <table className="w-full table-fixed text-sm text-left border-collapse">
                     <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-apple-surface-secondary-dark/50 border-b border-slate-100 dark:border-apple-border-dark font-bold">
                         <tr>
-                            <th className="px-3 py-3 w-[300px]">{t.colName}</th>
-                            <th className="px-3 py-3">{t.colLocation}</th>
-                            <th className="px-3 py-3">{t.colCapacity}</th>
-                            <th className="px-3 py-3">{t.colStatus}</th>
-                            <th className="px-3 py-3 text-center">{t.colSoc}</th>
-                            <th className="px-3 py-3">{t.colTime}</th>
-                            <th className="px-3 py-3 text-right">{t.colAction}</th>
+                            <th className="w-[19%] px-3 py-3">{t.colName}</th>
+                            <th className="w-[13%] px-3 py-3">{t.colLocation}</th>
+                            <th className="w-[10%] px-3 py-3">{t.colCapacity}</th>
+                            <th className="w-[10%] px-3 py-3">{t.colStatus}</th>
+                            <th className="w-[6%] px-3 py-3 text-center">{t.colSoc}</th>
+                            <th className="w-[11%] px-3 py-3">{t.colTime}</th>
+                            <th className="w-[31%] px-3 py-3 text-right">{t.colAction}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/10">
@@ -399,8 +397,8 @@ const StationList: React.FC<StationListProps> = ({
                     {lang === 'zh' ? '共计' : 'Total'} <span className="font-bold text-slate-800 dark:text-slate-200">{filteredStations.length}</span> {lang === 'zh' ? '个匹配站点' : 'matching stations'}
                 </div>
                 <div className="flex gap-2 shrink-0">
-                    <button type="button" className="px-3 py-1.5 text-sm font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-xl hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark disabled:opacity-50 transition-colors">{lang === 'zh' ? '上一页' : 'Previous'}</button>
-                    <button type="button" className="px-3 py-1.5 text-sm font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-apple-surface-dark border border-slate-200 dark:border-apple-border-dark rounded-xl hover:bg-slate-50 dark:hover:bg-apple-surface-secondary-dark transition-colors">{lang === 'zh' ? '下一页' : 'Next'}</button>
+                    <button type="button" className="px-3 py-1.5 text-sm font-bold text-brand-700 dark:text-brand-400 bg-white dark:bg-apple-surface-dark border border-brand-200 dark:border-brand-800 rounded-xl hover:bg-brand-50 dark:hover:bg-brand-900/20 disabled:opacity-50 transition-colors">{lang === 'zh' ? '上一页' : 'Previous'}</button>
+                    <button type="button" className="px-3 py-1.5 text-sm font-bold text-brand-700 dark:text-brand-400 bg-white dark:bg-apple-surface-dark border border-brand-200 dark:border-brand-800 rounded-xl hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors">{lang === 'zh' ? '下一页' : 'Next'}</button>
                 </div>
             </div>
         </div>

@@ -114,7 +114,7 @@ const App: React.FC = () => {
               ...s,
               name: formData.name,
               location: formData.address || 'Unknown',
-              type: formData.deviceTypes[0] || 'Unknown',
+              type: formData.stationType || 'Unknown',
               pvCap: parseInt(formData.pvPower) || 0,
               essCap: parseInt(formData.essCap) || 0,
               group: formData.parentGroup || '',
@@ -128,7 +128,7 @@ const App: React.FC = () => {
               id: formData.id || `ST-NEW-${Date.now()}`,
               name: formData.name,
               location: formData.address || 'Unknown',
-              type: formData.deviceTypes[0] || 'Unknown',
+              type: formData.stationType || 'Unknown',
               pvCap: parseInt(formData.pvPower) || 0,
               essCap: parseInt(formData.essCap) || 0,
               soc: 0,
@@ -152,6 +152,20 @@ const App: React.FC = () => {
   const handleConfigureBranches = (station: StationListItem) => {
       setBranchConfigStationId(station.id);
       handleNavigate('/stations/branches');
+  };
+
+  const handleDeleteStation = (stationId: string) => {
+      const remainingStations = stations.filter(station => station.id !== stationId);
+      setStations(remainingStations);
+      setSelectedStation(remainingStations[0]?.name || '');
+      setFeederConfigsByStation(prev => {
+          const next = { ...prev };
+          delete next[stationId];
+          return next;
+      });
+      setEditingStation(null);
+      setBranchConfigStationId(null);
+      setCurrentPath('/stations');
   };
 
   // Grouping logic for Header Dropdown
@@ -296,7 +310,8 @@ const App: React.FC = () => {
                         groups={groups} 
                         initialData={editingStation}
                         onBack={() => { setEditingStation(null); handleNavigate('/stations'); }} 
-                        onSave={handleSaveStation} 
+                        onSave={handleSaveStation}
+                        onDelete={editingStation ? () => handleDeleteStation(editingStation.id) : undefined}
                      />;
           case '/stations/map':
               return <StationMap lang={lang} theme={theme} onNavigate={handleNavigate} />;

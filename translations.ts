@@ -209,7 +209,7 @@ const en = {
     stationList: {
       title: 'Station List',
       totalAssets: 'Total Assets',
-      addStation: 'Bind Station',
+      addStation: 'New Station',
       search: 'Search by name, ID or location...',
       filterAll: 'All',
       moreFilters: 'Filters',
@@ -1245,7 +1245,7 @@ const zh = {
     stationList: {
       title: '站点列表',
       totalAssets: '总资产',
-      addStation: '绑定站点',
+      addStation: '新建站点',
       search: '搜索名称、ID或位置...',
       filterAll: '全部',
       moreFilters: '筛选',
