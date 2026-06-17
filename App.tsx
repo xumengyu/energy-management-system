@@ -18,6 +18,7 @@ import SiteRevenueDetail from './components/SiteRevenueDetail';
 import FaultAlarms from './components/FaultAlarms';
 import StationMap from './components/StationMap';
 import EntityManagement from './components/EntityManagement';
+import UserProfile from './components/UserProfile';
 import { 
   Bell, User, Globe, ChevronDown, Menu, Search, Check, Folder, ChevronLeft,
   Building2, Repeat, LogOut, Sun, Moon
@@ -68,7 +69,10 @@ const WIP = ({ title, lang }: { title: string, lang: Language }) => {
 };
 
 const App: React.FC = () => {
-  const [currentPath, setCurrentPath] = useState('/');
+  const [currentPath, setCurrentPath] = useState(() => {
+    if (typeof window === 'undefined') return '/';
+    return window.location.pathname || '/';
+  });
   const [lang, setLang] = useState<Language>('en');
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
@@ -101,6 +105,15 @@ const App: React.FC = () => {
   useEffect(() => {
     setStations(lang === 'zh' ? INITIAL_STATIONS_ZH : INITIAL_STATIONS_EN);
   }, [lang]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname || '/');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Rename Logic
   const handleRenameGroup = (oldName: string, newName: string) => {
@@ -226,13 +239,17 @@ const App: React.FC = () => {
       return 'Français';
   }
 
-  const shouldShowStationSelector = !['/', '/stations', '/stations/map', '/faults', '/price/list', '/stations/new', '/stations/edit', '/stations/branches', '/entity-mgmt', '/strategy/my-templates', '/strategy/create'].includes(currentPath);
+  const shouldShowStationSelector = !['/', '/stations', '/stations/map', '/faults', '/price/list', '/stations/new', '/stations/edit', '/stations/branches', '/entity-mgmt', '/profile', '/strategy/my-templates', '/strategy/create'].includes(currentPath);
   const isCreatingOrEditing = currentPath === '/stations/new' || currentPath === '/stations/edit';
   const isCreatingStrategy = currentPath === '/strategy/create';
   const isBranchConfig = currentPath === '/stations/branches';
+  const isProfile = currentPath === '/profile';
 
   const handleNavigate = (path: string) => {
       setCurrentPath(path);
+      if (typeof window !== 'undefined' && window.location.pathname !== path) {
+          window.history.pushState({}, '', path);
+      }
       if (isMobileViewport) setIsMobileSidebarOpen(false);
   };
 
@@ -242,6 +259,10 @@ const App: React.FC = () => {
 
       if (currentPath === '/entity-mgmt') {
           return <EntityManagement lang={lang} theme={theme} onBack={() => handleNavigate('/')} />;
+      }
+
+      if (currentPath === '/profile') {
+          return <UserProfile lang={lang} />;
       }
 
       switch (currentPath) {
@@ -435,6 +456,16 @@ const App: React.FC = () => {
                     >
                         <ChevronLeft size={14} />
                         {lang === 'zh' ? '返回列表' : 'Back'}
+                    </button>
+                )}
+
+                {isProfile && (
+                    <button
+                        onClick={() => handleNavigate('/')}
+                        className="flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-bold text-slate-500 transition-all hover:border-brand-100 hover:bg-brand-50 hover:text-brand-600 dark:hover:border-brand-800 dark:hover:bg-brand-900/20"
+                    >
+                        <ChevronLeft size={14} />
+                        {lang === 'zh' ? '返回系统' : 'Back'}
                     </button>
                 )}
 
@@ -657,7 +688,7 @@ const App: React.FC = () => {
                             </button>
                             <button 
                                 className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-bold text-slate-600 transition-all hover:bg-apple-surface-secondary-light hover:text-brand-600 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark"
-                                onClick={() => { setShowUserMenu(false); }}
+                                onClick={() => { setShowUserMenu(false); handleNavigate('/profile'); }}
                             >
                                 <User size={18} className="shrink-0 text-slate-400" />
                                 {userMenuT.editProfile}

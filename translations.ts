@@ -59,6 +59,33 @@ const en = {
         logout: 'Logout'
       }
     },
+    profile: {
+      title: 'Edit Profile',
+      subtitle: 'Manage your profile and update your account password.',
+      userName: 'Admin User',
+      role: 'Super Admin',
+      securityTitle: 'Account security',
+      changePassword: 'Change Password',
+      currentPassword: 'Current Password',
+      newPassword: 'New Password',
+      confirmPassword: 'Confirm Password',
+      currentPlaceholder: 'Enter current password',
+      newPlaceholder: 'Enter new password',
+      confirmPlaceholder: 'Re-enter new password',
+      ruleTitle: 'Password rule',
+      ruleText: 'At least 8 characters, including uppercase, lowercase, number and special character.',
+      savePassword: 'Save Password',
+      success: 'Password updated successfully for this demo.',
+      showPassword: 'Show password',
+      hidePassword: 'Hide password',
+      errors: {
+        currentRequired: 'Current password is required.',
+        newRequired: 'New password is required.',
+        confirmRequired: 'Please confirm the new password.',
+        strongRule: 'Use at least 8 characters with uppercase, lowercase, number and special character.',
+        mismatch: 'The two passwords do not match.'
+      }
+    },
     entityMgmt: {
         backToEms: 'Back to EMS',
         title: 'Entity Management',
@@ -1093,6 +1120,33 @@ const zh = {
         editProfile: '修改个人信息',
         themeSwitch: '切换主题',
         logout: '退出登录'
+      }
+    },
+    profile: {
+      title: '修改个人信息',
+      subtitle: '管理个人资料并更新账户密码。',
+      userName: '管理员',
+      role: '超级管理员',
+      securityTitle: '账户安全',
+      changePassword: '修改密码',
+      currentPassword: '当前密码',
+      newPassword: '新密码',
+      confirmPassword: '确认新密码',
+      currentPlaceholder: '请输入当前密码',
+      newPlaceholder: '请输入新密码',
+      confirmPlaceholder: '请再次输入新密码',
+      ruleTitle: '密码规则',
+      ruleText: '至少 8 位，需包含大写字母、小写字母、数字和特殊字符。',
+      savePassword: '保存密码',
+      success: '演示版密码修改成功。',
+      showPassword: '显示密码',
+      hidePassword: '隐藏密码',
+      errors: {
+        currentRequired: '请输入当前密码。',
+        newRequired: '请输入新密码。',
+        confirmRequired: '请确认新密码。',
+        strongRule: '请使用至少 8 位，并包含大写字母、小写字母、数字和特殊字符。',
+        mismatch: '两次输入的密码不一致。'
       }
     },
     entityMgmt: {
