@@ -31,9 +31,12 @@ const ALARMS_EN = [
 interface FaultAlarmsProps {
     lang: Language;
     theme: Theme;
+    selectedStation?: string;
 }
 
-const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang }) => {
+const getStationNumberToken = (stationName?: string) => stationName?.match(/#\d+/)?.[0].toLowerCase() || '';
+
+const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang, selectedStation = '' }) => {
     const t = translations[lang].faultAlarms;
     const [searchTerm, setSearchTerm] = useState('');
     const [levelFilter, setLevelFilter] = useState<string>('all'); // all, 1, 2, 3
@@ -46,6 +49,7 @@ const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang }) => {
     const [tempSelection, setTempSelection] = useState<{ start: string | null; end: string | null }>({ start: '2025-09-10', end: '2025-09-16' });
 
     const alarms = lang === 'zh' ? ALARMS_ZH : ALARMS_EN;
+    const selectedStationToken = getStationNumberToken(selectedStation);
 
     // --- Date Picker Logic ---
     const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -179,11 +183,12 @@ const FaultAlarms: React.FC<FaultAlarmsProps> = ({ lang }) => {
         
         const matchesLevel = levelFilter === 'all' || alarm.level.toString() === levelFilter;
         const matchesStatus = statusFilter === 'all' || alarm.status === statusFilter;
+        const matchesStation = !selectedStationToken || alarm.station.toLowerCase().includes(selectedStationToken);
 
         const alarmDate = alarm.time.split(' ')[0];
         const matchesDate = alarmDate >= dateRange.start && alarmDate <= dateRange.end;
 
-        return matchesSearch && matchesLevel && matchesStatus && matchesDate;
+        return matchesSearch && matchesLevel && matchesStatus && matchesStation && matchesDate;
     });
 
     const renderLevelBadge = (level: number) => {

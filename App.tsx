@@ -19,9 +19,10 @@ import FaultAlarms from './components/FaultAlarms';
 import StationMap from './components/StationMap';
 import EntityManagement from './components/EntityManagement';
 import UserProfile from './components/UserProfile';
+import AIDispatchOptimizer from './components/AIDispatchOptimizer';
 import { 
   Bell, User, Globe, ChevronDown, Menu, Search, Check, Folder, ChevronLeft,
-  Building2, Repeat, LogOut, Sun, Moon
+  Building2, Repeat, LogOut, Sun, Moon, X
 } from 'lucide-react';
 import { Language, Theme } from './types';
 import { translations } from './translations';
@@ -89,6 +90,7 @@ const App: React.FC = () => {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [selectedStation, setSelectedStation] = useState('Station #2 (Munich)');
+  const [selectedFaultStationId, setSelectedFaultStationId] = useState('');
   const [isStationMenuOpen, setIsStationMenuOpen] = useState(false);
   const [stationSearch, setStationSearch] = useState('');
 
@@ -239,7 +241,12 @@ const App: React.FC = () => {
       return 'Français';
   }
 
-  const shouldShowStationSelector = !['/', '/stations', '/stations/map', '/faults', '/price/list', '/stations/new', '/stations/edit', '/stations/branches', '/entity-mgmt', '/profile', '/strategy/my-templates', '/strategy/create'].includes(currentPath);
+  const isFaults = currentPath === '/faults';
+  const selectedFaultStationData = stations.find((station) => station.id === selectedFaultStationId) || null;
+  const stationSelectorLabel = isFaults
+      ? (selectedFaultStationData?.name || (lang === 'zh' ? '全部电站' : 'All Stations'))
+      : selectedStation;
+  const shouldShowStationSelector = !['/', '/stations', '/stations/map', '/price/list', '/stations/new', '/stations/edit', '/stations/branches', '/entity-mgmt', '/profile', '/strategy/my-templates', '/strategy/create'].includes(currentPath);
   const isCreatingOrEditing = currentPath === '/stations/new' || currentPath === '/stations/edit';
   const isCreatingStrategy = currentPath === '/strategy/create';
   const isBranchConfig = currentPath === '/stations/branches';
@@ -347,7 +354,9 @@ const App: React.FC = () => {
           case '/energy':
               return <EnergyStatistics lang={lang} theme={theme} selectedStation={selectedStation} />;
           case '/faults':
-              return <FaultAlarms lang={lang} theme={theme} />;
+              return <FaultAlarms lang={lang} theme={theme} selectedStation={selectedFaultStationData?.name || ''} />;
+          case '/ai-dispatch/optimizer':
+              return <AIDispatchOptimizer lang={lang} theme={theme} selectedStation={selectedStation} selectedStationData={selectedStationData} />;
           case '/strategy/execution-view':
               return <StrategyManager lang={lang} theme={theme} selectedStation={selectedStation} stations={stations} strategyStationBindings={{}} initialTab="overview" hideStrategyTabBar onTabChange={(tab) => handleNavigate(tab === 'templates' ? '/strategy/templates' : tab === 'overview' ? '/strategy/execution-view' : '/strategy/orchestration')} onNavigate={handleNavigate} />;
           case '/strategy/orchestration':
@@ -473,15 +482,37 @@ const App: React.FC = () => {
 
                 {shouldShowStationSelector && (
                     <div className="relative z-50 min-w-0 w-[340px] shrink sm:w-[440px]">
-                        <button 
-                            onClick={() => setIsStationMenuOpen(!isStationMenuOpen)}
-                            className="group flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:hover:border-white/15 dark:hover:bg-apple-surface-secondary-dark"
-                        >
+                        <div className="flex h-10 w-full">
+                            <button 
+                                onClick={() => setIsStationMenuOpen(!isStationMenuOpen)}
+                                className={`group flex h-10 min-w-0 flex-1 items-center justify-between border border-slate-200 bg-white px-3.5 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:hover:border-white/15 dark:hover:bg-apple-surface-secondary-dark ${
+                                    isFaults && selectedFaultStationData ? 'rounded-l-xl border-r-0' : 'rounded-xl'
+                                }`}
+                            >
                                 <div className="flex min-w-0 items-center overflow-hidden">
-                                    <span className="w-full truncate text-left text-base font-bold text-slate-700 dark:text-slate-200">{selectedStation}</span>
+                                    <span className={`w-full truncate text-left text-base font-bold ${
+                                        isFaults && !selectedFaultStationData
+                                            ? 'text-slate-400 dark:text-slate-500'
+                                            : 'text-slate-700 dark:text-slate-200'
+                                    }`}>{stationSelectorLabel}</span>
                                 </div>
                                 <ChevronDown size={16} className={`shrink-0 text-slate-400 transition-transform duration-300 group-hover:text-slate-600 dark:group-hover:text-slate-300 ${isStationMenuOpen ? 'rotate-180' : ''}`} />
-                        </button>
+                            </button>
+                            {isFaults && selectedFaultStationData && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedFaultStationId('');
+                                        setIsStationMenuOpen(false);
+                                        setStationSearch('');
+                                    }}
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-r-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:hover:border-white/15 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-slate-200"
+                                    title={lang === 'zh' ? '清除电站筛选' : 'Clear station filter'}
+                                >
+                                    <X size={15} />
+                                </button>
+                            )}
+                        </div>
 
                         {isStationMenuOpen && (
                                 <>
@@ -512,12 +543,16 @@ const App: React.FC = () => {
                                                     <button
                                                         key={station.id}
                                                         onClick={() => { 
-                                                            setSelectedStation(station.name); 
+                                                            if (isFaults) {
+                                                                setSelectedFaultStationId(station.id);
+                                                            } else {
+                                                                setSelectedStation(station.name);
+                                                            }
                                                             setIsStationMenuOpen(false); 
                                                             setStationSearch(''); 
                                                         }}
                                                         className={`group flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-base font-bold transition-colors
-                                                            ${selectedStation === station.name 
+                                                            ${(isFaults ? selectedFaultStationId === station.id : selectedStation === station.name)
                                                                 ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400' 
                                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-apple-surface-secondary-dark'}`}
                                                     >
@@ -525,7 +560,7 @@ const App: React.FC = () => {
                                                             <span>{station.name}</span>
                                                             <span className="font-mono text-xs opacity-50">{station.id}</span>
                                                         </div>
-                                                        {selectedStation === station.name && <Check size={18} className="shrink-0 text-brand-500" />}
+                                                        {(isFaults ? selectedFaultStationId === station.id : selectedStation === station.name) && <Check size={18} className="shrink-0 text-brand-500" />}
                                                     </button>
                                                 ))}
                                             </div>
@@ -545,12 +580,16 @@ const App: React.FC = () => {
                                                             <button
                                                                 key={station.id}
                                                                 onClick={() => { 
-                                                                    setSelectedStation(station.name); 
+                                                                    if (isFaults) {
+                                                                        setSelectedFaultStationId(station.id);
+                                                                    } else {
+                                                                        setSelectedStation(station.name);
+                                                                    }
                                                                     setIsStationMenuOpen(false); 
                                                                     setStationSearch(''); 
                                                                 }}
                                                                 className={`group flex w-full items-center justify-between rounded-lg py-2.5 pl-8 pr-3 text-left text-base font-bold transition-colors
-                                                                    ${selectedStation === station.name 
+                                                                    ${(isFaults ? selectedFaultStationId === station.id : selectedStation === station.name)
                                                                         ? 'bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400' 
                                                                         : 'text-slate-600 dark:text-slate-400 hover:bg-apple-surface-secondary-light dark:hover:bg-apple-surface-secondary-dark'}`}
                                                             >
@@ -558,7 +597,7 @@ const App: React.FC = () => {
                                                                     <span>{station.name}</span>
                                                                     <span className="font-mono text-xs opacity-50">{station.id}</span>
                                                                 </div>
-                                                                {selectedStation === station.name && <Check size={18} className="shrink-0 text-brand-500" />}
+                                                                {(isFaults ? selectedFaultStationId === station.id : selectedStation === station.name) && <Check size={18} className="shrink-0 text-brand-500" />}
                                                             </button>
                                                         ))}
                                                     </div>

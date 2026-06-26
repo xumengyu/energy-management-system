@@ -79,25 +79,26 @@ const Sidebar: React.FC<SidebarProps> = ({
         items: [{ id: '/faults', label: t.faults, icon: AlertTriangle }],
     },
     {
-        title: t.categoryPriceTrading,
-        items: [
-            { id: '/strategy/execution-view', label: t.executionView, icon: Activity },
-            { id: '/strategy/orchestration', label: t.dispatchOrchestration, icon: GitBranch },
-            { id: '/strategy/my-templates', label: t.myStrategies, icon: LayoutTemplate },
-            { id: '/price/list', label: t.priceList, icon: List },
-        ]
+        title: t.categoryAIDispatch,
+        items: [{ id: '/ai-dispatch/optimizer', label: t.aiOptimizer, icon: Activity }],
     },
     {
         title: t.categoryControl,
         items: [
             { id: '/strategy/manual', label: t.manualControl, icon: ToggleRight },
-            { id: '/strategy/md', label: t.mdStrategy, icon: Activity },
-            { id: '/strategy/protection', label: t.protectionStrategy, icon: ShieldCheck },
         ]
     },
     {
-        title: t.categoryRevenue,
-        items: [{ id: '/revenue', label: t.revenue, icon: DollarSign }],
+        title: t.categoryBeta,
+        items: [
+            { id: '/strategy/execution-view', label: t.executionView, icon: Activity },
+            { id: '/strategy/orchestration', label: t.dispatchOrchestration, icon: GitBranch },
+            { id: '/strategy/my-templates', label: t.myStrategies, icon: LayoutTemplate },
+            { id: '/price/list', label: t.priceList, icon: List },
+            { id: '/strategy/md', label: t.mdStrategy, icon: Activity },
+            { id: '/strategy/protection', label: t.protectionStrategy, icon: ShieldCheck },
+            { id: '/revenue', label: t.revenue, icon: DollarSign },
+        ],
     }
   ];
 

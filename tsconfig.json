@@ -26,5 +26,10 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "resolveJsonModule": true
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "AI_Dispatch_frontend_mock_20260616_143645"
+  ]
 }
