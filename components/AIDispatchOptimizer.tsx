@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Area,
   AreaChart,
@@ -2144,7 +2145,7 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
         <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-apple-surface-secondary-dark/45">
           <SectionTitle title={copy.setupGuide.title} subtitle={copy.setupGuide.subtitle} />
         </div>
-        <div className="grid grid-cols-1 gap-4 pt-4 xl:grid-cols-[280px_1fr]">
+        <div className="relative z-30 grid grid-cols-1 gap-4 pt-4 xl:grid-cols-[280px_1fr]">
           <div className="rounded-2xl bg-slate-50 p-3 dark:bg-apple-surface-secondary-dark/50">
             <div className="text-xs font-black uppercase tracking-wider text-slate-400">{copy.labels.station}</div>
             <div className="mt-1 text-sm font-black text-slate-900 dark:text-white">{activeStationName}</div>
@@ -2189,7 +2190,7 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
             {renderGuideBody(stepKey)}
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 z-40 border-t border-slate-200/70 bg-white/92 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-apple-surface-dark/92 xl:left-[312px]">
+        <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-slate-200/70 bg-white/92 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-apple-surface-dark/92 xl:left-[312px]">
           <div className="mx-auto flex max-w-[1720px] flex-col gap-2 rounded-2xl bg-slate-50 p-3 dark:bg-apple-surface-secondary-dark/70 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
@@ -2789,7 +2790,7 @@ function SourceDropdown({
         </span>
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-xl dark:border-apple-border-dark dark:bg-apple-surface-dark">
+        <div className="absolute left-0 right-0 top-full z-[80] mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-xl dark:border-apple-border-dark dark:bg-apple-surface-dark">
           {options.map((option) => {
             const active = option.value === value;
             return (
@@ -2906,9 +2907,77 @@ function CompactSelect({
 }) {
   const open = openId === id;
   const selected = options.find((option) => option.value === value) ?? options[0];
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuRect, setMenuRect] = useState<React.CSSProperties | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setMenuRect(null);
+      return undefined;
+    }
+
+    const updateMenuRect = () => {
+      const button = buttonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const menuHeight = Math.min(options.length * 38 + 8, 220);
+      const gap = 6;
+      const viewportPadding = 12;
+      const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+      const shouldOpenUp = spaceBelow < menuHeight && rect.top > menuHeight + viewportPadding;
+      const maxLeft = Math.max(viewportPadding, window.innerWidth - rect.width - viewportPadding);
+      setMenuRect({
+        position: 'fixed',
+        left: Math.min(Math.max(rect.left, viewportPadding), maxLeft),
+        top: shouldOpenUp ? Math.max(viewportPadding, rect.top - menuHeight - gap) : Math.min(rect.bottom + gap, window.innerHeight - menuHeight - viewportPadding),
+        width: rect.width,
+        maxHeight: 220,
+      });
+    };
+
+    updateMenuRect();
+    window.addEventListener('resize', updateMenuRect);
+    window.addEventListener('scroll', updateMenuRect, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuRect);
+      window.removeEventListener('scroll', updateMenuRect, true);
+    };
+  }, [open, options.length]);
+
+  const menu = open && menuRect && typeof document !== 'undefined' ? createPortal(
+    <>
+      <div className="fixed inset-0 z-[118]" onClick={() => onOpenChange(null)} />
+      <div style={menuRect} className="z-[119] overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-2xl dark:border-apple-border-dark dark:bg-apple-surface-dark">
+        {options.map((option) => {
+          const active = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onChange(option.value);
+                onOpenChange(null);
+              }}
+              className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-black transition-colors ${
+                active
+                  ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
+                  : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark'
+              }`}
+            >
+              <span className="truncate">{option.label}</span>
+              {active && <CheckCircle2 size={13} className="shrink-0" />}
+            </button>
+          );
+        })}
+      </div>
+    </>,
+    document.body,
+  ) : null;
+
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => onOpenChange(open ? null : id)}
         className={`flex h-9 w-full items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white px-2.5 text-left text-xs font-black text-slate-900 outline-none transition-all hover:border-brand-300 focus:ring-2 focus:ring-brand-500/15 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-white dark:hover:border-brand-500/50 ${
@@ -2920,31 +2989,7 @@ function CompactSelect({
           <ChevronDown size={13} />
         </span>
       </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-40 mt-1.5 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-apple-border-dark dark:bg-apple-surface-dark">
-          {options.map((option) => {
-            const active = option.value === value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => {
-                  onChange(option.value);
-                  onOpenChange(null);
-                }}
-                className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-black transition-colors ${
-                  active
-                    ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
-                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark'
-                }`}
-              >
-                <span className="truncate">{option.label}</span>
-                {active && <CheckCircle2 size={13} className="shrink-0" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {menu}
     </div>
   );
 }
