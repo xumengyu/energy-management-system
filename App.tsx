@@ -19,7 +19,7 @@ import FaultAlarms from './components/FaultAlarms';
 import StationMap from './components/StationMap';
 import EntityManagement from './components/EntityManagement';
 import UserProfile from './components/UserProfile';
-import AIDispatchOptimizer from './components/AIDispatchOptimizer';
+import AIDispatchOptimizer, { OptimizerSwitchStatus } from './components/AIDispatchOptimizer';
 import { 
   Bell, User, Globe, ChevronDown, Menu, Search, Check, Folder, ChevronLeft,
   Building2, Repeat, LogOut, Sun, Moon, X
@@ -30,25 +30,25 @@ import { MOCK_STRATEGY_STATION_BINDINGS } from './data/mockStrategyStationBindin
 
 // Lifted Initial Data
 const INITIAL_STATIONS_EN: StationListItem[] = [
-  { id: 'ST-001', name: 'Station #1 (Berlin)', location: 'Berlin, Germany', type: 'Industrial', pvCap: 1200, essCap: 2000, soc: 85, power: 450, status: 'Normal', grid: 'Connected', lastUpdate: '1 min ago', group: 'European Industrial Hubs', deviceTypes: ['ess', 'pv'] },
-  { id: 'ST-004', name: 'Station #5 (Paris)', location: 'Paris, France', type: 'Industrial', pvCap: 2000, essCap: 4000, soc: 92, power: 1100, status: 'Normal', grid: 'Connected', lastUpdate: 'Just now', group: 'European Industrial Hubs', deviceTypes: ['ess', 'pv', 'evse'] },
-  { id: 'ST-007', name: 'Station #9 (Zurich)', location: 'Zurich, Switzerland', type: 'Industrial', pvCap: 1500, essCap: 3000, soc: 88, power: 900, status: 'Warning', grid: 'Connected', lastUpdate: '10 mins ago', group: 'European Industrial Hubs', deviceTypes: ['ess', 'pv'] },
-  { id: 'ST-002', name: 'Station #2 (Munich)', location: 'Munich, Germany', type: 'Microgrid', pvCap: 800, essCap: 1000, soc: 40, power: 120, status: 'Warning', grid: 'Island', lastUpdate: '5 mins ago', group: 'Research & Innovation', deviceTypes: ['ess', 'pv', 'evse', 'dg'] },
-  { id: 'ST-003', name: 'Station #3 (London)', location: 'London, UK', type: 'Commercial', pvCap: 500, essCap: 0, soc: 0, power: 0, status: 'Offline', grid: 'Disconnected', lastUpdate: '2 hours ago', group: '', deviceTypes: ['pv'] }, // Ungrouped
-  { id: 'ST-005', name: 'Station #6 (Madrid)', location: 'Madrid, Spain', type: 'Commercial', pvCap: 600, essCap: 500, soc: 65, power: 320, status: 'Normal', grid: 'Connected', lastUpdate: '1 min ago', group: 'Retail & Commercial', deviceTypes: ['ess', 'pv'] },
-  { id: 'ST-006', name: 'Station #8 (Rome)', location: 'Rome, Italy', type: 'Commercial', pvCap: 300, essCap: 200, soc: 78, power: 150, status: 'Normal', grid: 'Connected', lastUpdate: '30 secs ago', group: 'Retail & Commercial', deviceTypes: ['ess', 'pv'] },
-  { id: 'ST-008', name: 'Station #11 (Oslo)', location: 'Oslo, Norway', type: 'Commercial', pvCap: 800, essCap: 1200, soc: 45, power: 400, status: 'Normal', grid: 'Connected', lastUpdate: '2 mins ago', group: '', deviceTypes: ['ess', 'pv', 'evse'] }, // Ungrouped
+  { id: 'ST-001', name: 'Station #1 (Berlin)', location: 'Berlin, Germany', type: 'Commercial & Industrial BESS', timezone: 'Europe/Berlin', pvCap: 1200, essCap: 2000, soc: 85, power: 450, status: 'Normal', grid: 'Connected', lastUpdate: '1 min ago', group: 'European Industrial Hubs', deviceTypes: ['ess', 'pv'] },
+  { id: 'ST-004', name: 'Station #5 (Paris)', location: 'Paris, France', type: 'Commercial & Industrial BESS', timezone: 'Europe/Paris', pvCap: 2000, essCap: 4000, soc: 92, power: 1100, status: 'Normal', grid: 'Connected', lastUpdate: 'Just now', group: 'European Industrial Hubs', deviceTypes: ['ess', 'pv', 'evse'] },
+  { id: 'ST-007', name: 'Station #9 (Zurich)', location: 'Zurich, Switzerland', type: 'Utility-Scale BESS', timezone: 'Europe/Zurich', pvCap: 1500, essCap: 3000, soc: 88, power: 900, status: 'Warning', grid: 'Connected', lastUpdate: '10 mins ago', group: 'European Industrial Hubs', deviceTypes: ['ess', 'pv'] },
+  { id: 'ST-002', name: 'Station #2 (Munich)', location: 'Munich, Germany', type: 'Utility-Scale BESS', timezone: 'Europe/Berlin', pvCap: 800, essCap: 1000, soc: 40, power: 120, status: 'Warning', grid: 'Island', lastUpdate: '5 mins ago', group: 'Research & Innovation', deviceTypes: ['ess', 'pv', 'evse', 'dg'] },
+  { id: 'ST-003', name: 'Station #3 (London)', location: 'London, UK', type: 'Telecom Base Station BESS', timezone: 'Europe/London', pvCap: 500, essCap: 0, soc: 0, power: 0, status: 'Offline', grid: 'Disconnected', lastUpdate: '2 hours ago', group: '', deviceTypes: ['pv'] }, // Ungrouped
+  { id: 'ST-005', name: 'Station #6 (Madrid)', location: 'Madrid, Spain', type: 'Commercial & Industrial BESS', timezone: 'Europe/Madrid', pvCap: 600, essCap: 500, soc: 65, power: 320, status: 'Normal', grid: 'Connected', lastUpdate: '1 min ago', group: 'Retail & Commercial', deviceTypes: ['ess', 'pv'] },
+  { id: 'ST-006', name: 'Station #8 (Rome)', location: 'Rome, Italy', type: 'Commercial & Industrial BESS', timezone: 'Europe/Rome', pvCap: 300, essCap: 200, soc: 78, power: 150, status: 'Normal', grid: 'Connected', lastUpdate: '30 secs ago', group: 'Retail & Commercial', deviceTypes: ['ess', 'pv'] },
+  { id: 'ST-008', name: 'Station #11 (Oslo)', location: 'Oslo, Norway', type: 'Telecom Base Station BESS', timezone: 'Europe/Oslo', pvCap: 800, essCap: 1200, soc: 45, power: 400, status: 'Normal', grid: 'Connected', lastUpdate: '2 mins ago', group: '', deviceTypes: ['ess', 'pv', 'evse'] }, // Ungrouped
 ];
 
 const INITIAL_STATIONS_ZH: StationListItem[] = [
-  { id: 'ST-001', name: '站点 #1 (柏林)', location: '德国, 柏林', type: '工业', pvCap: 1200, essCap: 2000, soc: 85, power: 450, status: 'Normal', grid: 'Connected', lastUpdate: '1 分钟前', group: '欧洲工业园区', deviceTypes: ['ess', 'pv'] },
-  { id: 'ST-004', name: '站点 #5 (巴黎)', location: '法国, 巴黎', type: '工业', pvCap: 2000, essCap: 4000, soc: 92, power: 1100, status: 'Normal', grid: 'Connected', lastUpdate: '刚刚', group: '欧洲工业园区', deviceTypes: ['ess', 'pv', 'evse'] },
-  { id: 'ST-007', name: '站点 #9 (苏瑞世)', location: '瑞士, 苏黎世', type: '工业', pvCap: 1500, essCap: 3000, soc: 88, power: 900, status: 'Warning', grid: 'Connected', lastUpdate: '10 分钟前', group: '欧洲工业园区', deviceTypes: ['ess', 'pv'] },
-  { id: 'ST-002', name: '站点 #2 (慕尼黑)', location: '德国, 慕尼黑', type: '微电网', pvCap: 800, essCap: 1000, soc: 40, power: 120, status: 'Warning', grid: 'Island', lastUpdate: '5 分钟前', group: '研发与创新中心', deviceTypes: ['ess', 'pv', 'evse', 'dg'] },
-  { id: 'ST-003', name: '站点 #3 (伦敦)', location: '英国, 伦敦', type: '商业', pvCap: 500, essCap: 0, soc: 0, power: 0, status: 'Offline', grid: 'Disconnected', lastUpdate: '2 小时前', group: '', deviceTypes: ['pv'] }, // 未分组
-  { id: 'ST-005', name: '站点 #6 (马德里)', location: '西班牙, 马德里', type: '商业', pvCap: 600, essCap: 500, soc: 65, power: 320, status: 'Normal', grid: 'Connected', lastUpdate: '1 分钟前', group: '商业综合体', deviceTypes: ['ess', 'pv'] },
-  { id: 'ST-006', name: '站点 #8 (罗马)', location: '意大利, 罗马', type: '商业', pvCap: 300, essCap: 200, soc: 78, power: 150, status: 'Normal', grid: 'Connected', lastUpdate: '30 秒前', group: '商业综合体', deviceTypes: ['ess', 'pv'] },
-  { id: 'ST-008', name: '站点 #11 (奥斯陆)', location: '挪威, 奥斯陆', type: '商业', pvCap: 800, essCap: 1200, soc: 45, power: 400, status: 'Normal', grid: 'Connected', lastUpdate: '2 分钟前', group: '', deviceTypes: ['ess', 'pv', 'evse'] }, // 未分组
+  { id: 'ST-001', name: '站点 #1 (柏林)', location: '德国, 柏林', type: 'Commercial & Industrial BESS', timezone: 'Europe/Berlin', pvCap: 1200, essCap: 2000, soc: 85, power: 450, status: 'Normal', grid: 'Connected', lastUpdate: '1 分钟前', group: '欧洲工业园区', deviceTypes: ['ess', 'pv'] },
+  { id: 'ST-004', name: '站点 #5 (巴黎)', location: '法国, 巴黎', type: 'Commercial & Industrial BESS', timezone: 'Europe/Paris', pvCap: 2000, essCap: 4000, soc: 92, power: 1100, status: 'Normal', grid: 'Connected', lastUpdate: '刚刚', group: '欧洲工业园区', deviceTypes: ['ess', 'pv', 'evse'] },
+  { id: 'ST-007', name: '站点 #9 (苏瑞世)', location: '瑞士, 苏黎世', type: 'Utility-Scale BESS', timezone: 'Europe/Zurich', pvCap: 1500, essCap: 3000, soc: 88, power: 900, status: 'Warning', grid: 'Connected', lastUpdate: '10 分钟前', group: '欧洲工业园区', deviceTypes: ['ess', 'pv'] },
+  { id: 'ST-002', name: '站点 #2 (慕尼黑)', location: '德国, 慕尼黑', type: 'Utility-Scale BESS', timezone: 'Europe/Berlin', pvCap: 800, essCap: 1000, soc: 40, power: 120, status: 'Warning', grid: 'Island', lastUpdate: '5 分钟前', group: '研发与创新中心', deviceTypes: ['ess', 'pv', 'evse', 'dg'] },
+  { id: 'ST-003', name: '站点 #3 (伦敦)', location: '英国, 伦敦', type: 'Telecom Base Station BESS', timezone: 'Europe/London', pvCap: 500, essCap: 0, soc: 0, power: 0, status: 'Offline', grid: 'Disconnected', lastUpdate: '2 小时前', group: '', deviceTypes: ['pv'] }, // 未分组
+  { id: 'ST-005', name: '站点 #6 (马德里)', location: '西班牙, 马德里', type: 'Commercial & Industrial BESS', timezone: 'Europe/Madrid', pvCap: 600, essCap: 500, soc: 65, power: 320, status: 'Normal', grid: 'Connected', lastUpdate: '1 分钟前', group: '商业综合体', deviceTypes: ['ess', 'pv'] },
+  { id: 'ST-006', name: '站点 #8 (罗马)', location: '意大利, 罗马', type: 'Commercial & Industrial BESS', timezone: 'Europe/Rome', pvCap: 300, essCap: 200, soc: 78, power: 150, status: 'Normal', grid: 'Connected', lastUpdate: '30 秒前', group: '商业综合体', deviceTypes: ['ess', 'pv'] },
+  { id: 'ST-008', name: '站点 #11 (奥斯陆)', location: '挪威, 奥斯陆', type: 'Telecom Base Station BESS', timezone: 'Europe/Oslo', pvCap: 800, essCap: 1200, soc: 45, power: 400, status: 'Normal', grid: 'Connected', lastUpdate: '2 分钟前', group: '', deviceTypes: ['ess', 'pv', 'evse'] }, // 未分组
 ];
 
 const EMPTY_STATION_FEEDER_CONFIG: StationFeederConfig = { branches: [], assignments: {} };
@@ -102,6 +102,7 @@ const App: React.FC = () => {
   const [editingStation, setEditingStation] = useState<StationListItem | null>(null);
   const [branchConfigStationId, setBranchConfigStationId] = useState<string | null>(null);
   const [feederConfigsByStation, setFeederConfigsByStation] = useState<Record<string, StationFeederConfig>>({});
+  const [aiOptimizerStatusByStation, setAiOptimizerStatusByStation] = useState<Record<string, OptimizerSwitchStatus>>({});
 
   // Sync state on lang change
   useEffect(() => {
@@ -130,6 +131,7 @@ const App: React.FC = () => {
               name: formData.name,
               location: formData.address || 'Unknown',
               type: formData.stationType || 'Unknown',
+              timezone: formData.timezone || s.timezone || 'Asia/Shanghai',
               pvCap: parseInt(formData.pvPower) || 0,
               essCap: parseInt(formData.essCap) || 0,
               group: formData.parentGroup || '',
@@ -144,6 +146,7 @@ const App: React.FC = () => {
               name: formData.name,
               location: formData.address || 'Unknown',
               type: formData.stationType || 'Unknown',
+              timezone: formData.timezone || 'Asia/Shanghai',
               pvCap: parseInt(formData.pvPower) || 0,
               essCap: parseInt(formData.essCap) || 0,
               soc: 0,
@@ -241,16 +244,30 @@ const App: React.FC = () => {
       return 'Français';
   }
 
+  const selectedStationData = stations.find(s => s.name === selectedStation) || stations[0];
+  const activeAIOptimizerStationId = selectedStationData?.id || selectedStation || 'default';
+  const activeAIOptimizerStatus = aiOptimizerStatusByStation[activeAIOptimizerStationId] ?? 'trial';
+  const setActiveAIOptimizerStatus = (status: OptimizerSwitchStatus) => {
+      setAiOptimizerStatusByStation(prev => ({ ...prev, [activeAIOptimizerStationId]: status }));
+  };
   const isFaults = currentPath === '/faults';
+  const isAIOptimizerSetup = currentPath === '/ai-dispatch/optimizer/setup';
   const selectedFaultStationData = stations.find((station) => station.id === selectedFaultStationId) || null;
   const stationSelectorLabel = isFaults
       ? (selectedFaultStationData?.name || (lang === 'zh' ? '全部电站' : 'All Stations'))
       : selectedStation;
-  const shouldShowStationSelector = !['/', '/stations', '/stations/map', '/price/list', '/stations/new', '/stations/edit', '/stations/branches', '/entity-mgmt', '/profile', '/strategy/my-templates', '/strategy/create'].includes(currentPath);
+  const shouldShowStationSelector = !['/', '/stations', '/stations/map', '/price/list', '/stations/new', '/stations/edit', '/stations/branches', '/entity-mgmt', '/profile', '/ai-dispatch/optimizer/setup', '/strategy/my-templates', '/strategy/create'].includes(currentPath);
   const isCreatingOrEditing = currentPath === '/stations/new' || currentPath === '/stations/edit';
   const isCreatingStrategy = currentPath === '/strategy/create';
   const isBranchConfig = currentPath === '/stations/branches';
   const isProfile = currentPath === '/profile';
+
+  const handleBackFromAIOptimizerSetup = () => {
+      if (activeAIOptimizerStatus !== 'on') {
+          setActiveAIOptimizerStatus('trial');
+      }
+      handleNavigate('/ai-dispatch/optimizer');
+  };
 
   const handleNavigate = (path: string) => {
       setCurrentPath(path);
@@ -261,9 +278,6 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-      // Find full station object for Realtime view
-      const selectedStationData = stations.find(s => s.name === selectedStation) || stations[0];
-
       if (currentPath === '/entity-mgmt') {
           return <EntityManagement lang={lang} theme={theme} onBack={() => handleNavigate('/')} />;
       }
@@ -356,7 +370,34 @@ const App: React.FC = () => {
           case '/faults':
               return <FaultAlarms lang={lang} theme={theme} selectedStation={selectedFaultStationData?.name || ''} />;
           case '/ai-dispatch/optimizer':
-              return <AIDispatchOptimizer lang={lang} theme={theme} selectedStation={selectedStation} selectedStationData={selectedStationData} />;
+              return (
+                  <AIDispatchOptimizer
+                      lang={lang}
+                      theme={theme}
+                      selectedStation={selectedStation}
+                      selectedStationData={selectedStationData}
+                      viewMode="home"
+                      optimizerStatus={activeAIOptimizerStatus}
+                      onOptimizerStatusChange={setActiveAIOptimizerStatus}
+                      onStartTrial={() => {
+                          setActiveAIOptimizerStatus('configuring');
+                          handleNavigate('/ai-dispatch/optimizer/setup');
+                      }}
+                  />
+              );
+          case '/ai-dispatch/optimizer/setup':
+              return (
+                  <AIDispatchOptimizer
+                      lang={lang}
+                      theme={theme}
+                      selectedStation={selectedStation}
+                      selectedStationData={selectedStationData}
+                      viewMode="setup"
+                      optimizerStatus={activeAIOptimizerStatus === 'on' ? 'on' : 'configuring'}
+                      onOptimizerStatusChange={setActiveAIOptimizerStatus}
+                      onEnabled={() => handleNavigate('/ai-dispatch/optimizer')}
+                  />
+              );
           case '/strategy/execution-view':
               return <StrategyManager lang={lang} theme={theme} selectedStation={selectedStation} stations={stations} strategyStationBindings={{}} initialTab="overview" hideStrategyTabBar onTabChange={(tab) => handleNavigate(tab === 'templates' ? '/strategy/templates' : tab === 'overview' ? '/strategy/execution-view' : '/strategy/orchestration')} onNavigate={handleNavigate} />;
           case '/strategy/orchestration':
@@ -475,6 +516,16 @@ const App: React.FC = () => {
                     >
                         <ChevronLeft size={14} />
                         {lang === 'zh' ? '返回系统' : 'Back'}
+                    </button>
+                )}
+
+                {isAIOptimizerSetup && (
+                    <button
+                        onClick={handleBackFromAIOptimizerSetup}
+                        className="flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-bold text-slate-500 transition-all hover:border-brand-100 hover:bg-brand-50 hover:text-brand-600 dark:hover:border-brand-800 dark:hover:bg-brand-900/20"
+                    >
+                        <ChevronLeft size={14} />
+                        {lang === 'zh' ? '返回 AI 优化调度' : 'Back to AI Optimizer'}
                     </button>
                 )}
 

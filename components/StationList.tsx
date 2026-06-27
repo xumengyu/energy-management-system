@@ -14,6 +14,7 @@ export interface StationListItem {
   name: string;
   location: string;
   type: string;
+  timezone?: string;
   pvCap: number;
   essCap: number;
   soc: number;
