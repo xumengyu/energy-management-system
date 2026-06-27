@@ -18,13 +18,16 @@ import {
   ChevronDown,
   CheckCircle2,
   DollarSign,
+  Eye,
   Leaf,
   FileJson,
   Gauge,
   GitBranch,
   Play,
+  RefreshCw,
   TrendingUp,
   SlidersHorizontal,
+  X,
   Zap,
 } from 'lucide-react';
 import { Language, Theme } from '../types';
@@ -99,6 +102,23 @@ type OptimizeResponse = {
   summary: OptimizeSummary;
 };
 
+type DashboardForecastSeriesKey = 'loadKW' | 'pvKW' | 'batteryPowerKW' | 'gridImportPrice';
+type PriceTrendSeriesKey = 'marketPriceEurMWh' | 'userPriceEurMWh' | 'demandChargeEurMWh';
+type SocBoundsSeriesKey = 'socPct' | 'socMinLine' | 'socMaxLine' | 'socEndLine';
+
+type DashboardForecastSeries = {
+  key: DashboardForecastSeriesKey;
+  label: string;
+  color: string;
+  axis: 'power' | 'price';
+};
+
+type ToggleableSeries<Key extends string = string> = {
+  key: Key;
+  label: string;
+  color: string;
+};
+
 type DispatchSegment = {
   start: string;
   end: string;
@@ -122,6 +142,19 @@ type DispatchStrategyDraft = {
   segments: DispatchSegment[];
   summary: OptimizeSummary;
   rawPointCount: number;
+};
+
+type DeliveryLogStatus = 'success' | 'failed';
+
+type DeliveryLogRow = {
+  time: string;
+  strategyId: string;
+  target: string;
+  segments: number;
+  method: string;
+  status: DeliveryLogStatus;
+  duration: string;
+  errorText: string;
 };
 
 interface AIDispatchOptimizerProps {
@@ -589,6 +622,49 @@ function compressDispatchSegments(steps: OptimizeStep[], dtMinutes: number): Dis
   return segments.map(({ socSum: _socSum, socCount: _socCount, ...segment }) => segment);
 }
 
+function expandSegmentsForPreview(segments: DispatchSegment[], count = 20, stepMinutes = 15): DispatchSegment[] {
+  if (!segments.length) return [];
+  return Array.from({ length: count }, (_, index) => {
+    const minute = index * stepMinutes;
+    const source = segments[index % segments.length];
+    const powerJitter = source.type === 'Standby' ? 0 : ((index % 5) - 2) * 10;
+    const powerKW = source.type === 'Standby' ? 0 : Math.max(20, source.powerKW + powerJitter);
+    const socBase = source.avgSocPct ?? 70;
+    return {
+      start: hhmmFromMinutes(minute),
+      end: hhmmFromMinutes(minute + stepMinutes),
+      type: source.type,
+      powerKW,
+      avgSocPct: round2(clamp(socBase + Math.sin(index / 4) * 6, 10, 100)),
+      points: source.points,
+    };
+  });
+}
+
+function paddedNumberDomain<T extends Record<string, unknown>>(
+  rows: T[],
+  keys: string[],
+  fallback: [number, number],
+  includeZero = false,
+): [number, number] {
+  const values = rows.flatMap((row) => keys.map((key) => row[key])).filter((value): value is number => Number.isFinite(value));
+  if (!values.length) return fallback;
+
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (includeZero) {
+    min = Math.min(min, 0);
+    max = Math.max(max, 0);
+  }
+  if (min === max) {
+    const pad = Math.max(Math.abs(max) * 0.12, 1);
+    return [round2(min - pad), round2(max + pad)];
+  }
+
+  const pad = Math.max((max - min) * 0.08, 1);
+  return [round2(min - pad), round2(max + pad)];
+}
+
 function templateLabel(template: PriceTemplate, lang: Language) {
   const key = lang === 'zh' ? 'zh' : 'en';
   const labels = {
@@ -669,6 +745,12 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
     card: isDark ? '#1e2128' : '#ffffff',
     tooltip: isDark ? '#252a32' : '#ffffff',
   }), [isDark]);
+  const chartYAxisTick = useMemo<React.CSSProperties>(() => ({
+    fill: chartColors.text,
+    fontSize: 11,
+    fontWeight: 700,
+    fontVariantNumeric: 'tabular-nums',
+  }), [chartColors.text]);
 
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
   const [priceTemplate, setPriceTemplate] = useState<PriceTemplate>('market');
@@ -715,6 +797,24 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
   const [showPriceSelectionModal, setShowPriceSelectionModal] = useState(false);
   const [selectedPriceSchemeId, setSelectedPriceSchemeId] = useState('SCH-001');
   const [modalPriceTab, setModalPriceTab] = useState<'user' | 'api'>('user');
+  const [selectedDeliveryLog, setSelectedDeliveryLog] = useState<DeliveryLogRow | null>(null);
+  const [hiddenDashboardSeries, setHiddenDashboardSeries] = useState<Record<DashboardForecastSeriesKey, boolean>>({
+    loadKW: false,
+    pvKW: false,
+    batteryPowerKW: false,
+    gridImportPrice: false,
+  });
+  const [hiddenPriceTrendSeries, setHiddenPriceTrendSeries] = useState<Record<PriceTrendSeriesKey, boolean>>({
+    marketPriceEurMWh: false,
+    userPriceEurMWh: false,
+    demandChargeEurMWh: false,
+  });
+  const [hiddenSocSeries, setHiddenSocSeries] = useState<Record<SocBoundsSeriesKey, boolean>>({
+    socPct: false,
+    socMinLine: false,
+    socMaxLine: false,
+    socEndLine: false,
+  });
   const optimizerStatus = controlledOptimizerStatus ?? internalOptimizerStatus;
   const setOptimizerStatusValue = (status: OptimizerSwitchStatus) => {
     setInternalOptimizerStatus(status);
@@ -820,21 +920,84 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
 
     return rows.map((row, index) => ({
       ...row,
+      gridImportPrice: round2(row.buyPrice ?? 0),
       userPriceEurMWh: round2((row.buyPrice ?? 0) * 100),
       marketPriceEurMWh: round2((row.sellPrice ?? row.buyPrice ?? 0) * 100),
+      demandChargeEurMWh: round2(18 + Math.max(0, row.gridImportKW ?? row.gridPowerKW ?? 0) * 0.018 + Math.max(0, row.importOverKW ?? 0) * 0.08),
       socMinLine: socMinPct,
       socMaxLine: socMaxPct,
       socEndLine: socEndPct,
       timeIndex: index,
     }));
   }, [pChMax, pDisMax, predictionRows, result, socEndPct, socMaxPct, socMinPct]);
+  const dashboardForecastSeries = useMemo<DashboardForecastSeries[]>(() => ([
+    { key: 'pvKW', label: tx('光伏', 'PV'), color: '#f59e0b', axis: 'power' },
+    { key: 'loadKW', label: tx('负荷', 'Load'), color: '#ef4444', axis: 'power' },
+    { key: 'batteryPowerKW', label: tx('储能功率', 'BESS Power'), color: '#3b82f6', axis: 'power' },
+    { key: 'gridImportPrice', label: tx('下网电价', 'Grid Import Price'), color: '#10b981', axis: 'price' },
+  ]), [tx]);
+  const priceTrendSeries = useMemo<ToggleableSeries<PriceTrendSeriesKey>[]>(() => ([
+    { key: 'marketPriceEurMWh', label: tx('市场', 'Market'), color: '#8b5cf6' },
+    { key: 'userPriceEurMWh', label: tx('用户综合', 'User blended'), color: '#ef4444' },
+    { key: 'demandChargeEurMWh', label: tx('容/需量费', 'Capacity/Demand Charge'), color: '#14b8a6' },
+  ]), [tx]);
+  const socBoundsSeries = useMemo<ToggleableSeries<SocBoundsSeriesKey>[]>(() => ([
+    { key: 'socPct', label: 'SOC', color: '#22c55e' },
+    { key: 'socMinLine', label: tx('最小', 'Min'), color: '#60a5fa' },
+    { key: 'socMaxLine', label: tx('最大', 'Max'), color: '#f59e0b' },
+    { key: 'socEndLine', label: tx('期末', 'End'), color: '#a855f7' },
+  ]), [tx]);
+  const toggleDashboardSeries = useCallback((key: DashboardForecastSeriesKey) => {
+    setHiddenDashboardSeries((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }, []);
+  const togglePriceTrendSeries = useCallback((key: PriceTrendSeriesKey) => {
+    setHiddenPriceTrendSeries((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }, []);
+  const toggleSocSeries = useCallback((key: SocBoundsSeriesKey) => {
+    setHiddenSocSeries((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }, []);
+  const visibleDashboardPowerKeys = useMemo(() => dashboardForecastSeries
+    .filter((item) => item.axis === 'power' && !hiddenDashboardSeries[item.key])
+    .map((item) => item.key), [dashboardForecastSeries, hiddenDashboardSeries]);
+  const visibleDashboardPriceKeys = useMemo(() => dashboardForecastSeries
+    .filter((item) => item.axis === 'price' && !hiddenDashboardSeries[item.key])
+    .map((item) => item.key), [dashboardForecastSeries, hiddenDashboardSeries]);
+  const visiblePriceTrendKeys = useMemo(() => priceTrendSeries
+    .filter((item) => !hiddenPriceTrendSeries[item.key])
+    .map((item) => item.key), [hiddenPriceTrendSeries, priceTrendSeries]);
+  const dashboardPowerDomain = useMemo(() => paddedNumberDomain(dashboardRows, visibleDashboardPowerKeys, [-100, 100], true), [dashboardRows, visibleDashboardPowerKeys]);
+  const dashboardPriceDomain = useMemo(() => paddedNumberDomain(dashboardRows, visibleDashboardPriceKeys, [0, 1], false), [dashboardRows, visibleDashboardPriceKeys]);
+  const priceTrendDomain = useMemo(() => paddedNumberDomain(dashboardRows, visiblePriceTrendKeys, [0, 100], false), [dashboardRows, visiblePriceTrendKeys]);
+  const cloudDispatchPowerDomain = useMemo(() => paddedNumberDomain(dashboardRows, ['batteryPowerKW'], [-100, 100], false), [dashboardRows]);
   const dashboardSummary = useMemo(() => {
-    const throughput = result?.summary.totalBatteryThroughputKWh ?? 999.8;
+    const dtHours = dtMinutes / 60;
+    const sourceRows = result?.steps.length ? result.steps : dashboardRows;
+    const chargeKWh = sourceRows.reduce((total, row) => total + (row.batteryPowerKW < 0 ? Math.abs(row.batteryPowerKW) * dtHours : 0), 0);
+    const dischargeKWh = sourceRows.reduce((total, row) => total + (row.batteryPowerKW > 0 ? row.batteryPowerKW * dtHours : 0), 0);
+    const throughput = result?.summary.totalBatteryThroughputKWh ?? chargeKWh + dischargeKWh;
     return {
       throughputKWh: round2(throughput),
+      chargeKWh: round2(chargeKWh),
+      dischargeKWh: round2(dischargeKWh),
       cycles: round2(throughput / Math.max(capKWh * 2, 1)),
     };
-  }, [capKWh, result]);
+  }, [capKWh, dashboardRows, dtMinutes, result]);
+  const currentEdgeSegments = useMemo<DispatchSegment[]>(() => ([
+    { start: '00:00', end: '06:00', type: 'Charge', powerKW: 120, avgSocPct: 68.2, points: 24 },
+    { start: '06:00', end: '12:00', type: 'Standby', powerKW: 0, avgSocPct: 82.5, points: 24 },
+    { start: '12:00', end: '16:00', type: 'Discharge', powerKW: 180, avgSocPct: 71.4, points: 16 },
+    { start: '16:00', end: '22:00', type: 'Charge', powerKW: 160, avgSocPct: 76.8, points: 24 },
+  ]), []);
+  const currentEdgePreviewSegments = useMemo(() => expandSegmentsForPreview(currentEdgeSegments, 20), [currentEdgeSegments]);
 
   const priceModelSnapshot = useMemo(() => ({
     phase: 'phase_2_embedded_price_model',
@@ -872,6 +1035,7 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
       rawPointCount: result.steps.length,
     };
   }, [activeStationId, activeStationName, dtMinutes, granularity, marketSource, objective, priceModelSnapshot, result, strategyMode]);
+  const cloudPreviewSegments = useMemo(() => expandSegmentsForPreview(dispatchDraft?.segments ?? [], 20), [dispatchDraft]);
 
   const deployStatusLabel = useMemo(() => {
     if (!dispatchDraft) return copy.status.pending;
@@ -1062,23 +1226,36 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
             <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-100 dark:bg-apple-surface-dark dark:ring-white/5">
               <DashboardChartHeader
                 title={tx('调度功率预测', 'Dispatch Power Forecast')}
-                subtitle={tx('光伏、负荷与储能功率统一趋势，储能正值为放电，负值为充电。', 'Unified trend for PV, load and BESS power. Positive BESS values discharge, negative values charge.')}
-                items={[
-                  { color: '#f59e0b', label: tx('光伏', 'PV') },
-                  { color: '#ef4444', label: tx('负荷', 'Load') },
-                  { color: '#3b82f6', label: tx('储能功率', 'BESS Power') },
-                ]}
+                subtitle={tx('光伏、负荷与储能功率统一趋势。', 'Unified trend for PV, load and BESS power.')}
+                items={dashboardForecastSeries}
+                hidden={hiddenDashboardSeries}
+                onToggle={toggleDashboardSeries}
               />
-              <div className="mt-4 h-[360px]">
+              <div className="relative mt-4 h-[360px]">
+                <span className="pointer-events-none absolute left-11 top-0 z-10 text-[11px] font-black text-slate-500 dark:text-slate-400">{tx('功率（kW）', 'Power（kW）')}</span>
+                <span className="pointer-events-none absolute right-11 top-0 z-10 text-[11px] font-black text-slate-500 dark:text-slate-400">{tx('价格（ EUR / MWh ）', 'Price（ EUR / MWh ）')}</span>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={dashboardRows} margin={{ top: 10, right: 20, left: 0, bottom: 4 }}>
+                  <ComposedChart data={dashboardRows} margin={{ top: 26, right: 22, left: -4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                     <XAxis dataKey="time" tick={{ fontSize: 11, fill: chartColors.text }} interval={11} stroke={chartColors.text} />
-                    <YAxis tick={{ fill: chartColors.text }} stroke={chartColors.text} />
-                    <Tooltip contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }} />
-                    <Area type="monotone" dataKey="loadKW" name={copy.chart.loadForecast} stroke="#ef4444" fill="#ef4444" fillOpacity={0.08} strokeWidth={2} />
-                    <Area type="monotone" dataKey="pvKW" name={copy.chart.pvForecast} stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} strokeWidth={2} />
-                    <Area type="monotone" dataKey="batteryPowerKW" name={tx('储能功率', 'BESS Power')} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2.5} />
+                    {visibleDashboardPowerKeys.length > 0 && (
+                      <YAxis yAxisId="power" width={62} tickMargin={6} domain={dashboardPowerDomain} tick={chartYAxisTick} stroke={chartColors.text} />
+                    )}
+                    {visibleDashboardPriceKeys.length > 0 && (
+                      <YAxis yAxisId="price" width={60} tickMargin={6} orientation="right" domain={dashboardPriceDomain} tick={chartYAxisTick} stroke={chartColors.text} />
+                    )}
+                    <Tooltip
+                      contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }}
+                      formatter={(value: number | string, name: string) => {
+                        const seriesItem = dashboardForecastSeries.find((item) => item.label === name);
+                        const numeric = typeof value === 'number' ? fmt(value, seriesItem?.axis === 'price' ? 3 : 1) : value;
+                        return [`${numeric}${seriesItem?.axis === 'price' ? '' : ' kW'}`, name];
+                      }}
+                    />
+                    {!hiddenDashboardSeries.loadKW && <Area yAxisId="power" type="monotone" dataKey="loadKW" name={copy.chart.loadForecast} stroke="#ef4444" fill="#ef4444" fillOpacity={0.035} strokeWidth={2} />}
+                    {!hiddenDashboardSeries.pvKW && <Area yAxisId="power" type="monotone" dataKey="pvKW" name={copy.chart.pvForecast} stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} strokeWidth={2} />}
+                    {!hiddenDashboardSeries.batteryPowerKW && <Area yAxisId="power" type="monotone" dataKey="batteryPowerKW" name={tx('储能功率', 'BESS Power')} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2.5} />}
+                    {!hiddenDashboardSeries.gridImportPrice && <Line yAxisId="price" type="monotone" dataKey="gridImportPrice" name={tx('下网电价', 'Grid Import Price')} stroke="#10b981" dot={false} strokeWidth={2.5} />}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -1087,36 +1264,41 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <DashboardSmallChart
                 title={tx('电价趋势', 'Price Trend')}
-                subtitle={tx('市场电价与用户综合电价。', 'Market price and user blended price.')}
-                items={[{ color: '#8b5cf6', label: tx('市场', 'Market') }, { color: '#ef4444', label: tx('用户综合', 'User blended') }]}
+                subtitle=""
+                items={priceTrendSeries}
+                hidden={hiddenPriceTrendSeries}
+                onToggle={togglePriceTrendSeries}
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={dashboardRows} margin={{ top: 8, right: 14, left: -12, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                     <XAxis dataKey="time" tick={{ fontSize: 10, fill: chartColors.text }} interval={15} stroke={chartColors.text} />
-                    <YAxis tick={{ fill: chartColors.text, fontSize: 10 }} stroke={chartColors.text} />
+                    <YAxis domain={priceTrendDomain} tick={chartYAxisTick} stroke={chartColors.text} />
                     <Tooltip contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }} />
-                    <Line type="monotone" dataKey="marketPriceEurMWh" name={tx('市场电价', 'Market Price')} stroke="#8b5cf6" dot={false} strokeWidth={2.5} />
-                    <Line type="monotone" dataKey="userPriceEurMWh" name={tx('用户综合电价', 'User Blended Price')} stroke="#ef4444" dot={false} strokeWidth={2.5} />
+                    {!hiddenPriceTrendSeries.marketPriceEurMWh && <Line type="monotone" dataKey="marketPriceEurMWh" name={tx('市场电价', 'Market Price')} stroke="#8b5cf6" dot={false} strokeWidth={2.5} />}
+                    {!hiddenPriceTrendSeries.userPriceEurMWh && <Line type="monotone" dataKey="userPriceEurMWh" name={tx('用户综合电价', 'User Blended Price')} stroke="#ef4444" dot={false} strokeWidth={2.5} />}
+                    {!hiddenPriceTrendSeries.demandChargeEurMWh && <Line type="monotone" dataKey="demandChargeEurMWh" name={tx('容/需量费', 'Capacity/Demand Charge')} stroke="#14b8a6" dot={false} strokeWidth={2.5} />}
                   </ComposedChart>
                 </ResponsiveContainer>
               </DashboardSmallChart>
 
               <DashboardSmallChart
-                title={tx('SOC 运行边界', 'SOC Operating Bounds')}
-                subtitle={tx('SOC 与最小/最大/期末下限。', 'SOC with min/max/end lower bounds.')}
-                items={[{ color: '#22c55e', label: 'SOC' }, { color: '#60a5fa', label: tx('最小', 'Min') }, { color: '#f59e0b', label: tx('最大', 'Max') }, { color: '#a855f7', label: tx('期末', 'End') }]}
+                title={tx('SOC 预测', 'SOC Forecast')}
+                subtitle=""
+                items={socBoundsSeries}
+                hidden={hiddenSocSeries}
+                onToggle={toggleSocSeries}
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={dashboardRows} margin={{ top: 8, right: 14, left: -12, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                     <XAxis dataKey="time" tick={{ fontSize: 10, fill: chartColors.text }} interval={15} stroke={chartColors.text} />
-                    <YAxis domain={[0, 100]} tick={{ fill: chartColors.text, fontSize: 10 }} stroke={chartColors.text} />
+                    <YAxis domain={[0, 100]} tick={chartYAxisTick} stroke={chartColors.text} />
                     <Tooltip contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }} />
-                    <Line type="monotone" dataKey="socPct" name="SOC" stroke="#22c55e" dot={false} strokeWidth={3} />
-                    <Line type="monotone" dataKey="socMinLine" name={tx('SOC最小', 'SOC Min')} stroke="#60a5fa" dot={false} strokeDasharray="6 6" />
-                    <Line type="monotone" dataKey="socMaxLine" name={tx('SOC最大', 'SOC Max')} stroke="#f59e0b" dot={false} strokeDasharray="6 6" />
-                    <Line type="monotone" dataKey="socEndLine" name={tx('末期下限', 'End Min')} stroke="#a855f7" dot={false} strokeDasharray="6 6" />
+                    {!hiddenSocSeries.socPct && <Line type="monotone" dataKey="socPct" name="SOC" stroke="#22c55e" dot={false} strokeWidth={3} />}
+                    {!hiddenSocSeries.socMinLine && <Line type="monotone" dataKey="socMinLine" name={tx('SOC最小', 'SOC Min')} stroke="#60a5fa" dot={false} strokeDasharray="6 6" />}
+                    {!hiddenSocSeries.socMaxLine && <Line type="monotone" dataKey="socMaxLine" name={tx('SOC最大', 'SOC Max')} stroke="#f59e0b" dot={false} strokeDasharray="6 6" />}
+                    {!hiddenSocSeries.socEndLine && <Line type="monotone" dataKey="socEndLine" name={tx('末期下限', 'End Min')} stroke="#a855f7" dot={false} strokeDasharray="6 6" />}
                   </ComposedChart>
                 </ResponsiveContainer>
               </DashboardSmallChart>
@@ -1142,7 +1324,8 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
             <div className="text-xl font-black text-slate-900 dark:text-white">{selectedPriceScheme?.name ?? '-'}</div>
             <div className="mt-2 font-mono text-sm font-black text-slate-400">{selectedPriceScheme?.id ?? 'SCH-001'}</div>
             </div>
-            <DashboardMetricCard tone="blue" label={tx('预测BESS充放电', 'Forecast BESS Throughput')} value={dashboardSummary.throughputKWh} suffix="kWh" />
+            <DashboardMetricCard tone="blue" label={tx('预测BESS充电', 'Forecast BESS Charge')} value={dashboardSummary.chargeKWh} suffix="kWh" />
+            <DashboardMetricCard tone="rose" label={tx('预测BESS放电', 'Forecast BESS Discharge')} value={dashboardSummary.dischargeKWh} suffix="kWh" />
             <DashboardMetricCard tone="green" label={tx('循环次数', 'Cycle Count')} value={dashboardSummary.cycles} suffix={tx('次', 'cycles')} />
           </div>
         </div>
@@ -1154,39 +1337,74 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="ems-card overflow-hidden">
-          <CardHeader title={copy.currentEdge} subtitle={copy.currentEdgeHint} />
-          <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
-            <StatusPill label={copy.labels.strategy} value={tx('收益最大化', 'Profit Maximization')} />
-            <StatusPill label={copy.labels.mode} value={tx('自动', 'Auto')} />
-            <StatusPill label={copy.labels.lastSync} value="14:30:00" />
-          </div>
-          <MiniDispatchTable
-            rows={[
-              ['00:00', '06:00', 'Charge', '120 kW'],
-              ['06:00', '12:00', 'Standby', '0 kW'],
-              ['12:00', '16:00', 'Discharge', '180 kW'],
-              ['16:00', '22:00', 'Charge', '160 kW'],
-            ]}
+          <CardHeader
+            title={copy.currentEdge}
+            subtitle={copy.currentEdgeHint}
+            right={(
+              <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-apple-border-dark dark:bg-apple-surface-dark dark:text-slate-300 dark:hover:bg-apple-surface-secondary-dark dark:hover:text-white">
+                <RefreshCw size={16} />
+                {tx('同步最新', 'Fetch Latest')}
+              </button>
+            )}
           />
+          <div className="space-y-4 p-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <StrategyInfoCard label={copy.labels.mode} value={tx('自动', 'Auto')} />
+              <StrategyInfoCard label={copy.labels.lastSync} value="2026-06-27 16:37:49" />
+            </div>
+            <div className="h-[120px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={dashboardRows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="time" hide />
+                  <YAxis hide domain={cloudDispatchPowerDomain} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }}
+                    labelFormatter={(label) => `${tx('时间', 'Time')}: ${label}`}
+                    formatter={(value: number | string) => {
+                      const numeric = typeof value === 'number' ? fmt(value) : value;
+                      return [`${numeric} kW`, tx('功率', 'Power')];
+                    }}
+                  />
+                  <Area type="monotone" dataKey="batteryPowerKW" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.18} strokeWidth={2.25} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <DispatchSegmentTable segments={currentEdgePreviewSegments} compact />
+          </div>
         </div>
 
         <div className="ems-card overflow-hidden">
           <CardHeader
             title={copy.cloudOptimized}
             subtitle={copy.cloudOptimizedHint}
-            right={<StatusPill label={copy.labels.status} value={dispatchDraft ? copy.status.ready : copy.status.pending} />}
           />
           {result ? (
-            <>
-              <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
-                <Metric label={copy.metrics.saving} value={result.summary.saving} suffix={copy.units.currency} />
-                <Metric label={copy.metrics.optimizedCost} value={result.summary.optimizedCost} suffix={copy.units.currency} />
-                <Metric label={copy.metrics.endSoc} value={result.summary.endSocPct} suffix="%" />
+            <div className="space-y-4 p-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <StrategyInfoCard label={copy.labels.strategyDate} value="2026/06/01" />
+                <StrategyInfoCard label={tx('最近下发', 'Last Dispatch')} value="2026-06-27 06:15" />
+              </div>
+              <div className="h-[120px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dashboardRows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                    <XAxis dataKey="time" hide />
+                    <YAxis hide domain={cloudDispatchPowerDomain} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }}
+                      labelFormatter={(label) => `${tx('时间', 'Time')}: ${label}`}
+                      formatter={(value: number | string) => {
+                        const numeric = typeof value === 'number' ? fmt(value) : value;
+                        return [`${numeric} kW`, tx('功率', 'Power')];
+                      }}
+                    />
+                    <Area type="monotone" dataKey="batteryPowerKW" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.18} strokeWidth={2.25} />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
               {dispatchDraft && (
-                <DispatchSegmentTable segments={dispatchDraft.segments.slice(0, 6)} compact />
+                <DispatchSegmentTable segments={cloudPreviewSegments} compact />
               )}
-            </>
+            </div>
           ) : (
             <div className="p-4">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-300">
@@ -1443,7 +1661,7 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
               <AreaChart data={predictionRows} margin={{ top: 10, right: 24, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                 <XAxis dataKey="time" tick={{ fontSize: 11, fill: chartColors.text }} interval={7} stroke={chartColors.text} />
-                <YAxis tick={{ fill: chartColors.text }} stroke={chartColors.text} />
+                <YAxis tick={chartYAxisTick} stroke={chartColors.text} />
                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }} />
                 <Legend />
                 <Area type="monotone" dataKey="pvForecast" name={copy.chart.pvForecast} stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.14} strokeWidth={2} />
@@ -1503,8 +1721,8 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
                 <ComposedChart data={simRows} margin={{ top: 16, right: 24, left: 0, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                   <XAxis dataKey="time" tick={{ fontSize: 11, fill: chartColors.text }} interval={7} stroke={chartColors.text} />
-                  <YAxis yAxisId="left" tick={{ fill: chartColors.text }} stroke={chartColors.text} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fill: chartColors.text }} stroke={chartColors.text} />
+                  <YAxis yAxisId="left" tick={chartYAxisTick} stroke={chartColors.text} />
+                  <YAxis yAxisId="right" orientation="right" tick={chartYAxisTick} stroke={chartColors.text} />
                   <Tooltip contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }} />
                   <Legend />
                   <Area yAxisId="left" type="monotone" dataKey="pvKW" name="PV" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.14} />
@@ -1567,14 +1785,14 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
   );
 
   const renderDispatchLogs = () => {
-    const rows = [
+    const rows: DeliveryLogRow[] = [
       {
         time: '14:30:12',
         strategyId: dispatchDraft ? `CD-${dispatchDraft.strategyDate.replaceAll('-', '')}-001` : 'CD-20260627-001',
         target: `${activeStationId} / Edge EMS`,
         segments: dispatchDraft?.segments.length ?? 0,
         method: dispatchMethod === 'draft_only' ? tx('生成草稿不下发', 'Draft only') : tx('自动下发', 'Auto dispatch'),
-        status: deployStatus === 'deployed' ? tx('成功', 'Success') : deployStatus === 'confirm' ? tx('待确认', 'Confirming') : tx('待下发', 'Pending'),
+        status: 'success',
         duration: deployStatus === 'deployed' ? '1.8s' : '-',
         errorText: '-',
       },
@@ -1584,34 +1802,65 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
         target: `${activeStationId} / Edge EMS`,
         segments: 12,
         method: tx('自动下发', 'Auto dispatch'),
-        status: tx('成功', 'Success'),
+        status: 'success',
         duration: '2.1s',
         errorText: '-',
       },
       {
         time: '12:15:40',
-        strategyId: 'CD-20260627-ROLLBACK',
+        strategyId: 'CD-20260627-FAILED',
         target: `${activeStationId} / Edge EMS`,
         segments: 8,
         method: tx('自动下发', 'Auto dispatch'),
-        status: tx('重试成功', 'Retry success'),
+        status: 'failed',
         duration: '4.6s',
-        errorText: tx('EMS 短暂繁忙，已重试', 'EMS busy temporarily, retried'),
+        errorText: tx('EMS 响应超时', 'EMS response timeout'),
       },
     ];
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <StatusPill label={tx('当前下发状态', 'Current Delivery Status')} value={deployStatusLabel} />
-          <StatusPill label={tx('边缘 EMS', 'Edge EMS')} value={`${activeStationId}-EMS`} />
-          <StatusPill label={tx('最近下发', 'Latest Delivery')} value={deployStatus === 'deployed' ? '14:30:12' : tx('待下发', 'Pending')} />
-        </div>
-        <LogTable
+      <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-100 dark:bg-apple-surface-dark dark:ring-white/5">
+        <CardHeader
           title={tx('调度下发日志', 'Dispatch Delivery Logs')}
           subtitle={tx('记录每一次将策略下发给边缘 EMS 的执行结果。', 'Execution results for every strategy delivery to edge EMS.')}
-          headers={[tx('时间', 'Time'), tx('策略 ID', 'Strategy ID'), tx('目标 EMS', 'Target EMS'), tx('时段数', 'Segments'), tx('下发方式', 'Method'), tx('状态', 'Status'), tx('耗时', 'Duration'), tx('错误信息', 'Error')]}
-          rows={rows.map((row) => [row.time, row.strategyId, row.target, String(row.segments), row.method, row.status, row.duration, row.errorText])}
         />
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] text-sm">
+            <thead className="bg-slate-50 text-xs font-black uppercase tracking-wider text-slate-400 dark:bg-apple-surface-secondary-dark/45">
+              <tr>
+                {[tx('时间', 'Time'), tx('策略 ID', 'Strategy ID'), tx('目标 EMS', 'Target EMS'), tx('时段数', 'Segments'), tx('下发方式', 'Method'), tx('状态', 'Status'), tx('耗时', 'Duration'), tx('错误信息', 'Error'), tx('操作', 'Action')].map((header) => (
+                  <th key={header} className="border-b border-slate-100 px-4 py-3 text-left dark:border-apple-border-dark">{header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const success = row.status === 'success';
+                return (
+                  <tr key={row.strategyId} className="odd:bg-white even:bg-slate-50/60 dark:odd:bg-apple-surface-dark dark:even:bg-apple-surface-secondary-dark/30">
+                    <td className="border-b border-slate-100 px-4 py-3 font-mono font-bold text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{row.time}</td>
+                    <td className="border-b border-slate-100 px-4 py-3 font-mono font-bold text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{row.strategyId}</td>
+                    <td className="border-b border-slate-100 px-4 py-3 font-bold text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{row.target}</td>
+                    <td className="border-b border-slate-100 px-4 py-3 font-bold text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{row.segments}</td>
+                    <td className="border-b border-slate-100 px-4 py-3 font-bold text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{row.method}</td>
+                    <td className="border-b border-slate-100 px-4 py-3 dark:border-apple-border-dark">
+                      <span className={`inline-flex rounded-lg border px-2 py-1 text-[11px] font-black ${success ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-200'}`}>
+                        {success ? tx('成功', 'Success') : tx('失败', 'Failed')}
+                      </span>
+                    </td>
+                    <td className="border-b border-slate-100 px-4 py-3 font-mono font-bold text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{row.duration}</td>
+                    <td className="border-b border-slate-100 px-4 py-3 font-bold text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{row.errorText}</td>
+                    <td className="border-b border-slate-100 px-4 py-3 dark:border-apple-border-dark">
+                      <button type="button" onClick={() => setSelectedDeliveryLog(row)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-200">
+                        <Eye size={14} />
+                        {tx('查看详细', 'View Details')}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   };
@@ -2067,6 +2316,52 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
         )}
       </div>
     </div>
+    {selectedDeliveryLog && (
+      <div
+        className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setSelectedDeliveryLog(null)}
+      >
+        <div
+          className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 dark:bg-apple-surface-dark dark:ring-white/10"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 dark:border-apple-border-dark">
+            <div>
+              <h3 className="text-lg font-black text-slate-950 dark:text-white">{tx('调度日志详情', 'Dispatch Log Details')}</h3>
+              <p className="mt-1 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">{selectedDeliveryLog.strategyId}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedDeliveryLog(null)}
+              className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-300"
+              aria-label={tx('关闭', 'Close')}
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="space-y-4 overflow-auto p-5">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+              <StatusPill label={tx('下发时间', 'Dispatch Time')} value={`2026-06-27 ${selectedDeliveryLog.time}`} />
+              <StatusPill label={tx('目标 EMS', 'Target EMS')} value={selectedDeliveryLog.target} />
+              <StatusPill label={tx('状态', 'Status')} value={selectedDeliveryLog.status === 'success' ? tx('成功', 'Success') : tx('失败', 'Failed')} />
+              <StatusPill label={tx('耗时', 'Duration')} value={selectedDeliveryLog.duration} />
+              <StatusPill label={tx('下发方式', 'Method')} value={selectedDeliveryLog.method} />
+              <StatusPill label={tx('策略时段', 'Strategy Segments')} value={String(selectedDeliveryLog.segments)} />
+              <StatusPill label={tx('策略日期', 'Strategy Date')} value="2026/06/01" />
+              <StatusPill label={tx('异常信息', 'Error')} value={selectedDeliveryLog.errorText} />
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-apple-border-dark">
+              <div className="border-b border-slate-100 px-4 py-3 text-sm font-black text-slate-900 dark:border-apple-border-dark dark:text-white">{tx('策略明细', 'Strategy Details')}</div>
+              <DispatchSegmentTable segments={cloudPreviewSegments.slice(0, 20)} compact />
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     <PriceSelectionModal
       lang={lang}
       isOpen={showPriceSelectionModal}
@@ -2228,29 +2523,76 @@ function DashboardLegend({ title, items }: { title: string; items: Array<{ color
   );
 }
 
-function DashboardChartHeader({ title, subtitle, items }: { title: string; subtitle: string; items: Array<{ color: string; label: string }> }) {
+function DashboardChartHeader<Key extends string>({
+  title,
+  subtitle,
+  items,
+  hidden,
+  onToggle,
+}: {
+  title: string;
+  subtitle: string;
+  items: ToggleableSeries<Key>[];
+  hidden?: Partial<Record<Key, boolean>>;
+  onToggle?: (key: Key) => void;
+}) {
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
       <div>
         <h3 className="text-lg font-black text-slate-900 dark:text-white">{title}</h3>
-        <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">{subtitle}</p>
+        {subtitle && <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">{subtitle}</p>}
       </div>
       <div className="flex flex-wrap gap-2">
-        {items.map((item) => (
-          <span key={item.label} className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600 dark:bg-white/5 dark:text-slate-300">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
-            {item.label}
-          </span>
-        ))}
+        {items.map((item) => {
+          const isHidden = hidden?.[item.key] ?? false;
+          const className = `inline-flex min-h-7 items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-black transition-all ${
+            isHidden
+              ? 'bg-slate-100 text-slate-400 line-through dark:bg-white/5 dark:text-slate-500'
+              : 'bg-slate-50 text-slate-600 dark:bg-white/5 dark:text-slate-300'
+          }`;
+          if (!onToggle) {
+            return (
+              <span key={item.key} className={className}>
+                <span className={`h-2 w-5 rounded-full ${isHidden ? 'opacity-35' : 'opacity-100'}`} style={{ backgroundColor: item.color }} />
+                {item.label}
+              </span>
+            );
+          }
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => onToggle(item.key)}
+              className={`${className} hover:bg-white hover:text-slate-800 hover:shadow-sm hover:ring-1 hover:ring-slate-200 dark:hover:bg-white/10 dark:hover:text-slate-100 dark:hover:ring-white/10`}
+            >
+              <span className={`h-2 w-5 rounded-full ${isHidden ? 'opacity-35' : 'opacity-100'}`} style={{ backgroundColor: item.color }} />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function DashboardSmallChart({ title, subtitle, items, children }: { title: string; subtitle: string; items: Array<{ color: string; label: string }>; children: React.ReactNode }) {
+function DashboardSmallChart<Key extends string>({
+  title,
+  subtitle,
+  items,
+  hidden,
+  onToggle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  items: ToggleableSeries<Key>[];
+  hidden?: Partial<Record<Key, boolean>>;
+  onToggle?: (key: Key) => void;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-100 dark:bg-apple-surface-dark dark:ring-white/5">
-      <DashboardChartHeader title={title} subtitle={subtitle} items={items} />
+      <DashboardChartHeader title={title} subtitle={subtitle} items={items} hidden={hidden} onToggle={onToggle} />
       <div className="mt-4 h-[250px]">{children}</div>
     </div>
   );
@@ -2349,6 +2691,15 @@ function CardHeader({ title, subtitle, right }: { title: string; subtitle: strin
 }
 
 function StatusPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark">
+      <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">{label}</div>
+      <div className="mt-1 truncate text-sm font-black text-slate-900 dark:text-white">{value}</div>
+    </div>
+  );
+}
+
+function StrategyInfoCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark">
       <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">{label}</div>
@@ -2752,25 +3103,60 @@ function EmptyState({ title, description, actionLabel, onAction }: { title: stri
   );
 }
 
-function MiniDispatchTable({ rows }: { rows: string[][] }) {
-  return (
-    <div className="max-h-[220px] overflow-auto border-t border-slate-100 dark:border-apple-border-dark">
-      <table className="w-full text-xs">
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.join('-')} className="odd:bg-slate-50/70 dark:odd:bg-apple-surface-secondary-dark/30">
-              {row.map((cell, index) => (
-                <td key={cell} className={`border-b border-slate-100 px-3 py-2 dark:border-apple-border-dark ${index === 3 ? 'text-right font-mono' : index < 2 ? 'font-mono' : ''}`}>{cell}</td>
+function DispatchSegmentTable({ segments, compact = false }: { segments: DispatchSegment[]; compact?: boolean }) {
+  if (compact) {
+    const maxPower = Math.max(...segments.map((segment) => segment.powerKW), 1);
+    return (
+      <div className="overflow-hidden rounded-xl border border-slate-100 bg-white dark:border-apple-border-dark dark:bg-apple-surface-dark">
+        <table className="w-full table-fixed text-xs">
+          <colgroup>
+            <col className="w-[15%]" />
+            <col className="w-[15%]" />
+            <col className="w-[18%]" />
+            <col className="w-[52%]" />
+          </colgroup>
+          <thead className="bg-white text-slate-500 dark:bg-apple-surface-dark dark:text-slate-400">
+            <tr>
+              {['START', 'END', 'TYPE', 'POWER'].map((head) => (
+                <th key={head} className="border-b border-slate-200 px-3 py-3 text-left text-[10px] font-black uppercase tracking-wider dark:border-apple-border-dark">{head}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+          </thead>
+          <tbody>
+            {segments.map((segment, index) => {
+              const isCharge = segment.type === 'Charge';
+              const isDischarge = segment.type === 'Discharge';
+              const tone = isCharge
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200'
+                : isDischarge
+                  ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-200'
+                  : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:text-slate-300';
+              const barColor = isCharge ? 'bg-emerald-400' : isDischarge ? 'bg-blue-600' : 'bg-slate-300';
+              const barWidth = `${Math.max(0, Math.min(100, (segment.powerKW / maxPower) * 100))}%`;
+              return (
+                <tr key={`${segment.start}-${segment.end}-${index}`} className="odd:bg-slate-50/70 even:bg-white dark:odd:bg-apple-surface-secondary-dark/30 dark:even:bg-apple-surface-dark">
+                  <td className="border-b border-slate-100 px-3 py-3 font-mono text-sm font-black text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{segment.start}</td>
+                  <td className="border-b border-slate-100 px-3 py-3 font-mono text-sm font-black text-slate-700 dark:border-apple-border-dark dark:text-slate-200">{segment.end}</td>
+                  <td className="border-b border-slate-100 px-3 py-3 dark:border-apple-border-dark">
+                    <span className={`inline-flex min-w-[74px] justify-center rounded-lg border px-2 py-1 text-[11px] font-black ${tone}`}>{segment.type}</span>
+                  </td>
+                  <td className="border-b border-slate-100 px-3 py-3 dark:border-apple-border-dark">
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-[76px] text-right font-mono text-sm font-black text-slate-700 dark:text-slate-200">{fmt(segment.powerKW)} kW</span>
+                      <div className="h-2.5 min-w-16 flex-1 overflow-hidden rounded-full bg-transparent">
+                        {segment.powerKW > 0 && <div className={`h-full rounded-full ${barColor}`} style={{ width: barWidth }} />}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
-function DispatchSegmentTable({ segments, compact = false }: { segments: DispatchSegment[]; compact?: boolean }) {
   return (
     <div className="max-h-[420px] overflow-auto">
       <table className="w-full min-w-[650px] text-xs">
