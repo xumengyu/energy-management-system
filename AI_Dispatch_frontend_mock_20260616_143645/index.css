@@ -1,0 +1,274 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: #191c20;
+  color: #e8edf5;
+}
+
+.ems-theme {
+  min-height: 100vh;
+  color: #e8edf5;
+  background:
+    linear-gradient(rgba(181, 206, 79, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, #191c20 0%, #15181e 100%);
+  background-size: 32px 32px, 32px 32px, auto;
+}
+
+.ems-theme ::selection {
+  background: rgba(181, 206, 79, 0.28);
+}
+
+.ems-theme header {
+  background: rgba(25, 28, 32, 0.94) !important;
+  border-color: rgba(148, 163, 184, 0.14) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ems-theme main > section {
+  background: rgba(24, 27, 33, 0.96) !important;
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.ems-theme aside {
+  background: rgba(27, 30, 37, 0.98) !important;
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+.ems-theme .rounded-2xl,
+.ems-theme .rounded-xl {
+  border-radius: 8px !important;
+}
+
+.ems-theme .rounded-lg {
+  border-radius: 7px !important;
+}
+
+.ems-theme [class*="bg-white"],
+.ems-theme [class*="bg-slate-50"] {
+  background-color: rgba(31, 34, 42, 0.96) !important;
+}
+
+.ems-theme [class*="bg-slate-100"] {
+  background-color: rgba(42, 46, 56, 0.92) !important;
+}
+
+.ems-theme [class*="bg-slate-900"] {
+  background-color: #262b34 !important;
+  color: #e8edf5 !important;
+}
+
+.ems-theme [class*="bg-emerald-50"] {
+  background-color: rgba(181, 206, 79, 0.11) !important;
+}
+
+.ems-theme [class*="bg-emerald-600"] {
+  background-color: #b5ce4f !important;
+  color: #171a20 !important;
+}
+
+.ems-theme [class*="bg-indigo-600"] {
+  background-color: #2f67d7 !important;
+}
+
+.ems-theme [class*="bg-blue-50"] {
+  background-color: rgba(59, 130, 246, 0.13) !important;
+}
+
+.ems-theme [class*="bg-amber-50"] {
+  background-color: rgba(245, 158, 11, 0.13) !important;
+}
+
+.ems-theme [class*="bg-rose-50"] {
+  background-color: rgba(244, 63, 94, 0.13) !important;
+}
+
+.ems-theme [class*="border-slate-200"],
+.ems-theme [class*="border-slate-100"] {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+.ems-theme [class*="border-emerald"] {
+  border-color: rgba(181, 206, 79, 0.72) !important;
+}
+
+.ems-theme [class*="border-blue"] {
+  border-color: rgba(59, 130, 246, 0.42) !important;
+}
+
+.ems-theme [class*="border-amber"] {
+  border-color: rgba(245, 158, 11, 0.42) !important;
+}
+
+.ems-theme [class*="border-rose"] {
+  border-color: rgba(244, 63, 94, 0.42) !important;
+}
+
+.ems-theme [class*="text-slate-900"],
+.ems-theme [class*="text-slate-800"],
+.ems-theme [class*="text-slate-700"] {
+  color: #e8edf5 !important;
+}
+
+.ems-theme [class*="text-slate-600"],
+.ems-theme [class*="text-slate-500"],
+.ems-theme [class*="text-slate-400"] {
+  color: #8f99aa !important;
+}
+
+.ems-theme [class*="text-emerald-600"],
+.ems-theme [class*="text-emerald-700"] {
+  color: #b5ce4f !important;
+}
+
+.ems-theme [class*="text-blue-700"] {
+  color: #69a6ff !important;
+}
+
+.ems-theme [class*="text-amber-800"],
+.ems-theme [class*="text-amber-700"] {
+  color: #f4c95d !important;
+}
+
+.ems-theme [class*="text-rose-700"],
+.ems-theme [class*="text-rose-600"] {
+  color: #fb7185 !important;
+}
+
+.ems-theme button,
+.ems-theme input,
+.ems-theme select,
+.ems-theme textarea,
+.ems-theme summary {
+  font-family: inherit;
+}
+
+.ems-theme button {
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: none !important;
+}
+
+.ems-theme button:hover {
+  filter: brightness(1.08);
+}
+
+.ems-theme button:focus-visible,
+.ems-theme input:focus-visible,
+.ems-theme select:focus-visible,
+.ems-theme textarea:focus-visible {
+  outline: 2px solid rgba(181, 206, 79, 0.7);
+  outline-offset: 2px;
+}
+
+.ems-theme input,
+.ems-theme select,
+.ems-theme textarea {
+  background-color: rgba(21, 24, 30, 0.98) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  color: #e8edf5 !important;
+}
+
+.ems-theme input::placeholder,
+.ems-theme textarea::placeholder {
+  color: #697386;
+}
+
+.ems-theme input:disabled,
+.ems-theme select:disabled,
+.ems-theme textarea:disabled {
+  background-color: rgba(33, 37, 46, 0.9) !important;
+  color: #697386 !important;
+}
+
+.ems-theme option {
+  background: #1b1f27;
+  color: #e8edf5;
+}
+
+.ems-theme [role="tab"][aria-selected="true"],
+.ems-theme aside button[class*="border-emerald"] {
+  background-color: rgba(181, 206, 79, 0.12) !important;
+  border-color: #b5ce4f !important;
+  color: #d7ed69 !important;
+}
+
+.ems-theme aside button[class*="border-slate-200"] {
+  background-color: rgba(31, 34, 42, 0.72) !important;
+}
+
+.ems-theme aside button[class*="border-emerald-100"] {
+  background-color: rgba(31, 34, 42, 0.72) !important;
+  border-color: rgba(181, 206, 79, 0.28) !important;
+}
+
+.ems-theme aside button[class*="border-emerald-300"] {
+  background-color: rgba(181, 206, 79, 0.12) !important;
+  border-color: #b5ce4f !important;
+}
+
+.ems-theme thead,
+.ems-theme thead[class*="bg-white"] {
+  background-color: #20242d !important;
+}
+
+.ems-theme tbody tr {
+  color: #d6dbe5;
+}
+
+.ems-theme tbody tr:hover {
+  background-color: rgba(181, 206, 79, 0.055) !important;
+}
+
+.ems-theme table {
+  color: #d8dde7;
+}
+
+.ems-theme pre,
+.ems-theme code {
+  color: #c9d2e2;
+}
+
+.ems-theme details {
+  background-color: rgba(31, 34, 42, 0.96) !important;
+}
+
+.ems-theme .recharts-cartesian-axis-tick-value,
+.ems-theme .recharts-legend-item-text {
+  fill: #8f99aa !important;
+  color: #c9d2e2 !important;
+}
+
+.ems-theme * {
+  scrollbar-color: #3a414d #171a20;
+}
+
+.ems-theme *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.ems-theme *::-webkit-scrollbar-track {
+  background: #171a20;
+}
+
+.ems-theme *::-webkit-scrollbar-thumb {
+  background: #3a414d;
+  border-radius: 999px;
+  border: 2px solid #171a20;
+}
+
+.ems-theme *::-webkit-scrollbar-thumb:hover {
+  background: #596372;
+}

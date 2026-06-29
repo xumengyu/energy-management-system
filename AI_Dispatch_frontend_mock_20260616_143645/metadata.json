@@ -1,0 +1,5 @@
+{
+  "name": "GridSense AI - Microgrid Storage & Scenario Lab",
+  "description": "An advanced microgrid energy storage scheduling system with real-time financial simulation and a Gemini-powered AI scenario visualization tool for editing site images via text prompts.",
+  "requestFramePermissions": []
+}
