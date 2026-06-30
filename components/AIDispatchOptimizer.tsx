@@ -8,6 +8,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -18,6 +19,7 @@ import {
   BatteryCharging,
   ChevronDown,
   CheckCircle2,
+  CloudSun,
   DollarSign,
   Eye,
   Leaf,
@@ -55,7 +57,7 @@ type TabKey = 'dashboard' | 'cloudDispatch' | 'dispatchLogs' | 'solverLogs';
 type DeployStatus = 'idle' | 'confirm' | 'deployed';
 type DispatchAction = 'Charge' | 'Discharge' | 'Standby';
 export type OptimizerSwitchStatus = 'trial' | 'configuring' | 'on' | 'off';
-type ConfigGuideStep = 'source' | 'price' | 'solver' | 'objective' | 'mode';
+type ConfigGuideStep = 'objective' | 'price' | 'solver' | 'review';
 
 type FlowRule = {
   mode: RuleMode;
@@ -105,7 +107,6 @@ type OptimizeResponse = {
 
 type DashboardForecastSeriesKey = 'loadKW' | 'pvKW' | 'batteryPowerKW' | 'gridImportPrice';
 type PriceTrendSeriesKey = 'marketPriceEurMWh' | 'userPriceEurMWh' | 'demandChargeEurMWh';
-type SocBoundsSeriesKey = 'socPct' | 'socMinLine' | 'socMaxLine' | 'socEndLine';
 
 type DashboardForecastSeries = {
   key: DashboardForecastSeriesKey;
@@ -210,7 +211,7 @@ const TAB_ICONS: Record<TabKey, React.ElementType> = {
   solverLogs: Zap,
 };
 
-const CONFIG_GUIDE_STEPS: ConfigGuideStep[] = ['source', 'price', 'solver', 'objective', 'mode'];
+const CONFIG_GUIDE_STEPS: ConfigGuideStep[] = ['objective', 'price', 'solver', 'review'];
 
 function rule(
   mode: RuleMode,
@@ -699,7 +700,7 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
 }) => {
   const copy = translations[lang].aiDispatchOptimizer;
   const isDark = theme === 'dark';
-  const tx = useCallback((zh: string, en: string) => (lang === 'zh' ? zh : en), [lang]);
+  const tx = useCallback((zh: string, en: string, fr = en) => (lang === 'zh' ? zh : lang === 'fr' ? fr : en), [lang]);
   const activeStationId = selectedStationData?.id ?? 'ST-002';
   const activeStationName = selectedStationData?.name ?? selectedStation ?? tx('站点 #2 (慕尼黑)', 'Station #2 (Munich)');
   const stationTypeValue = (() => {
@@ -710,33 +711,58 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
     return type;
   })();
   const activeStationMeta = [
-    { label: tx('站点类型', 'Station Type'), value: stationTypeValue },
-    { label: tx('时区', 'Timezone'), value: selectedStationData?.timezone || 'Asia/Shanghai' },
-    { label: tx('位置', 'Location'), value: selectedStationData?.location || '-' },
+    { label: tx('站点类型', 'Station Type', 'Type de station'), value: stationTypeValue },
+    { label: tx('时区', 'Timezone', 'Fuseau horaire'), value: selectedStationData?.timezone || 'Asia/Shanghai' },
+    { label: tx('位置', 'Location', 'Localisation'), value: selectedStationData?.location || '-' },
   ];
+  const weatherSnapshot = useMemo(() => {
+    const location = selectedStationData?.location ?? activeStationName;
+    if (location.includes('Munich') || location.includes('Germany') || location.includes('慕尼黑')) {
+      return {
+        condition: tx('多云间晴', 'Partly Cloudy', 'Partiellement nuageux'),
+        temperature: '18°C',
+        irradiance: '620 W/m²',
+        wind: '9 km/h',
+      };
+    }
+    if (location.includes('Paris') || location.includes('France') || location.includes('巴黎')) {
+      return {
+        condition: tx('晴', 'Sunny', 'Ensoleillé'),
+        temperature: '21°C',
+        irradiance: '710 W/m²',
+        wind: '11 km/h',
+      };
+    }
+    return {
+      condition: tx('晴间多云', 'Mostly Sunny', 'Plutôt ensoleillé'),
+      temperature: '20°C',
+      irradiance: '680 W/m²',
+      wind: '10 km/h',
+    };
+  }, [activeStationName, selectedStationData?.location, tx]);
   const objectiveOptions = useMemo(() => ([
     {
       key: 'storage_profit' as CloudObjective,
       icon: BatteryCharging,
-      title: tx('储能收益最大化', 'Storage Profit'),
-      description: tx('优先捕捉低充高放价差，提升储能单体套利收益。', 'Prioritize charge-discharge spreads to improve battery arbitrage returns.'),
-      metric: tx('价差套利', 'Spread Capture'),
+      title: tx('储能收益最大化', 'Battery Arbitrage Revenue', 'Revenus d’arbitrage batterie'),
+      description: tx('优先捕捉低充高放价差，提升储能单体套利收益。', 'Prioritize charge/discharge price spreads to increase battery arbitrage revenue.', 'Priorise les écarts de prix charge/décharge afin d’augmenter les revenus d’arbitrage batterie.'),
+      metric: tx('价差套利', 'Spread Capture', 'Capture des écarts'),
       accent: 'from-brand-400/20 to-emerald-400/10 text-brand-700 dark:text-brand-200',
     },
     {
       key: 'green' as CloudObjective,
       icon: Leaf,
-      title: tx('绿电消纳最大化', 'Green Energy'),
-      description: tx('优先吸收光伏富余电量，减少弃光并提高绿电利用率。', 'Prioritize PV surplus absorption to reduce curtailment and improve green usage.'),
-      metric: tx('弃光降低', 'Curtailment Down'),
+      title: tx('绿电消纳最大化', 'Renewable Self-Consumption', 'Autoconsommation renouvelable'),
+      description: tx('优先吸收光伏富余电量，减少弃光并提高绿电利用率。', 'Prioritize surplus PV absorption to reduce curtailment and improve renewable energy utilization.', 'Priorise l’absorption du surplus PV afin de réduire l’écrêtement et d’améliorer l’utilisation de l’énergie renouvelable.'),
+      metric: tx('弃光降低', 'Curtailment Reduction', 'Réduction de l’écrêtement'),
       accent: 'from-emerald-400/20 to-lime-300/10 text-emerald-700 dark:text-emerald-200',
     },
     {
       key: 'station_profit' as CloudObjective,
       icon: TrendingUp,
-      title: tx('全站收益最大化', 'Station Profit'),
-      description: tx('综合购售电、需量惩罚与循环成本，优化全站收益。', 'Balance energy trading, demand penalties and cycling cost for station-level profit.'),
-      metric: tx('全站最优', 'Station Optimum'),
+      title: tx('全站收益最大化', 'Station Revenue Optimization', 'Optimisation des revenus de station'),
+      description: tx('综合购售电、需量惩罚与循环成本，优化全站收益。', 'Optimize station-level revenue across energy trading, demand penalties, and cycling costs.', 'Optimise les revenus de la station en tenant compte du trading d’énergie, des pénalités de demande et des coûts de cyclage.'),
+      metric: tx('全站最优', 'Station Optimum', 'Optimum station'),
       accent: 'from-amber-300/25 to-brand-300/10 text-amber-700 dark:text-amber-200',
     },
   ]), [tx]);
@@ -761,8 +787,6 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
   const [negativePolicy, setNegativePolicy] = useState<NegativePolicy>('allow');
   const [objective, setObjective] = useState<CloudObjective>('storage_profit');
   const [strategyMode, setStrategyMode] = useState<CloudStrategyMode>('rolling');
-  const [optimizationPeriod, setOptimizationPeriod] = useState('15分钟');
-  const [rollingWindow, setRollingWindow] = useState('24h');
   const [dispatchMethod, setDispatchMethod] = useState('auto_after_recalc');
   const [dtMinutes, setDtMinutes] = useState(15);
   const [capKWh, setCapKWh] = useState(1000);
@@ -776,7 +800,7 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
   const [exportLimit, setExportLimit] = useState('300');
   const [importLimit, setImportLimit] = useState('800');
   const [demandLimit, setDemandLimit] = useState('700');
-  const [demandPenalty, setDemandPenalty] = useState(200);
+  const demandPenalty = 200;
   const [cycleCost, setCycleCost] = useState(0.02);
   const [curtPenalty, setCurtPenalty] = useState(0.05);
   const [demandSeriesText, setDemandSeriesText] = useState('');
@@ -810,12 +834,11 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
     userPriceEurMWh: false,
     demandChargeEurMWh: false,
   });
-  const [hiddenSocSeries, setHiddenSocSeries] = useState<Record<SocBoundsSeriesKey, boolean>>({
-    socPct: false,
-    socMinLine: false,
-    socMaxLine: false,
-    socEndLine: false,
-  });
+  const [currentDispatchTime, setCurrentDispatchTime] = useState(() => new Date());
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setCurrentDispatchTime(new Date()), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
   const optimizerStatus = controlledOptimizerStatus ?? internalOptimizerStatus;
   const setOptimizerStatusValue = (status: OptimizerSwitchStatus) => {
     setInternalOptimizerStatus(status);
@@ -832,6 +855,14 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
       selectedPriceScheme: schemes.find((scheme) => scheme.id === selectedPriceSchemeId) ?? schemes[0],
     };
   }, [lang, selectedPriceSchemeId]);
+  const priceUnitLabel = tx('EUR / MWh', 'EUR / MWh');
+  const sourceBindings = useMemo(() => ([
+    { key: 'load', label: copy.setupGuide.sourceConfig.load, value: tx('总负荷有功功率', 'Total load active power', 'Puissance active totale de charge') },
+    { key: 'pv', label: copy.setupGuide.sourceConfig.pv, value: tx('光伏总有功功率', 'Total PV active power', 'Puissance active PV totale') },
+    { key: 'bess', label: copy.setupGuide.sourceConfig.bess, value: tx('储能总有功功率', 'Total BESS active power', 'Puissance active BESS totale') },
+    { key: 'grid', label: copy.setupGuide.sourceConfig.grid, value: tx('并网点有功功率', 'Grid interconnection active power', 'Puissance active au point de raccordement') },
+    { key: 'soc', label: copy.setupGuide.sourceConfig.soc, value: tx('储能平均 SOC', 'Average BESS SOC', 'SOC moyen BESS') },
+  ]), [copy.setupGuide.sourceConfig.bess, copy.setupGuide.sourceConfig.grid, copy.setupGuide.sourceConfig.load, copy.setupGuide.sourceConfig.pv, copy.setupGuide.sourceConfig.soc, tx]);
 
   const optimizerStatusText = useMemo(() => {
     if (optimizerStatus === 'trial') return copy.statusControl.trial;
@@ -899,6 +930,12 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
     ...step,
     priceScaled: step.buyPrice * 100,
   })), [result]);
+  const currentDispatchIndex = useMemo(() => {
+    const minutes = currentDispatchTime.getHours() * 60 + currentDispatchTime.getMinutes();
+    const pointCount = Math.max(1, Math.ceil((24 * 60) / Math.max(1, dtMinutes)));
+    return clamp(Math.floor(minutes / Math.max(1, dtMinutes)), 0, pointCount - 1);
+  }, [currentDispatchTime, dtMinutes]);
+  const currentDispatchMarkerTime = useMemo(() => hhmmFromMinutes(currentDispatchIndex * dtMinutes), [currentDispatchIndex, dtMinutes]);
   const dashboardRows = useMemo(() => {
     const rows = result?.steps.length ? result.steps : predictionRows.map((row, index) => {
       const surplus = Math.max(0, row.pvForecast - row.loadForecast);
@@ -921,6 +958,12 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
 
     return rows.map((row, index) => ({
       ...row,
+      pvForecastKW: index < currentDispatchIndex ? row.pvKW : null,
+      loadForecastKW: index < currentDispatchIndex ? row.loadKW : null,
+      batteryForecastKW: index < currentDispatchIndex ? row.batteryPowerKW : null,
+      pvActualKW: index >= currentDispatchIndex ? row.pvKW : null,
+      loadActualKW: index >= currentDispatchIndex ? row.loadKW : null,
+      batteryActualKW: index >= currentDispatchIndex ? row.batteryPowerKW : null,
       gridImportPrice: round2(row.buyPrice ?? 0),
       userPriceEurMWh: round2((row.buyPrice ?? 0) * 100),
       marketPriceEurMWh: round2((row.sellPrice ?? row.buyPrice ?? 0) * 100),
@@ -930,7 +973,7 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
       socEndLine: socEndPct,
       timeIndex: index,
     }));
-  }, [pChMax, pDisMax, predictionRows, result, socEndPct, socMaxPct, socMinPct]);
+  }, [currentDispatchIndex, pChMax, pDisMax, predictionRows, result, socEndPct, socMaxPct, socMinPct]);
   const dashboardForecastSeries = useMemo<DashboardForecastSeries[]>(() => ([
     { key: 'pvKW', label: tx('光伏', 'PV'), color: '#f59e0b', axis: 'power' },
     { key: 'loadKW', label: tx('负荷', 'Load'), color: '#ef4444', axis: 'power' },
@@ -942,12 +985,6 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
     { key: 'userPriceEurMWh', label: tx('用户综合', 'User blended'), color: '#ef4444' },
     { key: 'demandChargeEurMWh', label: tx('容/需量费', 'Capacity/Demand Charge'), color: '#14b8a6' },
   ]), [tx]);
-  const socBoundsSeries = useMemo<ToggleableSeries<SocBoundsSeriesKey>[]>(() => ([
-    { key: 'socPct', label: 'SOC', color: '#22c55e' },
-    { key: 'socMinLine', label: tx('最小', 'Min'), color: '#60a5fa' },
-    { key: 'socMaxLine', label: tx('最大', 'Max'), color: '#f59e0b' },
-    { key: 'socEndLine', label: tx('期末', 'End'), color: '#a855f7' },
-  ]), [tx]);
   const toggleDashboardSeries = useCallback((key: DashboardForecastSeriesKey) => {
     setHiddenDashboardSeries((current) => ({
       ...current,
@@ -956,12 +993,6 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
   }, []);
   const togglePriceTrendSeries = useCallback((key: PriceTrendSeriesKey) => {
     setHiddenPriceTrendSeries((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
-  }, []);
-  const toggleSocSeries = useCallback((key: SocBoundsSeriesKey) => {
-    setHiddenSocSeries((current) => ({
       ...current,
       [key]: !current[key],
     }));
@@ -1073,15 +1104,13 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
     objective,
     strategyMode: {
       mode: strategyMode,
-      optimizationPeriod,
-      rollingWindow,
       dispatchMethod,
     },
     dispatchDraft,
   }, null, 2), [
     capKWh, curtPenalty, cycleCost, demandLimit, demandPenalty, dispatchDraft, dispatchMethod, dtMinutes, etaRoundTrip,
     exportLimit, importLimit, objective, pChMax, pDisMax, priceModelSnapshot, soc0Pct, socEndPct, socMaxPct,
-    socMinPct, optimizationPeriod, rollingWindow, strategyMode,
+    socMinPct, strategyMode,
   ]);
 
   const setTemplate = (template: PriceTemplate) => {
@@ -1249,61 +1278,52 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
                       contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }}
                       formatter={(value: number | string, name: string) => {
                         const seriesItem = dashboardForecastSeries.find((item) => item.label === name);
-                        const numeric = typeof value === 'number' ? fmt(value, seriesItem?.axis === 'price' ? 3 : 1) : value;
-                        return [`${numeric}${seriesItem?.axis === 'price' ? '' : ' kW'}`, name];
+                        const isPrice = seriesItem?.axis === 'price' || name === tx('下网电价', 'Grid Import Price');
+                        const numeric = typeof value === 'number' ? fmt(value, isPrice ? 3 : 1) : value;
+                        return [`${numeric}${isPrice ? '' : ' kW'}`, name];
                       }}
                     />
-                    {!hiddenDashboardSeries.loadKW && <Area yAxisId="power" type="monotone" dataKey="loadKW" name={copy.chart.loadForecast} stroke="#ef4444" fill="#ef4444" fillOpacity={0.035} strokeWidth={2} />}
-                    {!hiddenDashboardSeries.pvKW && <Area yAxisId="power" type="monotone" dataKey="pvKW" name={copy.chart.pvForecast} stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} strokeWidth={2} />}
-                    {!hiddenDashboardSeries.batteryPowerKW && <Area yAxisId="power" type="monotone" dataKey="batteryPowerKW" name={tx('储能功率', 'BESS Power')} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2.5} />}
+                    {(visibleDashboardPowerKeys.length > 0 || visibleDashboardPriceKeys.length > 0) && (
+                      <ReferenceLine
+                        x={currentDispatchMarkerTime}
+                        yAxisId={visibleDashboardPowerKeys.length > 0 ? 'power' : 'price'}
+                        stroke="#0f172a"
+                        strokeDasharray="4 4"
+                        strokeWidth={2}
+                        label={{ value: tx('当前时刻', 'Now', 'Maintenant'), position: 'insideTop', fill: chartColors.text, fontSize: 11, fontWeight: 800 }}
+                      />
+                    )}
+                    {!hiddenDashboardSeries.loadKW && <Area yAxisId="power" type="monotone" dataKey="loadForecastKW" name={tx('负荷预测', 'Load Forecast', 'Prévision de charge')} stroke="#ef4444" fill="#ef4444" fillOpacity={0.14} strokeWidth={2} connectNulls={false} baseValue={0} />}
+                    {!hiddenDashboardSeries.loadKW && <Area yAxisId="power" type="monotone" dataKey="loadActualKW" name={tx('负荷实际执行', 'Load Actual', 'Charge réelle')} stroke="#dc2626" fill="#ef4444" fillOpacity={0.3} strokeWidth={2.5} connectNulls={false} baseValue={0} />}
+                    {!hiddenDashboardSeries.pvKW && <Area yAxisId="power" type="monotone" dataKey="pvForecastKW" name={tx('光伏预测', 'PV Forecast', 'Prévision PV')} stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.16} strokeWidth={2} connectNulls={false} baseValue={0} />}
+                    {!hiddenDashboardSeries.pvKW && <Area yAxisId="power" type="monotone" dataKey="pvActualKW" name={tx('光伏实际执行', 'PV Actual', 'PV réel')} stroke="#d97706" fill="#f59e0b" fillOpacity={0.34} strokeWidth={2.5} connectNulls={false} baseValue={0} />}
+                    {!hiddenDashboardSeries.batteryPowerKW && <Area yAxisId="power" type="monotone" dataKey="batteryForecastKW" name={tx('储能功率预测', 'BESS Forecast', 'Prévision BESS')} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.16} strokeWidth={2} connectNulls={false} baseValue={0} />}
+                    {!hiddenDashboardSeries.batteryPowerKW && <Area yAxisId="power" type="monotone" dataKey="batteryActualKW" name={tx('储能功率实际执行', 'BESS Actual', 'BESS réel')} stroke="#2563eb" fill="#3b82f6" fillOpacity={0.34} strokeWidth={2.5} connectNulls={false} baseValue={0} />}
                     {!hiddenDashboardSeries.gridImportPrice && <Line yAxisId="price" type="monotone" dataKey="gridImportPrice" name={tx('下网电价', 'Grid Import Price')} stroke="#10b981" dot={false} strokeWidth={2.5} />}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <DashboardSmallChart
-                title={tx('电价趋势', 'Price Trend')}
-                subtitle=""
-                items={priceTrendSeries}
-                hidden={hiddenPriceTrendSeries}
-                onToggle={togglePriceTrendSeries}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={dashboardRows} margin={{ top: 8, right: 14, left: -12, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fill: chartColors.text }} interval={15} stroke={chartColors.text} />
-                    <YAxis domain={priceTrendDomain} tick={chartYAxisTick} stroke={chartColors.text} />
-                    <Tooltip contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }} />
-                    {!hiddenPriceTrendSeries.marketPriceEurMWh && <Line type="monotone" dataKey="marketPriceEurMWh" name={tx('市场电价', 'Market Price')} stroke="#8b5cf6" dot={false} strokeWidth={2.5} />}
-                    {!hiddenPriceTrendSeries.userPriceEurMWh && <Line type="monotone" dataKey="userPriceEurMWh" name={tx('用户综合电价', 'User Blended Price')} stroke="#ef4444" dot={false} strokeWidth={2.5} />}
-                    {!hiddenPriceTrendSeries.demandChargeEurMWh && <Line type="monotone" dataKey="demandChargeEurMWh" name={tx('容/需量费', 'Capacity/Demand Charge')} stroke="#14b8a6" dot={false} strokeWidth={2.5} />}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </DashboardSmallChart>
-
-              <DashboardSmallChart
-                title={tx('SOC 预测', 'SOC Forecast')}
-                subtitle=""
-                items={socBoundsSeries}
-                hidden={hiddenSocSeries}
-                onToggle={toggleSocSeries}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={dashboardRows} margin={{ top: 8, right: 14, left: -12, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fill: chartColors.text }} interval={15} stroke={chartColors.text} />
-                    <YAxis domain={[0, 100]} tick={chartYAxisTick} stroke={chartColors.text} />
-                    <Tooltip contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }} />
-                    {!hiddenSocSeries.socPct && <Line type="monotone" dataKey="socPct" name="SOC" stroke="#22c55e" dot={false} strokeWidth={3} />}
-                    {!hiddenSocSeries.socMinLine && <Line type="monotone" dataKey="socMinLine" name={tx('SOC最小', 'SOC Min')} stroke="#60a5fa" dot={false} strokeDasharray="6 6" />}
-                    {!hiddenSocSeries.socMaxLine && <Line type="monotone" dataKey="socMaxLine" name={tx('SOC最大', 'SOC Max')} stroke="#f59e0b" dot={false} strokeDasharray="6 6" />}
-                    {!hiddenSocSeries.socEndLine && <Line type="monotone" dataKey="socEndLine" name={tx('末期下限', 'End Min')} stroke="#a855f7" dot={false} strokeDasharray="6 6" />}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </DashboardSmallChart>
-            </div>
+            <DashboardSmallChart
+              title={tx('电价趋势', 'Price Trend')}
+              subtitle=""
+              items={priceTrendSeries}
+              hidden={hiddenPriceTrendSeries}
+              onToggle={togglePriceTrendSeries}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={dashboardRows} margin={{ top: 8, right: 14, left: -12, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                  <XAxis dataKey="time" tick={{ fontSize: 10, fill: chartColors.text }} interval={15} stroke={chartColors.text} />
+                  <YAxis domain={priceTrendDomain} tick={chartYAxisTick} stroke={chartColors.text} />
+                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltip, border: '1px solid rgba(148,163,184,.25)', borderRadius: 12, color: chartColors.text }} />
+                  {!hiddenPriceTrendSeries.marketPriceEurMWh && <Line type="monotone" dataKey="marketPriceEurMWh" name={tx('市场电价', 'Market Price')} stroke="#8b5cf6" dot={false} strokeWidth={2.5} />}
+                  {!hiddenPriceTrendSeries.userPriceEurMWh && <Line type="monotone" dataKey="userPriceEurMWh" name={tx('用户综合电价', 'User Blended Price')} stroke="#ef4444" dot={false} strokeWidth={2.5} />}
+                  {!hiddenPriceTrendSeries.demandChargeEurMWh && <Line type="monotone" dataKey="demandChargeEurMWh" name={tx('容/需量费', 'Capacity/Demand Charge')} stroke="#14b8a6" dot={false} strokeWidth={2.5} />}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </DashboardSmallChart>
           </div>
 
           <div className="space-y-3">
@@ -1488,13 +1508,47 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
   const exportMode = priceRules.pv_to_grid.mode === 'fixed' ? 'fixed' : 'market_discount';
   const pvToLoadMode = priceRules.pv_to_load.mode === 'fixed' ? 'fixed' : 'user_discount';
   const pvToBessMode = pvToBessPricingMode;
+  const objectiveReviewRows = useMemo(() => ([
+    { label: tx('当前策略', 'Current Strategy', 'Stratégie actuelle'), value: objectiveOptions.find((item) => item.key === objective)?.title ?? objectiveLabel(objective, lang) },
+  ]), [lang, objective, objectiveOptions, tx]);
+  const priceModelReviewRows = useMemo(() => {
+    const dynamicMarket = tx('动态市场电价', 'Dynamic market price', 'Prix de marché dynamique');
+    const dynamicUserPrice = tx('动态用户侧综合电价', 'Dynamic customer blended price', 'Prix client composite dynamique');
+    const exportPricing = exportMode === 'fixed'
+      ? `${tx('一口价', 'Fixed price', 'Prix fixe')} ${fmt(priceRules.pv_to_grid.fixed, 2)} ${priceUnitLabel}`
+      : `${tx('市场电价 * 折扣', 'Market price * discount', 'Prix de marché * remise')} (${dynamicMarket})`;
+    const pvToLoadPricing = pvToLoadMode === 'fixed'
+      ? `${tx('一口价', 'Fixed price', 'Prix fixe')} ${fmt(priceRules.pv_to_load.fixed, 2)} ${priceUnitLabel}`
+      : `${tx('用户侧综合电价 * 折扣', 'Customer blended price * discount', 'Prix client composite * remise')} (${dynamicUserPrice})`;
+    const pvToBessPricing = pvToBessMode === 'fixed'
+      ? `${tx('一口价', 'Fixed price', 'Prix fixe')} ${fmt(priceRules.pv_to_bess.fixed, 2)} ${priceUnitLabel}`
+      : pvToBessMode === 'user_discount'
+        ? `${tx('用户侧综合电价 * 折扣', 'Customer blended price * discount', 'Prix client composite * remise')} (${dynamicUserPrice})`
+        : tx('不结算', 'No settlement', 'Non valorisé');
+    return [
+      { label: tx('电价方案', 'Price plan', 'Plan tarifaire'), value: selectedPriceScheme ? `${selectedPriceScheme.name} / ${selectedPriceScheme.id}` : '-' },
+      { label: tx('下网电价', 'Import price', 'Prix d’import'), value: `${tx('市场电价 + 综合费', 'Market price + blended fee', 'Prix de marché + frais composites')} (${dynamicMarket})` },
+      { label: tx('上网电价', 'Export price', 'Prix d’export'), value: exportPricing },
+      { label: 'PV -> Load', value: pvToLoadPricing },
+      { label: 'PV -> BESS', value: pvToBessPricing },
+      { label: 'BESS -> Load', value: `${tx('用户侧综合电价 * 折扣', 'Customer blended price * discount', 'Prix client composite * remise')} (${dynamicUserPrice})` },
+    ];
+  }, [
+    exportMode, priceRules.pv_to_bess.fixed, priceRules.pv_to_grid.fixed,
+    priceRules.pv_to_load.fixed, priceUnitLabel, pvToBessMode, pvToLoadMode,
+    selectedPriceScheme, tx,
+  ]);
+  const optimizerEconomicsReviewRows = useMemo(() => ([
+    { label: copy.fields.cycleCost, value: `${fmt(cycleCost, 2)} ${copy.units.currency} / kWh` },
+    { label: copy.fields.curtailPenalty, value: `${fmt(curtPenalty, 2)} ${copy.units.currency} / kWh` },
+  ]), [copy.fields.curtailPenalty, copy.fields.cycleCost, copy.units.currency, curtPenalty, cycleCost]);
 
   const renderPriceMatrixWizard = (_compact = false) => (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-apple-border-dark dark:bg-apple-surface-dark">
       <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 p-3 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark/45 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="text-xs font-black uppercase tracking-wider text-slate-400">{tx('市场电价', 'Market Price')}</div>
-          <div className="mt-1 text-sm font-black text-slate-900 dark:text-white">{tx('选择用于价格矩阵计算的市场电价曲线', 'Select the market price curve used by the price matrix')}</div>
+          <div className="text-xs font-black uppercase tracking-wider text-slate-400">{tx('市场电价', 'Market Price', 'Prix de marché')}</div>
+          <div className="mt-1 text-sm font-black text-slate-900 dark:text-white">{tx('选择用于价格矩阵计算的市场电价曲线。综合费包含附加费与容/需量费用。', 'Select the market price curve used by the price matrix. The blended fee includes surcharges and capacity/demand charges.', 'Sélectionnez la courbe de prix de marché utilisée par la matrice tarifaire. Les frais composites incluent les surcharges et les frais de capacité/demande.')}</div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <SelectedPriceMiniPreview schemeName={selectedPriceScheme?.name ?? '-'} schemeId={selectedPriceScheme?.id ?? 'SCH-001'} />
@@ -1504,7 +1558,7 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
             className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-black text-white transition-colors hover:bg-brand-500"
           >
             <DollarSign size={17} />
-            {tx('配置市场电价', 'Configure Market Price')}
+            {tx('配置市场电价', 'Configure Market Price', 'Configurer le prix de marché')}
           </button>
         </div>
       </div>
@@ -1512,24 +1566,24 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
         <table className="w-full min-w-[680px] border-collapse text-xs">
           <thead className="bg-white text-xs font-black uppercase tracking-wider text-slate-500 dark:bg-apple-surface-dark dark:text-slate-400">
             <tr>
-              <th className="border-b border-slate-300 px-3 py-3 text-left dark:border-apple-border-dark">{tx('电价类型', 'Price Type')}</th>
-              <th className="border-b border-slate-300 px-3 py-3 text-left dark:border-apple-border-dark">{tx('能量流向', 'Energy Flow')}</th>
-              <th className="border-b border-slate-300 px-3 py-3 text-left dark:border-apple-border-dark">{tx('计价方式', 'Pricing Method')}</th>
-              <th className="border-b border-slate-300 px-3 py-3 text-left dark:border-apple-border-dark">{tx('参数', 'Parameter')}</th>
+              <th className="border-b border-slate-300 px-3 py-3 text-left dark:border-apple-border-dark">{tx('电价类型', 'Price Type', 'Type de prix')}</th>
+              <th className="border-b border-slate-300 px-3 py-3 text-left dark:border-apple-border-dark">{tx('能量流向', 'Energy Flow', 'Flux d’énergie')}</th>
+              <th className="border-b border-slate-300 px-3 py-3 text-left dark:border-apple-border-dark">{tx('计价方式', 'Pricing Method', 'Méthode de tarification')}</th>
+              <th className="border-b border-slate-300 px-3 py-3 text-left dark:border-apple-border-dark">{tx('参数', 'Parameter', 'Paramètre')}</th>
             </tr>
           </thead>
           <tbody>
             <PriceMatrixRow
-              group={tx('下网电价（用户侧综合电价）', 'Import Price (User-side Blended Price)')}
-              flow={tx('电网 →', 'Grid →')}
+              group={tx('下网电价（用户侧综合电价）', 'Import Price (Customer Blended Price)', 'Prix d’import (prix client composite)')}
+              flow={tx('电网 →', 'Grid →', 'Réseau →')}
               method={(
-                <CompactSelect id="grid-to-load-method" value="market_surcharge" openId={openMatrixDropdown} onOpenChange={setOpenMatrixDropdown} onChange={() => setFlowMarketSpread('grid_to_load')} options={[{ value: 'market_surcharge', label: tx('市场电价 + 附加费', 'Market Price + Surcharge') }]} />
+                <CompactSelect id="grid-to-load-method" value="market_surcharge" openId={openMatrixDropdown} onOpenChange={setOpenMatrixDropdown} onChange={() => setFlowMarketSpread('grid_to_load')} options={[{ value: 'market_surcharge', label: tx('市场电价 + 综合费', 'Market Price + Blended Fee', 'Prix de marché + frais composites') }]} />
               )}
-              parameter={<LabeledInlineInput label={tx('附加费', 'Surcharge')}><CompactNumberInput value={priceRules.grid_to_load.offset} onChange={(value) => setFlowMarketSpread('grid_to_load', value)} /></LabeledInlineInput>}
+              parameter={<LabeledInlineInput label={tx('综合费', 'Blended Fee', 'Frais composites')} unit={priceUnitLabel}><CompactNumberInput value={priceRules.grid_to_load.offset} onChange={(value) => setFlowMarketSpread('grid_to_load', value)} /></LabeledInlineInput>}
             />
             <PriceMatrixRow
-              group={tx('上网电价', 'Export Price')}
-              flow={tx('→ 电网', '→ Grid')}
+              group={tx('上网电价', 'Export Price', 'Prix d’export')}
+              flow={tx('→ 电网', '→ Grid', '→ Réseau')}
               method={(
                 <CompactSelect
                   id="export-method"
@@ -1537,16 +1591,16 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
                   openId={openMatrixDropdown}
                   onOpenChange={setOpenMatrixDropdown}
                   onChange={(value) => setExportMode(value as 'fixed' | 'market_discount')}
-                  options={[{ value: 'fixed', label: tx('一口价', 'Fixed Price') }, { value: 'market_discount', label: tx('市场电价 + 折扣', 'Market Price + Discount') }]}
+                  options={[{ value: 'fixed', label: tx('一口价', 'Fixed Price', 'Prix fixe') }, { value: 'market_discount', label: tx('市场电价 * 折扣', 'Market Price * Discount', 'Prix de marché * remise') }]}
                 />
               )}
               parameter={exportMode === 'fixed'
-                ? <LabeledInlineInput label={tx('一口价', 'Fixed Price')}><CompactNumberInput value={priceRules.pv_to_grid.fixed} onChange={(value) => { setFlowFixed('pv_to_grid', value); setFlowFixed('bess_to_grid', value); }} /></LabeledInlineInput>
-                : <LabeledInlineInput label={tx('折扣', 'Discount')}><CompactPercentInput value={priceRules.pv_to_grid.factor} onChange={(value) => { setFlowMarketDiscount('pv_to_grid', value); setFlowMarketDiscount('bess_to_grid', value); }} /></LabeledInlineInput>
+                ? <LabeledInlineInput label={tx('一口价', 'Fixed Price', 'Prix fixe')} unit={priceUnitLabel}><CompactNumberInput value={priceRules.pv_to_grid.fixed} onChange={(value) => { setFlowFixed('pv_to_grid', value); setFlowFixed('bess_to_grid', value); }} /></LabeledInlineInput>
+                : <LabeledInlineInput label={tx('折扣', 'Discount', 'Remise')}><CompactPercentInput value={priceRules.pv_to_grid.factor} onChange={(value) => { setFlowMarketDiscount('pv_to_grid', value); setFlowMarketDiscount('bess_to_grid', value); }} /></LabeledInlineInput>
               }
             />
             <PriceMatrixRow
-              group={tx('内部结算电价', 'Internal Settlement Price')}
+              group={tx('内部结算电价', 'Internal Settlement Price', 'Prix de règlement interne')}
               groupRowSpan={3}
               flow="PV → Load"
               method={(
@@ -1559,12 +1613,12 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
                     if (value === 'fixed') setFlowFixed('pv_to_load', priceRules.pv_to_load.fixed);
                     else setFlowUserDiscount('pv_to_load', priceRules.pv_to_load.factor || 0.9);
                   }}
-                  options={[{ value: 'fixed', label: tx('一口价', 'Fixed Price') }, { value: 'user_discount', label: tx('用户侧综合电价 + 折扣', 'User-side Price + Discount') }]}
+                  options={[{ value: 'fixed', label: tx('一口价', 'Fixed Price', 'Prix fixe') }, { value: 'user_discount', label: tx('用户侧综合电价 * 折扣', 'Customer Blended Price * Discount', 'Prix client composite * remise') }]}
                 />
               )}
               parameter={pvToLoadMode === 'fixed'
-                ? <LabeledInlineInput label={tx('一口价', 'Fixed Price')}><CompactNumberInput value={priceRules.pv_to_load.fixed} onChange={(value) => setFlowFixed('pv_to_load', value)} /></LabeledInlineInput>
-                : <LabeledInlineInput label={tx('折扣', 'Discount')}><CompactPercentInput value={priceRules.pv_to_load.factor} onChange={(value) => setFlowUserDiscount('pv_to_load', value)} /></LabeledInlineInput>
+                ? <LabeledInlineInput label={tx('一口价', 'Fixed Price', 'Prix fixe')} unit={priceUnitLabel}><CompactNumberInput value={priceRules.pv_to_load.fixed} onChange={(value) => setFlowFixed('pv_to_load', value)} /></LabeledInlineInput>
+                : <LabeledInlineInput label={tx('折扣', 'Discount', 'Remise')}><CompactPercentInput value={priceRules.pv_to_load.factor} onChange={(value) => setFlowUserDiscount('pv_to_load', value)} /></LabeledInlineInput>
               }
             />
             <PriceMatrixRow
@@ -1576,22 +1630,22 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
                   openId={openMatrixDropdown}
                   onOpenChange={setOpenMatrixDropdown}
                   onChange={(value) => setPvToBessMode(value as 'fixed' | 'user_discount' | 'none')}
-                  options={[{ value: 'fixed', label: tx('一口价', 'Fixed Price') }, { value: 'user_discount', label: tx('用户侧综合电价 + 折扣', 'User-side Price + Discount') }, { value: 'none', label: tx('不结算', 'No Settlement') }]}
+                  options={[{ value: 'fixed', label: tx('一口价', 'Fixed Price', 'Prix fixe') }, { value: 'user_discount', label: tx('用户侧综合电价 * 折扣', 'Customer Blended Price * Discount', 'Prix client composite * remise') }, { value: 'none', label: tx('不结算', 'No Settlement', 'Non valorisé') }]}
                 />
               )}
               parameter={pvToBessMode === 'fixed'
-                ? <LabeledInlineInput label={tx('一口价', 'Fixed Price')}><CompactNumberInput value={priceRules.pv_to_bess.fixed} onChange={(value) => setFlowFixed('pv_to_bess', value)} /></LabeledInlineInput>
+                ? <LabeledInlineInput label={tx('一口价', 'Fixed Price', 'Prix fixe')} unit={priceUnitLabel}><CompactNumberInput value={priceRules.pv_to_bess.fixed} onChange={(value) => setFlowFixed('pv_to_bess', value)} /></LabeledInlineInput>
                 : pvToBessMode === 'user_discount'
-                  ? <LabeledInlineInput label={tx('折扣', 'Discount')}><CompactPercentInput value={priceRules.pv_to_bess.factor} onChange={(value) => setFlowUserDiscount('pv_to_bess', value)} /></LabeledInlineInput>
-                  : <DisabledCell>{tx('不结算', 'No Settlement')}</DisabledCell>
+                  ? <LabeledInlineInput label={tx('折扣', 'Discount', 'Remise')}><CompactPercentInput value={priceRules.pv_to_bess.factor} onChange={(value) => setFlowUserDiscount('pv_to_bess', value)} /></LabeledInlineInput>
+                  : <DisabledCell>{tx('不结算', 'No Settlement', 'Non valorisé')}</DisabledCell>
               }
             />
             <PriceMatrixRow
               flow="BESS → Load"
               method={(
-                <CompactSelect id="bess-to-load-method" value="user_discount" openId={openMatrixDropdown} onOpenChange={setOpenMatrixDropdown} onChange={() => setFlowUserDiscount('bess_to_load')} options={[{ value: 'user_discount', label: tx('用户侧综合电价 + 折扣', 'User-side Price + Discount') }]} />
+                <CompactSelect id="bess-to-load-method" value="user_discount" openId={openMatrixDropdown} onOpenChange={setOpenMatrixDropdown} onChange={() => setFlowUserDiscount('bess_to_load')} options={[{ value: 'user_discount', label: tx('用户侧综合电价 * 折扣', 'Customer Blended Price * Discount', 'Prix client composite * remise') }]} />
               )}
-              parameter={<LabeledInlineInput label={tx('折扣', 'Discount')}><CompactPercentInput value={priceRules.bess_to_load.factor} onChange={(value) => setFlowUserDiscount('bess_to_load', value)} /></LabeledInlineInput>}
+              parameter={<LabeledInlineInput label={tx('折扣', 'Discount', 'Remise')}><CompactPercentInput value={priceRules.bess_to_load.factor} onChange={(value) => setFlowUserDiscount('bess_to_load', value)} /></LabeledInlineInput>}
             />
           </tbody>
         </table>
@@ -1685,7 +1739,6 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
             <TextField label={copy.fields.exportLimit} value={exportLimit} onChange={setExportLimit} />
             <TextField label={copy.fields.importLimit} value={importLimit} onChange={setImportLimit} />
             <TextField label={copy.fields.demandLimit} value={demandLimit} onChange={setDemandLimit} />
-            <Field label={copy.fields.demandPenalty} value={demandPenalty} onChange={setDemandPenalty} />
             <Field label={copy.fields.cycleCost} value={cycleCost} onChange={setCycleCost} step={0.01} />
             <Field label={copy.fields.curtailPenalty} value={curtPenalty} onChange={setCurtPenalty} step={0.01} />
           </div>
@@ -1902,72 +1955,6 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
 
   const renderGuideBody = (step: ConfigGuideStep) => {
     switch (step) {
-      case 'source':
-        return (
-          <div className="space-y-5">
-            <GuideStepHeader
-              stepPrefix={copy.setupGuide.stepPrefix}
-              current={guideStep + 1}
-              total={CONFIG_GUIDE_STEPS.length}
-              title={copy.setupGuide.steps.source}
-              subtitle={copy.setupGuide.stepHints.source}
-            />
-
-            <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-              <div className="flex h-full flex-col rounded-2xl bg-white p-4 ring-1 ring-slate-100 dark:bg-apple-surface-dark dark:ring-white/5">
-                <div className="mb-4 flex min-h-[72px] items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3 dark:bg-apple-surface-secondary-dark/50">
-                  <div>
-                    <h3 className="text-base font-black text-slate-900 dark:text-white">{copy.setupGuide.sourceConfig.configTitle}</h3>
-                    <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">{copy.setupGuide.sourceConfig.configHint}</p>
-                  </div>
-                </div>
-                <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
-                  <SourceDropdown id="load" label={copy.setupGuide.sourceConfig.load} value="Load_P_Total_kW" options={[{ value: 'Load_P_Total_kW', label: 'Load_P_Total_kW' }]} openId={openSourceDropdown} onOpenChange={setOpenSourceDropdown} />
-                  <SourceDropdown id="pv" label={copy.setupGuide.sourceConfig.pv} value="PV_P_Total_kW" options={[{ value: 'PV_P_Total_kW', label: 'PV_P_Total_kW' }]} openId={openSourceDropdown} onOpenChange={setOpenSourceDropdown} />
-                  <SourceDropdown id="bess" label={copy.setupGuide.sourceConfig.bess} value="BESS_P_Total_kW" options={[{ value: 'BESS_P_Total_kW', label: 'BESS_P_Total_kW' }]} openId={openSourceDropdown} onOpenChange={setOpenSourceDropdown} />
-                  <SourceDropdown id="grid" label={copy.setupGuide.sourceConfig.grid} value="Grid_PCC_Power" options={[{ value: 'Grid_PCC_Power', label: 'Grid_PCC_Power' }]} openId={openSourceDropdown} onOpenChange={setOpenSourceDropdown} />
-                  <SourceDropdown id="soc" label={copy.setupGuide.sourceConfig.soc} value="BESS_SOC_Avg" options={[{ value: 'BESS_SOC_Avg', label: 'BESS_SOC_Avg' }]} openId={openSourceDropdown} onOpenChange={setOpenSourceDropdown} />
-                  <SourceDropdown id="refresh" label={copy.setupGuide.sourceConfig.refresh} value="5s" options={[{ value: '5s', label: lang === 'zh' ? '5秒' : '5 sec' }]} openId={openSourceDropdown} onOpenChange={setOpenSourceDropdown} />
-                </div>
-              </div>
-
-              <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-brand-50/60 ring-1 ring-brand-100/80 dark:bg-brand-500/10 dark:ring-brand-500/20">
-                <div className="flex min-h-[72px] flex-col justify-center bg-brand-100/50 px-4 py-3 dark:bg-brand-500/10">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-black text-brand-900 dark:text-brand-100">{copy.setupGuide.sourceConfig.directionTitle}</h3>
-                    <span className="rounded-full bg-white/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-700 dark:bg-white/10 dark:text-brand-200">
-                      {copy.setupGuide.sourceConfig.readonly}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-[11px] font-bold leading-snug text-brand-700/70 dark:text-brand-100/70">{copy.setupGuide.sourceConfig.directionHint}</p>
-                </div>
-                <div className="flex-1 overflow-x-auto">
-                <table className="w-full min-w-[460px] text-xs">
-                  <thead className="bg-white/35 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:bg-white/[0.03]">
-                    <tr>
-                      <th className="px-3 py-2 text-left">{copy.setupGuide.sourceConfig.asset}</th>
-                      <th className="px-3 py-2 text-left">{copy.setupGuide.sourceConfig.convention}</th>
-                      <th className="px-3 py-2 text-left">{copy.setupGuide.sourceConfig.usage}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-100/60 dark:divide-white/5">
-                    {(['load', 'pv', 'bess', 'grid'] as const).map((key) => {
-                      const row = copy.setupGuide.sourceConfig.rows[key];
-                      return (
-                        <tr key={key} className="bg-white/55 dark:bg-white/5">
-                          <td className="whitespace-nowrap px-3 py-2 font-black text-slate-900 dark:text-white">{row[0]}</td>
-                          <td className="whitespace-nowrap px-3 py-2 font-bold text-slate-700 dark:text-slate-200">{row[1]}</td>
-                          <td className="px-3 py-2 font-bold leading-snug text-slate-500 dark:text-slate-400">{row[2]}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
       case 'price':
         return (
           <div className="space-y-5">
@@ -1994,40 +1981,38 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
             <div className="rounded-3xl bg-white p-3 ring-1 ring-slate-100 dark:bg-apple-surface-dark dark:ring-white/5">
               <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                 <div className="rounded-2xl bg-slate-50/80 p-3 dark:bg-apple-surface-secondary-dark/45">
-                  <SolverGroupTitle index="01" title={tx('设备参数', 'Asset')} subtitle={tx('容量、功率与效率', 'Capacity, power and efficiency')} />
+                  <SolverGroupTitle index="01" title={tx('优化与经济参数', 'Optimizer Cost Parameters', 'Paramètres économiques de l’optimiseur')} subtitle={tx('惩罚成本与策略偏好', 'Cost parameters and dispatch preferences', 'Paramètres de coût et préférences de dispatch')} />
                   <div className="mt-2.5 grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                    <Field label={copy.fields.capacity} value={capKWh} onChange={setCapKWh} />
-                    <Field label={copy.fields.chargePower} value={pChMax} onChange={setPChMax} />
-                    <Field label={copy.fields.dischargePower} value={pDisMax} onChange={setPDisMax} />
-                    <Field label={copy.fields.efficiency} value={etaRoundTrip} onChange={setEtaRoundTrip} step={0.01} />
+                    <Field label={copy.fields.cycleCost} value={cycleCost} onChange={setCycleCost} step={0.01} unit={`${copy.units.currency} / kWh`} />
+                    <Field label={copy.fields.curtailPenalty} value={curtPenalty} onChange={setCurtPenalty} step={0.01} unit={`${copy.units.currency} / kWh`} />
                   </div>
                 </div>
 
-                <div className="rounded-2xl bg-brand-50/70 p-3 ring-1 ring-brand-100/70 dark:bg-brand-500/10 dark:ring-brand-500/20">
-                  <SolverGroupTitle index="02" title={tx('SOC策略', 'Battery Strategy')} subtitle={tx('运行边界与期末要求', 'Operating bounds and end target')} accent />
-                  <div className="mt-2.5 grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                    <Field label={copy.fields.socMin} value={socMinPct} onChange={setSocMinPct} />
-                    <Field label={copy.fields.socMax} value={socMaxPct} onChange={setSocMaxPct} />
-                    <Field label={copy.fields.endSoc} value={socEndPct} onChange={setSocEndPct} />
+                <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-brand-50/60 ring-1 ring-brand-100/80 dark:bg-brand-500/10 dark:ring-brand-500/20">
+                  <div className="flex min-h-[72px] flex-col justify-center bg-brand-100/50 px-4 py-3 dark:bg-brand-500/10">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-black text-brand-900 dark:text-brand-100">{tx('电网约束', 'Grid Constraints', 'Contraintes réseau')}</h3>
+                      <span className="rounded-full bg-white/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-700 dark:bg-white/10 dark:text-brand-200">
+                        {copy.setupGuide.sourceConfig.readonly}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] font-bold leading-snug text-brand-700/70 dark:text-brand-100/70">{tx('外送、购电与需量限制', 'Export, import, and demand limits', 'Limites d’export, d’import et de demande')}</p>
                   </div>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50/80 p-3 dark:bg-apple-surface-secondary-dark/45">
-                  <SolverGroupTitle index="03" title={tx('电网约束', 'Grid Constraints')} subtitle={tx('外送、购电与需量限制', 'Export, import and demand limits')} />
-                  <div className="mt-2.5 grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                    <TextField label={copy.fields.exportLimit} value={exportLimit} onChange={setExportLimit} />
-                    <TextField label={copy.fields.importLimit} value={importLimit} onChange={setImportLimit} />
-                    <TextField label={copy.fields.demandLimit} value={demandLimit} onChange={setDemandLimit} />
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50/80 p-3 dark:bg-apple-surface-secondary-dark/45">
-                  <SolverGroupTitle index="04" title={tx('优化与经济参数', 'Optimizer & Economics')} subtitle={tx('步长、惩罚成本与策略偏好', 'Interval, penalty costs and preferences')} />
-                  <div className="mt-2.5 grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                    <Field label={copy.fields.dt} value={dtMinutes} onChange={setDtMinutes} />
-                    <Field label={copy.fields.demandPenalty} value={demandPenalty} onChange={setDemandPenalty} />
-                    <Field label={copy.fields.cycleCost} value={cycleCost} onChange={setCycleCost} step={0.01} />
-                    <Field label={copy.fields.curtailPenalty} value={curtPenalty} onChange={setCurtPenalty} step={0.01} />
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[460px] text-xs">
+                      <tbody className="divide-y divide-brand-100/60 dark:divide-white/5">
+                        {[
+                          [copy.fields.exportLimit, `${exportLimit} kW`],
+                          [copy.fields.importLimit, `${importLimit} kW`],
+                          [copy.fields.demandLimit, `${demandLimit} kW`],
+                        ].map(([label, value]) => (
+                          <tr key={label} className="bg-white/55 dark:bg-white/5">
+                            <td className="whitespace-nowrap px-3 py-2 font-black text-slate-900 dark:text-white">{label}</td>
+                            <td className="px-3 py-2 font-bold leading-snug text-slate-500 dark:text-slate-400">{value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -2061,74 +2046,135 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
                 ))}
               </div>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                <ObjectiveHint label={tx('优化优先级', 'Optimization Priority')} value={objectiveOptions.find((item) => item.key === objective)?.title ?? objectiveLabel(objective, lang)} />
+                <ObjectiveHint label={tx('当前策略', 'Current Strategy', 'Stratégie actuelle')} value={objectiveOptions.find((item) => item.key === objective)?.title ?? objectiveLabel(objective, lang)} />
                 <ObjectiveHint label={tx('约束处理', 'Constraint Handling')} value={tx('SOC / 并网 / 需量边界优先满足', 'SOC / grid / demand bounds first')} />
                 <ObjectiveHint label={tx('输出策略', 'Dispatch Output')} value={tx('生成可下发时段策略', 'Dispatchable time-block strategy')} />
               </div>
             </div>
           </div>
         );
-      case 'mode':
+      case 'review':
         return (
           <div className="space-y-5">
             <GuideStepHeader
               stepPrefix={copy.setupGuide.stepPrefix}
               current={guideStep + 1}
               total={CONFIG_GUIDE_STEPS.length}
-              title={copy.setupGuide.steps.mode}
-              subtitle={copy.setupGuide.stepHints.mode}
+              title={copy.setupGuide.steps.review}
+              subtitle={copy.setupGuide.stepHints.review}
             />
-            <div className="grid grid-cols-1 gap-3">
-                <StrategyModeCard
-                  active={strategyMode === 'rolling'}
-                  title={tx('滚动优化', 'Rolling Optimization')}
-                  description={tx('周期重算未来窗口策略。', 'Periodically recalculate the future rolling window.')}
-                  onClick={() => setStrategyMode('rolling')}
-                />
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-              <SourceDropdown
-                id="mode-optimization-period"
-                label={tx('优化周期', 'Optimization Period')}
-                value={optimizationPeriod}
-                onChange={setOptimizationPeriod}
-                openId={openSourceDropdown}
-                onOpenChange={setOpenSourceDropdown}
-                options={[
-                  { value: '5分钟', label: tx('5分钟', '5 min') },
-                  { value: '15分钟', label: tx('15分钟', '15 min') },
-                  { value: '30分钟', label: tx('30分钟', '30 min') },
-                  { value: '60分钟', label: tx('60分钟', '60 min') },
-                ]}
-              />
-              <SourceDropdown
-                id="mode-rolling-window"
-                label={tx('滚动窗口', 'Rolling Window')}
-                value={rollingWindow}
-                onChange={setRollingWindow}
-                openId={openSourceDropdown}
-                onOpenChange={setOpenSourceDropdown}
-                options={[
-                  { value: '12h', label: tx('未来12小时', 'Next 12 hours') },
-                  { value: '24h', label: tx('未来24小时', 'Next 24 hours') },
-                  { value: '48h', label: tx('未来48小时', 'Next 48 hours') },
-                ]}
-              />
-              <SourceDropdown
-                id="mode-dispatch-method"
-                label={tx('下发方式', 'Dispatch Method')}
-                value={dispatchMethod}
-                onChange={setDispatchMethod}
-                openId={openSourceDropdown}
-                onOpenChange={setOpenSourceDropdown}
-                options={[
-                  { value: 'auto_after_recalc', label: tx('自动下发', 'Auto Dispatch') },
-                  { value: 'draft_only', label: tx('生成草稿不下发', 'Generate Draft without Dispatch') },
-                ]}
-              />
-            </div>
+            <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+              <div className="space-y-4">
+                <ReviewCard
+                  title={tx('策略目标配置', 'Strategy Objective', 'Objectif stratégique')}
+                  subtitle={tx('当前优化目标与输出约束。', 'Current optimization target for the station.', 'Objectif d’optimisation actuel de la station.')}
+                  readonlyLabel={copy.setupGuide.sourceConfig.readonly}
+                >
+                  <ReviewRows rows={objectiveReviewRows} />
+                </ReviewCard>
 
+                <ReviewCard
+                  title={tx('优化与经济参数', 'Optimizer Cost Parameters', 'Paramètres économiques de l’optimiseur')}
+                  subtitle={tx('惩罚成本参数，仅供最终检查。', 'Cost parameters for final review.', 'Paramètres de coût à vérifier avant validation.')}
+                  readonlyLabel={copy.setupGuide.sourceConfig.readonly}
+                >
+                  <ReviewRows rows={optimizerEconomicsReviewRows} />
+                </ReviewCard>
+
+                <div className="rounded-3xl bg-white p-3 ring-1 ring-slate-100 dark:bg-apple-surface-dark dark:ring-white/5">
+                  <div className="grid grid-cols-1 gap-3">
+                    <StrategyModeCard
+                      active={strategyMode === 'rolling'}
+                      title={tx('滚动优化', 'Rolling Optimization', 'Optimisation glissante')}
+                      description={tx('策略按新的预测和价格曲线持续重算。', 'The strategy is recalculated as forecasts and price curves are updated.', 'La stratégie est recalculée au fil des mises à jour des prévisions et des courbes de prix.')}
+                      onClick={() => setStrategyMode('rolling')}
+                    />
+                    <SourceDropdown
+                      id="mode-dispatch-method"
+                      label={tx('下发方式', 'Dispatch Method', 'Mode de déploiement')}
+                      value={dispatchMethod}
+                      onChange={setDispatchMethod}
+                      openId={openSourceDropdown}
+                      onOpenChange={setOpenSourceDropdown}
+                      options={[
+                        { value: 'auto_after_recalc', label: tx('自动下发', 'Auto Dispatch', 'Déploiement automatique') },
+                        { value: 'draft_only', label: tx('生成草稿不下发', 'Generate Draft without Dispatch', 'Générer un brouillon sans déployer') },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <ReviewCard
+                  title={tx('电价模型参数', 'Price Model Parameters', 'Paramètres du modèle tarifaire')}
+                  subtitle={tx('电价方案、计价规则与负价处理。', 'Price plan and pricing rules used for final review.', 'Plan tarifaire et règles de tarification à vérifier avant validation.')}
+                  readonlyLabel={copy.setupGuide.sourceConfig.readonly}
+                >
+                  <ReviewRows rows={priceModelReviewRows} minWidth="560px" />
+                </ReviewCard>
+
+                <div className="flex flex-col overflow-hidden rounded-2xl bg-brand-50/60 ring-1 ring-brand-100/80 dark:bg-brand-500/10 dark:ring-brand-500/20">
+                  <div className="flex min-h-[72px] flex-col justify-center bg-brand-100/50 px-4 py-3 dark:bg-brand-500/10">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-black text-brand-900 dark:text-brand-100">{copy.setupGuide.sourceConfig.configTitle}</h3>
+                      <span className="rounded-full bg-white/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-700 dark:bg-white/10 dark:text-brand-200">
+                        {copy.setupGuide.sourceConfig.readonly}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] font-bold leading-snug text-brand-700/70 dark:text-brand-100/70">{copy.setupGuide.sourceConfig.configHint}</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[460px] text-xs">
+                      <tbody className="divide-y divide-brand-100/60 dark:divide-white/5">
+                        {sourceBindings.map((item) => (
+                          <tr key={item.key} className="bg-white/55 dark:bg-white/5">
+                            <td className="whitespace-nowrap px-3 py-2 font-black text-slate-900 dark:text-white">{item.label}</td>
+                            <td className="px-3 py-2 font-bold leading-snug text-slate-500 dark:text-slate-400">{item.value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex flex-col overflow-hidden rounded-2xl bg-brand-50/60 ring-1 ring-brand-100/80 dark:bg-brand-500/10 dark:ring-brand-500/20">
+                  <div className="flex min-h-[72px] flex-col justify-center bg-brand-100/50 px-4 py-3 dark:bg-brand-500/10">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-black text-brand-900 dark:text-brand-100">{copy.setupGuide.sourceConfig.directionTitle}</h3>
+                      <span className="rounded-full bg-white/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-700 dark:bg-white/10 dark:text-brand-200">
+                        {copy.setupGuide.sourceConfig.readonly}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] font-bold leading-snug text-brand-700/70 dark:text-brand-100/70">{copy.setupGuide.sourceConfig.directionHint}</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[460px] text-xs">
+                      <thead className="bg-white/35 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:bg-white/[0.03]">
+                        <tr>
+                          <th className="px-3 py-2 text-left">{copy.setupGuide.sourceConfig.asset}</th>
+                          <th className="px-3 py-2 text-left">{copy.setupGuide.sourceConfig.convention}</th>
+                          <th className="px-3 py-2 text-left">{copy.setupGuide.sourceConfig.usage}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-brand-100/60 dark:divide-white/5">
+                        {(['load', 'pv', 'bess', 'grid'] as const).map((key) => {
+                          const row = copy.setupGuide.sourceConfig.rows[key];
+                          return (
+                            <tr key={key} className="bg-white/55 dark:bg-white/5">
+                              <td className="whitespace-nowrap px-3 py-2 font-black text-slate-900 dark:text-white">{row[0]}</td>
+                              <td className="whitespace-nowrap px-3 py-2 font-bold text-slate-700 dark:text-slate-200">{row[1]}</td>
+                              <td className="px-3 py-2 font-bold leading-snug text-slate-500 dark:text-slate-400">{row[2]}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         );
       default:
@@ -2236,6 +2282,20 @@ const AIDispatchOptimizer: React.FC<AIDispatchOptimizerProps> = ({
                       <div className="mt-1 text-sm font-black text-slate-100">{item.value}</div>
                     </div>
                   ))}
+                  {isOptimizerEnabled && (
+                    <div className="flex min-w-[250px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-400/15 text-brand-300">
+                        <CloudSun size={22} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">{tx('天气数据', 'Weather Data', 'Données météo')}</div>
+                        <div className="mt-1 text-sm font-black text-slate-100">{weatherSnapshot.temperature} · {weatherSnapshot.condition}</div>
+                        <div className="mt-0.5 text-[11px] font-bold text-slate-400">
+                          {tx('辐照度', 'Irradiance', 'Irradiance')} {weatherSnapshot.irradiance} · {tx('风速', 'Wind', 'Vent')} {weatherSnapshot.wind}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -2754,6 +2814,49 @@ function StrategyModeCard({ active, title, description, onClick }: { active: boo
   );
 }
 
+function ReadOnlyInfoField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-h-8 items-center justify-between gap-3 px-1 py-1.5">
+      <span className="min-w-0 flex-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">{label}</span>
+      <span className="min-w-0 flex-1 truncate text-right text-sm font-black text-slate-800 dark:text-slate-100">{value}</span>
+    </div>
+  );
+}
+
+function ReviewCard({ title, subtitle, readonlyLabel, children }: { title: string; subtitle: string; readonlyLabel: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl bg-brand-50/60 ring-1 ring-brand-100/80 dark:bg-brand-500/10 dark:ring-brand-500/20">
+      <div className="flex min-h-12 flex-col justify-center bg-brand-100/50 px-3 py-2 dark:bg-brand-500/10">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xs font-black text-brand-900 dark:text-brand-100">{title}</h3>
+          <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-brand-700 dark:bg-white/10 dark:text-brand-200">
+            {readonlyLabel}
+          </span>
+        </div>
+        <p className="mt-0.5 text-[10px] font-bold leading-tight text-brand-700/70 dark:text-brand-100/70">{subtitle}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ReviewRows({ rows, minWidth = '460px' }: { rows: Array<{ label: string; value: string }>; minWidth?: string }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs" style={{ minWidth }}>
+        <tbody className="divide-y divide-brand-100/60 dark:divide-white/5">
+          {rows.map((row) => (
+            <tr key={`${row.label}-${row.value}`} className="bg-white/55 dark:bg-white/5">
+              <td className="whitespace-nowrap px-3 py-1.5 font-black text-slate-900 dark:text-white">{row.label}</td>
+              <td className="px-3 py-1.5 font-bold leading-snug text-slate-500 dark:text-slate-400">{row.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function SourceDropdown({
   id,
   label,
@@ -2818,11 +2921,14 @@ function SourceDropdown({
   );
 }
 
-function Field({ label, value, onChange, step = 1 }: { label: string; value: number; onChange: (value: number) => void; step?: number }) {
+function Field({ label, value, onChange, step = 1, unit }: { label: string; value: number; onChange: (value: number) => void; step?: number; unit?: string }) {
   return (
     <label className="block">
       <Label>{label}</Label>
-      <input className={`${inputClass} mt-2`} type="number" step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <div className={`mt-2 ${unit ? 'flex overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/15 dark:border-apple-border-dark dark:bg-apple-surface-secondary-dark dark:focus-within:border-brand-500/70' : ''}`}>
+        <input className={unit ? 'min-w-0 flex-1 bg-transparent px-3 py-2 text-sm font-bold text-slate-700 outline-none dark:text-slate-200' : inputClass} type="number" step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
+        {unit && <span className="flex items-center border-l border-slate-200 px-3 text-xs font-black text-slate-400 dark:border-apple-border-dark">{unit}</span>}
+      </div>
     </label>
   );
 }
@@ -2994,11 +3100,12 @@ function CompactSelect({
   );
 }
 
-function LabeledInlineInput({ label, children }: { label: string; children: React.ReactNode }) {
+function LabeledInlineInput({ label, unit, children }: { label: string; unit?: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[64px_1fr] items-center gap-2">
+    <div className={`grid items-center gap-2 ${unit ? 'grid-cols-[64px_minmax(0,1fr)_auto]' : 'grid-cols-[64px_1fr]'}`}>
       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{label}</span>
       {children}
+      {unit && <span className="whitespace-nowrap text-[10px] font-black text-slate-400">{unit}</span>}
     </div>
   );
 }
